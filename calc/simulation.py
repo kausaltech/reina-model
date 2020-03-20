@@ -74,13 +74,13 @@ class Person:
         context.pop.recover()
 
     def hospitalize(self, context):
-        self.hospital_days_left = 14
-        if context.random.chance(0.30):
+        ICU_CHANCE = 0.25
+        if context.random.chance(ICU_CHANCE):
             if not context.hc_cap.to_icu():
                 # If no ICU units are available, ...
                 self.die(context)
                 return
-            self.icu_days_left = 14
+            self.icu_days_left = 14  # 14-21?
         else:
             if not context.hc_cap.hospitalize():
                 # If no beds are available, 20 % chance to die.
@@ -113,7 +113,7 @@ class Person:
         self.immunity = 1
         context.pop.die()
 
-    def infect_others(self, context, nr_contacts):
+    def expose_others(self, context, nr_contacts):
         people = context.people
         for i in range(nr_contacts):
             exposee_idx = int(context.random.get() * len(people))
@@ -124,14 +124,14 @@ class Person:
             self.incubation_days_left -= 1
             if self.incubation_days_left == 0:
                 self.symptomatic_days_left = 7
-            self.infect_others(context, 15)
+            self.expose_others(context, 15)
             return
 
         if self.symptomatic_days_left:
             self.symptomatic_days_left -= 1
-            self.infect_others(context, 7)
+            self.expose_others(context, 7)
             if self.symptomatic_days_left == 0:
-                HOSPITALIZATION_CHANCE = 0.01
+                HOSPITALIZATION_CHANCE = 0.15
                 if context.random.chance(HOSPITALIZATION_CHANCE):
                     self.hospitalize(context)
                 else:
@@ -139,7 +139,7 @@ class Person:
             return
 
         if self.hospital_days_left:
-            self.infect_others(context, 2)
+            self.expose_others(context, 2)
             self.hospital_days_left -= 1
             if self.hospital_days_left == 0:
                 self.release_from_hospital(context, from_icu=False)
