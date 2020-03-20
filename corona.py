@@ -11,10 +11,10 @@ import dash_bootstrap_components as dbc
 import plotly.graph_objs as go
 from dash.dependencies import Input, Output, State
 
-from calc.sir import simulate_progress
+from calc.sir import simulate_individuals
 from components.cards import GraphCard
 from components.graphs import make_layout
-from variables import set_variable
+from variables import set_variable, get_variable
 
 
 os.environ['DASH_PRUNE_ERRORS'] = 'False'
@@ -36,7 +36,7 @@ with server.app_context():
 app.layout = dbc.Container([dbc.Row([dbc.Col([
     dbc.Row([
         dbc.Col([
-            html.H2('Koronaepidemian kehittyminen'),
+            html.H2('Koronaepidemian kehittyminen: %s' % get_variable('area_name')),
         ], className='mb-4'),
     ], className='mt-4'),
     dbc.Row([
@@ -66,7 +66,8 @@ app.layout = dbc.Container([dbc.Row([dbc.Col([
 )
 def building_selector_callback(r0_value):
     set_variable('r0', r0_value / 10)
-    df = simulate_progress()
+    df = simulate_individuals()
+    # df = df.drop(columns='susceptible')
     card = GraphCard('sir', graph=dict(config=dict(responsive=False)))
 
     t0 = pd.date_range(date.today(), periods=df.index.max())
