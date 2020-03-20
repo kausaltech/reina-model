@@ -1,0 +1,104 @@
+$archer-width: 8px;
+$archer-color: #a1a1a1;
+
+body, html {
+  background-color: #f2f2f2;
+}
+
+.app-content {
+  min-width: 760px;
+  margin-top: 4em;
+  margin-bottom: 200px;
+}
+
+.summary-card {
+  .card-title {
+    font-size: 1.2rem;
+  }
+  &__value {
+    font-weight: bold;
+    color: grey;
+  }
+  &__year {
+    color: grey;
+  }
+}
+
+.slider-card {
+  //background-color: $hel-fog;
+  &__content {
+    display: flex;
+  }
+  &__graph {
+    flex: 1 1 400px;
+    //background-color: $hel-tram;
+  }
+  &__slider {
+    flex: 0 0 70px;
+    padding: 15px;
+    .rc-slider-handle {
+      border-radius: 0;
+      border-color: $hel-black;
+      background-color: $hel-black;
+    }
+    .rc-slider-dot-active {
+      border-color: $hel-suomenlinna;
+    }
+    .rc-slider-track {
+      background-color: $hel-metro;
+    }
+    .rc-slider-mark {
+      width: 50px;
+      margin-top: -17px;
+    }
+  }
+}
+
+.page-summary {
+  margin: 0;
+  background-color: $hel-silver;
+  box-shadow: 3px 3px 5px 6px #ccc;
+  text-align: right;
+
+  &__totals {
+    font-size: 1.5em;
+    font-weight: bold;
+  }
+
+  &__total {
+    display: inline-block;
+
+    &--good {
+      color: $hel-tram;
+    }
+
+    &--bad {
+      color: $hel-brick;
+    }
+  }
+
+  &__target {
+    display: inline-block;
+    margin-left: .65em;
+  }
+
+  .unit {
+    font-size: 66%;
+  }
+}
+
+// Hide Dash dev tool stickies for generate_heat_use_per_net_area_forecast_new_buildings
+
+.dash-debug-menu, ._dash-undo-redo {
+  display: none !important;
+}
+
+// Cards
+
+.card-border-top    { border-top:    $archer-width solid $archer-color; }
+.card-border-bottom { border-bottom: $archer-width solid $archer-color; }
+
+.grid-downstream-card { margin-top:   125px; }
+.grid-unconnected-downstream-card { margin-top:   125px + $archer-width; }
+
+.plot .scatter .lines { stroke-linecap: round; }

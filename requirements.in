@@ -1,0 +1,26 @@
+pandas
+scipy
+quilt
+dash
+dash-html-components
+dash-core-components
+dash-table
+dash-daq
+dash-bootstrap-components
+Flask-Caching
+Flask-Session
+Flask-Babel
+gunicorn
+matplotlib
+python-dotenv
+pint
+dash-archer
+redis
+colour
+numba
+python-snappy
+fastparquet
+cython
+# workarounds below
+werkzeug<1.0
+futures<3.2.0

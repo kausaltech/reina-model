@@ -1,0 +1,11 @@
+{
+  "dependencies": {
+    "node-sass": "^4.12.0",
+    "open-city-design": "^1.0.0-alpha.3"
+  },
+  "scripts": {
+    "build-sass": "node-sass styles --output assets --include-path node_modules --output-style compressed",
+    "watch-sass": "node-sass styles --output assets --include-path node_modules --watch",
+    "build": "npm run build-sass"
+  }
+}
