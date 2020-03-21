@@ -3,18 +3,17 @@ import numpy as np
 import pandas as pd
 
 from . import calcfunc
+from enum import IntEnum, auto
 from calc.datasets import get_population_for_area
 from utils.perf import PerfCounter
 from variables import set_variable, get_variable
 import numba as nb
 
 
-random_pool_spec = [
+@nb.jitclass([
     ('idx', nb.int32),
     ('data', nb.float64[:]),
-]
-
-@nb.jitclass(random_pool_spec)
+])
 class RandomPool:
     def __init__(self):
         np.random.seed(1234)
@@ -35,18 +34,35 @@ class RandomPool:
         return val < p
 
 
-person_spec = [
+class SymptomSeverity(IntEnum):
+    ASYMPTOMATIC = auto()
+    MILD = auto()
+    SEVERE = auto()
+    CRITICAL = auto()
+
+
+class PersonState(IntEnum):
+    SUSCEPTIBLE = auto()
+    INCUBATION = auto()
+    SYMPTOMATIC = auto()
+    HOSPITALIZED = auto()
+    IN_ICU = auto()
+    RECOVERED = auto()
+    DEAD = auto()
+
+
+@nb.jitclass([
     ('age', nb.int8),
     ('immunity', nb.int8),
     ('infected', nb.int8),
     ('incubation_days_left', nb.int8),
+    ('symptom_severity', nb.int8),
     ('symptomatic_days_left', nb.int8),
     ('hospital_days_left', nb.int8),
     ('icu_days_left', nb.int8),
-]
-
-
-@nb.jitclass(person_spec)
+    ('days_left', nb.int8),
+    ('state', nb.int8),
+])
 class Person:
     def __init__(self, age):
         self.age = age
@@ -56,47 +72,51 @@ class Person:
         self.symptomatic_days_left = 0
         self.hospital_days_left = 0
         self.icu_days_left = 0
+        self.symptom_severity = SymptomSeverity.ASYMPTOMATIC
+        self.state = PersonState.SUSCEPTIBLE
 
     def expose(self, context):
         if self.infected or self.immunity:
             return
-        if context.random.chance(0.015):
+        if context.disease.did_infect(self, context):
             self.infect(context)
 
     def infect(self, context):
-        self.incubation_days_left = 5
+        self.state = PersonState.INCUBATION
+        self.days_left = 5
         self.infected = 1
         context.pop.infect()
 
     def recover(self, context):
+        self.state = PersonState.RECOVERED
         self.infected = 0
         self.immunity = 1
         context.pop.recover()
 
     def hospitalize(self, context):
-        ICU_CHANCE = 0.25
-        if context.random.chance(ICU_CHANCE):
+        if self.symptom_severity == SymptomSeverity.CRITICAL:
             if not context.hc_cap.to_icu():
                 # If no ICU units are available, ...
                 self.die(context)
                 return
-            self.icu_days_left = 14  # 14-21?
+            self.state = PersonState.IN_ICU
+            self.days_left = 14  # 14-21?
         else:
             if not context.hc_cap.hospitalize():
                 # If no beds are available, 20 % chance to die.
                 if context.random.chance(0.20):
                     self.die(context)
-                    return
                 else:
                     self.recover(context)
-                    return
-            self.hospital_days_left = 14
+                return
+            self.state = PersonState.HOSPITALIZED
+            self.days_left = 14
 
         context.pop.hospitalize()
 
-    def release_from_hospital(self, context, from_icu):
+    def release_from_hospital(self, context):
         context.pop.release_from_hospital()
-        if from_icu:
+        if self.state == PersonState.IN_ICU:
             death_chance = 0.2
             context.hc_cap.release_from_icu()
         else:
@@ -111,6 +131,7 @@ class Person:
     def die(self, context):
         self.infected = 0
         self.immunity = 1
+        self.state = PersonState.DEAD
         context.pop.die()
 
     def expose_others(self, context, nr_contacts):
@@ -120,46 +141,39 @@ class Person:
             people[exposee_idx].expose(context)
 
     def advance(self, context):
-        if self.incubation_days_left:
-            self.incubation_days_left -= 1
-            if self.incubation_days_left == 0:
-                self.symptomatic_days_left = 7
-            self.expose_others(context, 15)
-            return
+        if self.state == PersonState.INCUBATION:
+            self.days_left -= 1
+            if self.days_left == 1:
+                self.expose_others(context, 15)
 
-        if self.symptomatic_days_left:
-            self.symptomatic_days_left -= 1
-            self.expose_others(context, 7)
-            if self.symptomatic_days_left == 0:
-                HOSPITALIZATION_CHANCE = 0.15
-                if context.random.chance(HOSPITALIZATION_CHANCE):
+            if self.days_left == 0:
+                self.state = PersonState.SYMPTOMATIC
+                self.symptom_severity = context.disease.get_symptom_severity(self, context)
+                self.days_left = 7
+        elif self.state == PersonState.SYMPTOMATIC:
+            self.days_left -= 1
+            if self.symptom_severity == SymptomSeverity.ASYMPTOMATIC:
+                self.expose_others(context, 15)
+            elif self.symptom_severity == SymptomSeverity.MILD:
+                self.expose_others(context, 3)
+
+            if self.days_left == 0:
+                if self.symptom_severity in (SymptomSeverity.SEVERE, SymptomSeverity.CRITICAL):
                     self.hospitalize(context)
                 else:
                     self.recover(context)
-            return
+        elif self.state in (PersonState.HOSPITALIZED, PersonState.IN_ICU):
+            self.days_left -= 1
+            if self.days_left == 0:
+                self.release_from_hospital(context)
 
-        if self.hospital_days_left:
-            self.expose_others(context, 2)
-            self.hospital_days_left -= 1
-            if self.hospital_days_left == 0:
-                self.release_from_hospital(context, from_icu=False)
-            return
 
-        if self.icu_days_left:
-            self.icu_days_left -= 1
-            if self.icu_days_left == 0:
-                self.release_from_hospital(context, from_icu=True)
-            return
-
-hc_cap_spec = [
+@nb.jitclass([
     ('beds', nb.int32),
     ('icu_units', nb.int32),
     ('available_beds', nb.int32),
     ('available_icu_units', nb.int32),
-]
-
-
-@nb.jitclass(hc_cap_spec)
+])
 class HealthcareCapacity:
     def __init__(self, beds, icu_units):
         self.beds = beds
@@ -188,18 +202,42 @@ class HealthcareCapacity:
         assert self.available_icu_units <= self.icu_units
 
 
-disease_params_spec = [
-    ('age', nb.int8),
-    ('needs_hospital_ratio', nb.float32),
-    ('needs_icu_ratio', nb.float32),
-]
+# Chance to become infected after being exposed
+INFECTION_CHANCE = 0.02
 
-@nb.jitclass(disease_params_spec)
-class DiseaseParams:
-    def __init__(self, age, needs_hospital_ratio, needs_icu_ratio):
-        self.age = age
-        self.needs_hospital_ratio = needs_hospital_ratio
-        self.needs_icu_ratio = needs_icu_ratio
+# Chance to be fully asymptomatic after being infected
+ASYMPTOMATIC_CHANCE = 0.50
+
+# Out of those exhibiting symptoms, chance to have just
+# mild symptoms
+MILD_CHANCE = 0.8
+
+# Out of those that require hospitalization (more than mild
+# syptoms), chance of needing just non-ICU treatment.
+SEVERE_CHANCE = 0.75
+
+@nb.jitclass([])
+class Disease:
+    def __init__(self):
+        pass
+
+    def did_infect(self, person, context):
+        return context.random.chance(INFECTION_CHANCE)
+
+    def get_symptom_severity(self, person, context):
+        val = context.random.get()
+        if val < ASYMPTOMATIC_CHANCE:
+            return SymptomSeverity.ASYMPTOMATIC
+        val = (val - ASYMPTOMATIC_CHANCE) / (1 - ASYMPTOMATIC_CHANCE)
+
+        if val < MILD_CHANCE:
+            return SymptomSeverity.MILD
+        val = (val - MILD_CHANCE) / (1 - MILD_CHANCE)
+
+        if val < SEVERE_CHANCE:
+            return SymptomSeverity.SEVERE
+        else:
+            return SymptomSeverity.CRITICAL
 
 
 ModelState = namedtuple('ModelState', [
@@ -246,16 +284,18 @@ class Population:
 context_spec = [
     ('pop', Population.class_type.instance_type),
     ('hc_cap', HealthcareCapacity.class_type.instance_type),
+    ('disease', Disease.class_type.instance_type),
     ('random', RandomPool.class_type.instance_type),
     ('people', nb.types.ListType(Person.class_type.instance_type)),
 ]
 
 @nb.jitclass(context_spec)
 class Context:
-    def __init__(self, pop, people, hc_cap):
+    def __init__(self, pop, people, hc_cap, disease):
         self.pop = pop
         self.people = people
         self.hc_cap = hc_cap
+        self.disease = disease
         self.random = RandomPool()
 
     def generate_state(self):
@@ -313,19 +353,16 @@ def simulate_individuals(variables):
     people = create_population(all_sexes.index.values, all_sexes.values)
     pop = Population(all_sexes.sum())
     hc_cap = HealthcareCapacity(5000, 300)
-    context = Context(pop, people, hc_cap)
+    disease = Disease()
+    context = Context(pop, people, hc_cap, disease)
 
     # Initial infection
-    for i in range(100):
+    for i in range(3000):
         idx = int(context.random.get() * len(people))
         people[idx].infect(context)
 
-    dis_params = nb.typed.List()
-    for age in all_sexes.index.values:
-        dis_params.append(DiseaseParams(age, needs_hospital_ratio=0.15, needs_icu_ratio=0.05))
-
     pc.display('after init')
-    states = run_model(context, 100)  # variables['simulation_days'])
+    states = run_model(context, 80)  # variables['simulation_days'])
     pc.display('after run1')
     
     recs = []
