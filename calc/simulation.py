@@ -10,30 +10,6 @@ from variables import set_variable, get_variable
 import numba as nb
 
 
-@nb.jitclass([
-    ('idx', nb.int32),
-    ('data', nb.float64[:]),
-])
-class RandomPool:
-    def __init__(self):
-        np.random.seed(1234)
-        self.data = np.random.random_sample(50000)
-        self.idx = 0
-
-    def get(self):
-        return np.random.random()
-
-        out = self.data[self.idx]
-        self.idx += 1
-        if self.idx == self.data.size:
-            self.idx = 0
-        return out
-
-    def chance(self, p):
-        val = self.get()
-        return val < p
-
-
 class SymptomSeverity(IntEnum):
     ASYMPTOMATIC = auto()
     MILD = auto()
@@ -379,6 +355,29 @@ class Population:
 
 
 @nb.jitclass([
+    ('idx', nb.int32),
+    ('data', nb.float64[:]),
+])
+class RandomPool:
+    def __init__(self):
+        np.random.seed(1234)
+
+    def get(self):
+        return np.random.random()
+        """
+        out = self.data[self.idx]
+        self.idx += 1
+        if self.idx == self.data.size:
+            self.idx = 0
+        return out
+        """
+
+    def chance(self, p):
+        val = self.get()
+        return val < p
+
+
+@nb.jitclass([
     ('pop', Population.class_type.instance_type),
     ('hc_cap', HealthcareCapacity.class_type.instance_type),
     ('disease', Disease.class_type.instance_type),
@@ -459,7 +458,7 @@ LOMBARDIA_HC_CAP = (25000, 720)
 )
 def simulate_individuals(variables):
     pc = PerfCounter()
-    if False:
+    if True:
         df = get_population_for_area().sum(axis=1)
         ages = df.index.values
         counts = df.values
