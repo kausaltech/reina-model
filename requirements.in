@@ -18,7 +18,6 @@ dash-archer
 redis
 colour
 numba
-python-snappy
 fastparquet
 cython
 # workarounds below
