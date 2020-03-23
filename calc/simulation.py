@@ -7,6 +7,7 @@ from enum import IntEnum, auto
 from calc.datasets import get_population_for_area
 from utils.perf import PerfCounter
 from variables import set_variable, get_variable
+from datetime import date, timedelta
 import numba as nb
 
 
@@ -60,7 +61,7 @@ class Person:
         self.state = PersonState.INCUBATION
         self.days_left = context.disease.get_incubation_days(self, context)
         self.is_infected = 1
-        context.pop.infect()
+        context.pop.infect(self)
 
     def detect(self, context):
         self.was_detected = 1
@@ -74,14 +75,14 @@ class Person:
 
     def hospitalize(self, context):
         if self.symptom_severity == SymptomSeverity.CRITICAL:
-            if not context.hc_cap.to_icu():
+            if not context.hc.to_icu():
                 # If no ICU units are available, ...
                 self.die(context)
                 return
             self.state = PersonState.IN_ICU
             self.days_left = context.disease.get_icu_days(self, context)
         else:
-            if not context.hc_cap.hospitalize():
+            if not context.hc.hospitalize():
                 # If no beds are available, 20 % chance to die.
                 if context.random.chance(0.20):
                     self.die(context)
@@ -91,16 +92,16 @@ class Person:
             self.state = PersonState.HOSPITALIZED
             self.days_left = context.disease.get_hospitalisation_days(self, context)
 
-        context.pop.hospitalize()
+        context.pop.hospitalize(self)
 
     def release_from_hospital(self, context):
-        context.pop.release_from_hospital()
+        context.pop.release_from_hospital(self)
         if self.state == PersonState.IN_ICU:
             death = context.disease.dies_in_hospital(self, context, in_icu=True)
-            context.hc_cap.release_from_icu()
+            context.hc.release_from_icu()
         else:
             death = context.disease.dies_in_hospital(self, context, in_icu=False)
-            context.hc_cap.release()
+            context.hc.release()
 
         if death:
             self.die(context)
@@ -123,7 +124,7 @@ class Person:
 
     def advance(self, context):
         # Every day there is a possibility for the case to be detected.
-        if not self.was_detected and context.hc_cap.is_detected(self, context):
+        if not self.was_detected and context.hc.is_detected(self, context):
             self.detect(context)
 
         if self.state == PersonState.INCUBATION:
@@ -155,18 +156,26 @@ class Person:
                 self.release_from_hospital(context)
 
 
+class TestingMode(IntEnum):
+    NO_TESTING = auto()
+    ALL_WITH_SYMPTOMS = auto()
+    ONLY_SEVERE_SYMPTOMS = auto()
+
+
 @nb.jitclass([
     ('beds', nb.int32),
     ('icu_units', nb.int32),
     ('available_beds', nb.int32),
     ('available_icu_units', nb.int32),
+    ('testing_mode', nb.int32),
 ])
-class HealthcareCapacity:
+class HealthcareSystem:
     def __init__(self, beds, icu_units):
         self.beds = beds
         self.icu_units = icu_units
         self.available_beds = beds
         self.available_icu_units = icu_units
+        self.testing_mode = TestingMode.NO_TESTING
 
     def hospitalize(self):
         if self.available_beds == 0:
@@ -174,20 +183,32 @@ class HealthcareCapacity:
         self.available_beds -= 1
         return True
 
+    def set_testing_mode(self, mode):
+        self.testing_mode = mode
+
     def is_detected(self, person, context):
+        if self.testing_mode == TestingMode.NO_TESTING:
+            raise Exception()
+            return False
+
         if person.state == PersonState.INCUBATION:
             return False
+
         if person.state == PersonState.SYMPTOMATIC:
-            if person.symptom_severity in (SymptomSeverity.CRITICAL, SymptomSeverity.SEVERE):
+            if self.testing_mode == TestingMode.ALL_WITH_SYMPTOMS:
+                if person.symptom_severity == SymptomSeverity.ASYMPTOMATIC:
+                    return False
+
                 return True
-            elif person.symptom_severity == SymptomSeverity.MILD:
-                # We notice 5% of people with mild symptoms
-                if context.random.chance(0.05):
+
+            if self.testing_mode == TestingMode.ONLY_SEVERE_SYMPTOMS:
+                if person.symptom_severity in (SymptomSeverity.CRITICAL, SymptomSeverity.SEVERE):
                     return True
-                return False
-            else:
-                # Asymptomatic people are not detected
-                return False
+                else:
+                    return False
+
+            raise Exception()
+
         if person.state in (PersonState.HOSPITALIZED, PersonState.IN_ICU):
             return True
         return False
@@ -260,9 +281,10 @@ class Disease:
             # Asymptomatic people infect others without knowing it
             if person.symptom_severity == SymptomSeverity.ASYMPTOMATIC:
                 return context.pop.contacts_per_day(person, context)
-            elif person.symptom_severity == SymptomSeverity.MILD:
-                # People with symptoms restrict their movement
-                return context.pop.contacts_per_day(person, context) // 2
+            else:
+                # People with mild or more severe symptoms restrict their movement
+                return context.pop.contacts_per_day(person, context, factor=0.5, limit=5)
+
         raise Exception()
 
     def dies_in_hospital(self, person, context, in_icu):
@@ -300,58 +322,78 @@ class Disease:
 
 
 ModelState = namedtuple('ModelState', [
-    'susceptible', 'infected', 'detected', 'hospitalized', 'dead', 'recovered',
+    'susceptible', 'infected', 'detected', 'cum_detected',
+    'hospitalized', 'dead', 'recovered',
     'available_hospital_beds', 'available_icu_units',
     'r'
 ])
 
 
 @nb.jitclass([
-    ('infected', nb.int32),
-    ('detected', nb.int32),
-    ('hospitalized', nb.int32),
-    ('dead', nb.int32),
-    ('susceptible', nb.int32),
-    ('recovered', nb.int32),
-    ('avg_contacts_per_day', nb.int8),
+    ('infected', nb.int32[:]),
+    ('detected', nb.int32[:]),
+    ('cum_detected', nb.int32[:]),
+    ('hospitalized', nb.int32[:]),
+    ('dead', nb.int32[:]),
+    ('susceptible', nb.int32[:]),
+    ('recovered', nb.int32[:]),
+    ('avg_contacts_per_day', nb.int32),
+    ('limit_mass_gatherings', nb.int32),
+    ('mobility_factor', nb.float32),
 ])
 class Population:
-    def __init__(self, total, avg_contacts_per_day):
-        self.susceptible = total
-        self.infected = 0
-        self.detected = 0
-        self.recovered = 0
-        self.hospitalized = 0
-        self.dead = 0
+    def __init__(self, age_counts, avg_contacts_per_day):
+        nr_ages = age_counts.size
+        self.susceptible = age_counts.copy()
+        # np.array(age_counts, dtype=np.int32)
+        self.infected = np.zeros(nr_ages, dtype=np.int32)
+        self.detected = np.zeros(nr_ages, dtype=np.int32)
+        self.cum_detected = np.zeros(nr_ages, dtype=np.int32)
+        self.recovered = np.zeros(nr_ages, dtype=np.int32)
+        self.hospitalized = np.zeros(nr_ages, dtype=np.int32)
+        self.dead = np.zeros(nr_ages, dtype=np.int32)
         self.avg_contacts_per_day = avg_contacts_per_day
+        self.limit_mass_gatherings = 0
+        self.mobility_factor = 1.0
+        # np.ndarray(avg_contacts_per_day, dtype=np.float32)
 
-    def contacts_per_day(self, person, context):
-        return self.avg_contacts_per_day
+    def contacts_per_day(self, person, context, factor=1.0, limit=None):
+        # Contacts per day follows a lognormal distribution with
+        # mean at `avg_contacts_per_day`.
+        factor *= self.mobility_factor
+        contacts = int(np.random.lognormal() * self.avg_contacts_per_day * factor)
+        if self.limit_mass_gatherings:
+            if contacts > self.limit_mass_gatherings:
+                contacts = self.limit_mass_gatherings
+        if limit is not None and contacts > limit:
+            contacts = limit
+        return contacts
 
-    def infect(self):
-        self.susceptible -= 1
-        self.infected += 1
+    def infect(self, person):
+        self.susceptible[person.age] -= 1
+        self.infected[person.age] += 1
 
     def recover(self, person):
-        self.infected -= 1
-        self.recovered += 1
+        self.infected[person.age] -= 1
+        self.recovered[person.age] += 1
         if person.was_detected:
-            self.detected -= 1
+            self.detected[person.age] -= 1
 
     def detect(self, person):
-        self.detected += 1
+        self.detected[person.age] += 1
+        self.cum_detected[person.age] += 1
 
-    def hospitalize(self):
-        self.hospitalized += 1
+    def hospitalize(self, person):
+        self.hospitalized[person.age] += 1
 
-    def release_from_hospital(self):
-        self.hospitalized -= 1
+    def release_from_hospital(self, person):
+        self.hospitalized[person.age] -= 1
 
     def die(self, person):
-        self.infected -= 1
-        self.dead += 1
+        self.infected[person.age] -= 1
+        self.dead[person.age] += 1
         if person.was_detected:
-            self.detected -= 1
+            self.detected[person.age] -= 1
 
 
 @nb.jitclass([
@@ -378,19 +420,36 @@ class RandomPool:
 
 
 @nb.jitclass([
+    ('day', nb.int32),
+    ('name', nb.types.string),
+    ('value', nb.int32),
+])
+class Intervention:
+    def __init__(self, day, name, value):
+        self.day = day
+        self.name = name
+        self.value = value
+
+
+@nb.jitclass([
     ('pop', Population.class_type.instance_type),
-    ('hc_cap', HealthcareCapacity.class_type.instance_type),
+    ('hc', HealthcareSystem.class_type.instance_type),
     ('disease', Disease.class_type.instance_type),
     ('random', RandomPool.class_type.instance_type),
+    ('day', nb.int32),
     ('people', nb.types.ListType(Person.class_type.instance_type)),
+    ('interventions', nb.types.ListType(Intervention.class_type.instance_type)),
+    ('start_date', nb.types.string)
 ])
 class Context:
-    def __init__(self, pop, people, hc_cap, disease):
+    def __init__(self, pop, people, hc, disease, start_date):
         self.pop = pop
         self.people = people
-        self.hc_cap = hc_cap
+        self.hc = hc
         self.disease = disease
         self.random = RandomPool()
+        self.start_date = start_date
+        self.day = 0
 
     def _calculate_r(self):
         total_people = 0
@@ -400,14 +459,17 @@ class Context:
                 continue
             total_people += 1
             total_infections += person.other_people_infected
+        if not total_people:
+            return 0
         return total_infections / total_people
 
     def generate_state(self):
         p = self.pop
-        hc = self.hc_cap
+        hc = self.hc
         s = ModelState(
-            infected=p.infected, detected=p.detected, susceptible=p.susceptible,
+            infected=p.infected, susceptible=p.susceptible,
             recovered=p.recovered, hospitalized=p.hospitalized,
+            detected=p.detected, cum_detected=p.cum_detected,
             dead=p.dead,
             available_icu_units=hc.available_icu_units,
             available_hospital_beds=hc.available_beds,
@@ -415,36 +477,54 @@ class Context:
         )
         return s
 
+    def apply_intervention(self, intervention):
+        if intervention.name == 'test-all-with-symptoms':
+            self.hc.set_testing_mode(TestingMode.ALL_WITH_SYMPTOMS)
+        elif intervention.name == 'test-only-severe-symptoms':
+            self.hc.set_testing_mode(TestingMode.ONLY_SEVERE_SYMPTOMS)
+        elif intervention.name == 'import-infections':
+            count = intervention.value
+            for i in range(count):
+                idx = int(self.random.get() * len(self.people))
+                self.people[idx].infect(self)
+        elif intervention.name == 'limit-mass-gatherings':
+            self.pop.limit_mass_gatherings = intervention.value
+        elif intervention.name == 'limit-mobility':
+            self.pop.mobility_factor = (100 - intervention.value) / 100.0
+        else:
+            raise Exception()
+
+    def iterate(self):
+        for intervention in self.interventions:
+            if intervention.day == self.day:
+                print(intervention.name)
+                self.apply_intervention(intervention)
+
+        people = self.people
+        for person in people:
+            if not person.is_infected:
+                continue
+
+            person.advance(self)
+
+        self.day += 1
+
+
+def make_iv(context, intervention, date_str=None, value=None):
+    if date_str is not None:
+        day = (date.fromisoformat(date_str) - date.fromisoformat(context.start_date)).days
+    else:
+        day = 0
+    return Intervention(day, intervention, value or 0)
+
 
 @nb.jit(nopython=True)
-def create_population(ages, counts):
+def create_population(age_counts):
     pop = nb.typed.List()
-    for age, count in zip(ages, counts):
+    for age, count in enumerate(age_counts):
         for i in range(count):
             pop.append(Person(age))
     return pop
-
-
-@nb.jit(nopython=True)
-def iterate_day(context):
-    people = context.people
-    for person in people:
-        if not person.is_infected:
-            continue
-
-        person.advance(context)
-
-
-@nb.jit(nopython=True)
-def run_model(context, simulation_days):
-    state_history = nb.typed.List()
-    state_history.append(context.generate_state())
-    for day in range(simulation_days):
-        print(day)
-        iterate_day(context)
-        state_history.append(context.generate_state())
-
-    return state_history
 
 
 # Lombardia
@@ -452,6 +532,7 @@ AGES = [0, 10, 20, 30, 40, 50, 60, 70, 80]
 LOMBARDIA_POP = [884414, 961237, 982354, 1187594, 1591034, 1566175, 1182159, 994236, 711371]
 LOMBARDIA_CONTACTS = 25
 LOMBARDIA_HC_CAP = (25000, 720)
+
 
 @calcfunc(
     variables=['simulation_days']
@@ -462,7 +543,7 @@ def simulate_individuals(variables):
         df = get_population_for_area().sum(axis=1)
         ages = df.index.values
         counts = df.values
-        avg_contacts_per_day = 15
+        avg_contacts_per_day = 7
         hc_cap = (5000, 300)
     else:
         ages = tuple(AGES)
@@ -470,29 +551,79 @@ def simulate_individuals(variables):
         avg_contacts_per_day = LOMBARDIA_CONTACTS
         hc_cap = LOMBARDIA_HC_CAP
 
+    max_age = max(ages)
+    age_counts = np.array(np.zeros(max_age + 1, dtype=np.int32))
+    for age, count in zip(ages, counts):
+        age_counts[age] = count
 
-    people = create_population(ages, counts)
-    pop = Population(sum(counts), avg_contacts_per_day)
-    hc_cap = HealthcareCapacity(hc_cap[0], hc_cap[1])
+    people = create_population(age_counts)
+    pop = Population(age_counts, avg_contacts_per_day)
+    hc = HealthcareSystem(hc_cap[0], hc_cap[1])
     disease = Disease()
-    context = Context(pop, people, hc_cap, disease)
+    context = Context(pop, people, hc, disease, start_date='2020-02-18')
 
-    # Initial infection
-    for i in range(100):
-        idx = int(context.random.get() * len(people))
-        people[idx].infect(context)
+    ivs = nb.typed.List()
+    ivs.append(make_iv(context, 'test-all-with-symptoms'))
+    ivs.append(make_iv(context, 'test-only-severe-symptoms', '2020-03-15'))
+
+    ivs.append(make_iv(context, 'limit-mobility', '2020-03-12', value=20))
+    ivs.append(make_iv(context, 'limit-mass-gatherings', '2020-03-19', value=50))
+    ivs.append(make_iv(context, 'limit-mobility', '2020-03-16', value=20))
+    ivs.append(make_iv(context, 'limit-mobility', '2020-03-19', value=30))
+
+    ivs.append(make_iv(context, 'limit-mobility', '2020-03-25', value=50))
+
+    ivs.append(make_iv(context, 'limit-mobility', '2020-04-01', value=80))
+    ivs.append(make_iv(context, 'limit-mobility', '2020-04-15', value=50))
+
+    ivs.append(make_iv(context, 'import-infections', '2020-02-20', value=10))
+    ivs.append(make_iv(context, 'import-infections', '2020-02-26', value=10))
+    ivs.append(make_iv(context, 'import-infections', '2020-03-05', value=20))
+    ivs.append(make_iv(context, 'import-infections', '2020-03-07', value=20))
+    ivs.append(make_iv(context, 'import-infections', '2020-03-09', value=20))
+    ivs.append(make_iv(context, 'import-infections', '2020-03-11', value=20))
+    context.interventions = ivs
 
     pc.display('after init')
-    states = run_model(context, 42)  # variables['simulation_days'])
-    pc.display('after run1')
-    
-    recs = []
-    attrs = ['susceptible', 'infected', 'detected', 'hospitalized', 'dead', 'recovered', 'available_hospital_beds', 'available_icu_units', 'r']
-    for s in states:
-        d = {k: getattr(s, k) for k in attrs}
-        recs.append(d)
+    states = []
 
-    return pd.DataFrame.from_records(recs, index=range(0, len(recs)), columns=attrs)
+    POP_ATTRS = [
+        'susceptible', 'infected', 'cum_detected', 'hospitalized',
+        'dead', 'recovered'
+    ]
+    STATE_ATTRS = [
+        'hospital_beds', 'icu_units', 'r'
+    ]
+
+    header = '%-12s' % 'day'
+    for attr in POP_ATTRS + STATE_ATTRS:
+        header += '%15s' % attr
+    print(header)
+
+    for day in range(120):
+        state = context.generate_state()
+
+        rec = {attr: sum(getattr(state, attr)) for attr in POP_ATTRS}
+        rec['hospital_beds'] = state.available_hospital_beds
+        rec['icu_units'] = state.available_icu_units
+        rec['r'] = state.r
+
+        s = '%-12s' % (date.fromisoformat(context.start_date) + timedelta(days=context.day)).isoformat()
+        for attr in POP_ATTRS:
+            s += '%15d' % rec[attr]
+
+        for attr in ['hospital_beds', 'icu_units']:
+            s += '%15d' % rec[attr]
+        s += '%13.2f' % rec['r']
+        print(s)
+        states.append(rec)
+        context.iterate()
+
+    return pd.DataFrame.from_records(
+        states,
+        index=pd.date_range(start=context.start_date, periods=len(states)),
+        columns=POP_ATTRS + STATE_ATTRS,
+    )
 
 
 if __name__ == '__main__':

@@ -11,7 +11,7 @@ import dash_bootstrap_components as dbc
 import plotly.graph_objs as go
 from dash.dependencies import Input, Output, State
 
-from calc.sir import simulate_individuals
+from calc.simulation import simulate_individuals
 from components.cards import GraphCard
 from components.graphs import make_layout
 from variables import set_variable, get_variable
@@ -36,23 +36,26 @@ with server.app_context():
 app.layout = dbc.Container([dbc.Row([dbc.Col([
     dbc.Row([
         dbc.Col([
-            html.H2('Koronaepidemian kehittyminen: %s' % get_variable('area_name')),
+            html.H2('COVID-19-epidemian kehittyminen: %s' % get_variable('area_name')),
         ], className='mb-4'),
     ], className='mt-4'),
     dbc.Row([
         dbc.Col([
-            html.H5('R0-luku')
-        ], md=12),
-        dbc.Col([
-            dcc.Slider(
-                id="r0-slider", min=0, max=50, step=1, value=20,
-                marks={x: '%.1f' % (x / 10) for x in range(0, 51, 5)}
-            ),
-        ], md=6),
-    ], className='mt-4'),
+            dbc.Button('Laske', id='run-simulation')
+        ])
+    ]),
+    #         html.H5('R0-luku')
+    #     ], md=12),
+    #     dbc.Col([
+    #         dcc.Slider(
+    #             id="r0-slider", min=0, max=50, step=1, value=20,
+    #             marks={x: '%.1f' % (x / 10) for x in range(0, 51, 5)}
+    #         ),
+    #     ], md=6),
+    # ], className='mt-4'),
     dbc.Row([
         dbc.Col([
-            html.Div(id="sir-graph-container")
+            dcc.Loading(html.Div(id="sir-graph-container"))
         ]),
     ]),
 ])])])
@@ -60,19 +63,16 @@ app.layout = dbc.Container([dbc.Row([dbc.Col([
 
 @app.callback(
     Output('sir-graph-container', 'children'),
-    [
-        Input('r0-slider', 'value'),
-    ]
+    [Input('run-simulation', 'n_clicks')],
 )
-def building_selector_callback(r0_value):
-    set_variable('r0', r0_value / 10)
+def building_selector_callback(n_clicks):
     df = simulate_individuals()
+    df = df[['susceptible', 'infected', 'cum_detected', 'hospitalized', 'dead', 'recovered']]
     # df = df.drop(columns='susceptible')
     card = GraphCard('sir', graph=dict(config=dict(responsive=False)))
 
-    t0 = pd.date_range(date.today(), periods=df.index.max())
-    traces = [dict(type='scatter', name=col, x=t0, y=df[col], mode='lines') for col in df.columns]
-    layout = make_layout(title='Infected')
+    traces = [dict(type='scatter', name=col, x=df.index, y=df[col], mode='lines') for col in df.columns]
+    layout = make_layout(title='Epidemia', showlegend=True)
     fig = dict(data=traces, layout=layout)
     card.set_figure(fig)
     return card.render()
