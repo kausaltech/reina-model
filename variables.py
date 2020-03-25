@@ -4,8 +4,8 @@ from flask import session
 
 # Variables
 VARIABLE_DEFAULTS = {
-    'population': 5500000,
     'area_name': 'HUS',
+    'country': 'Finland',
     'initial_infected': 1000,
     'initial_recovered': 200,
     'simulation_days': 365,

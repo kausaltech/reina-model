@@ -61,7 +61,13 @@ def get_physical_contacts_for_country(variables):
     return pd.Series(counts, index=ages)
 
 
+def get_detected_cases():
+    f = open(get_root_path() + '/data/cases_fin.csv', 'r')
+    df = pd.read_csv(f, header=0).set_index('date')
+    return df
+
+
 if __name__ == '__main__':
-    s = get_physical_contacts_for_country()
-    print(s)
+    df = get_detected_cases()
+    print(df)
     # print(df.sum(axis=0))
