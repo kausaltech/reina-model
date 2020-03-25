@@ -34,6 +34,7 @@ class PersonState(IntEnum):
     ('is_infected', nb.int8),
     ('was_detected', nb.int8),
     ('other_people_infected', nb.int16),
+    ('other_people_exposed_today', nb.int16),
     ('symptom_severity', nb.int8),
     ('days_left', nb.int8),
     ('day_of_illness', nb.int8),
@@ -119,6 +120,7 @@ class Person:
 
     def expose_others(self, context, nr_contacts):
         people = context.people
+        self.other_people_exposed_today = nr_contacts
         for i in range(nr_contacts):
             exposee_idx = int(context.random.get() * len(people))
             if people[exposee_idx].expose(context, self):
@@ -128,6 +130,8 @@ class Person:
         # Every day there is a possibility for the case to be detected.
         if not self.was_detected and context.hc.is_detected(self, context):
             self.detect(context)
+
+        self.other_people_exposed_today = 0
 
         if self.state == PersonState.INCUBATION:
             people_exposed = context.disease.people_exposed(self, context)
@@ -191,7 +195,6 @@ class HealthcareSystem:
 
     def is_detected(self, person, context):
         if self.testing_mode == TestingMode.NO_TESTING:
-            raise Exception()
             return False
 
         if person.state == PersonState.INCUBATION:
@@ -207,7 +210,7 @@ class HealthcareSystem:
             if self.testing_mode == TestingMode.ONLY_SEVERE_SYMPTOMS:
                 if person.symptom_severity in (SymptomSeverity.CRITICAL, SymptomSeverity.SEVERE):
                     return True
-                elif context.random.chance(0.02):
+                elif person.symptom_severity == SymptomSeverity.MILD and context.random.chance(0.02):
                     # Small percentage of mild cases are detected anyway
                     # (such as healthcare workers).
                     return True
@@ -238,7 +241,7 @@ class HealthcareSystem:
 # Overall chance to become infected after being exposed.
 # This is modified by viral load of the infector, which
 # depends on the day of the illness.
-INFECTION_CHANCE = 0.30
+INFECTION_CHANCE = 0.20
 
 # Chance to have mild symptoms (not be fully asymptomatic)
 MILD_CHANCE = 0.50
@@ -303,18 +306,17 @@ class Disease:
         return 0
 
     def did_infect(self, person, context, source):
-        chance = INFECTION_CHANCE
-        if source.symptom_severity == SymptomSeverity.ASYMPTOMATIC:
-            chance /= 2.0
+        chance = self.get_source_infectiousness(source)
+        # FIXME: Smaller chance for asymptomatic people?
         return context.random.chance(chance)
 
     def people_exposed(self, person, context):
+        # If we are not infectious today, we expose 0 people.
+        if not self.get_source_infectiousness(person):
+            return 0
+
         if person.state == PersonState.INCUBATION:
-            # Infectious one day before onset of symptoms
-            if person.days_left == 1:
-                return context.pop.contacts_per_day(person, context)
-            else:
-                return 0
+            return context.pop.contacts_per_day(person, context)
         elif person.state == PersonState.ILLNESS:
             # Detected people are quarantined
             if person.was_detected:
@@ -372,7 +374,7 @@ ModelState = namedtuple('ModelState', [
     'susceptible', 'infected', 'detected', 'all_detected',
     'hospitalized', 'dead', 'recovered',
     'available_hospital_beds', 'available_icu_units',
-    'r'
+    'r', 'exposed_per_day'
 ])
 
 
@@ -403,15 +405,15 @@ class Population:
         self.limit_mass_gatherings = 0
         self.population_mobility_factor = 1.0
 
-    def contacts_per_day(self, person, context, factor=1.0, limit=None):
+    def contacts_per_day(self, person, context, factor=1.0, limit=100):
         # Contacts per day follows a lognormal distribution with
         # mean at `avg_contacts_per_day`.
         factor *= self.population_mobility_factor
-        contacts = int(np.random.lognormal() * self.avg_contacts_per_day[person.age] * factor)
+        contacts = int(np.random.lognormal(1.0, 0.7) * self.avg_contacts_per_day[person.age] * factor)
         if self.limit_mass_gatherings:
             if contacts > self.limit_mass_gatherings:
                 contacts = self.limit_mass_gatherings
-        if limit is not None and contacts > limit:
+        if contacts > limit:
             contacts = limit
         return contacts
 
@@ -490,24 +492,34 @@ class Context:
         self.start_date = start_date
         self.day = 0
 
-    def _calculate_r(self):
+    def _calculate_params(self):
         total_infectors = 0
         total_infections = 0
+        exposed_per_day = 0
         for person in self.people:
-            if not person.is_infected or person.state != PersonState.ILLNESS:
+            if not person.is_infected:
                 continue
+
+            if person.state != PersonState.ILLNESS:
+                continue
+
+            exposed_per_day += person.other_people_exposed_today
 
             total_infectors += 1
             total_infections += person.other_people_infected
 
         if not total_infectors:
-            return 0
+            return (0, 0)
 
-        return total_infections / total_infectors
+        return (
+            total_infections / total_infectors,
+            exposed_per_day / total_infectors,
+        )
 
     def generate_state(self):
         p = self.pop
         hc = self.hc
+        params = self._calculate_params()
         s = ModelState(
             infected=p.infected, susceptible=p.susceptible,
             recovered=p.recovered, hospitalized=p.hospitalized,
@@ -515,7 +527,8 @@ class Context:
             dead=p.dead,
             available_icu_units=hc.available_icu_units,
             available_hospital_beds=hc.available_beds,
-            r=self._calculate_r(),
+            r=params[0],
+            exposed_per_day=params[1],
         )
         return s
 
@@ -579,8 +592,17 @@ LOMBARDIA_CONTACTS = 25
 LOMBARDIA_HC_CAP = (25000, 720)
 
 
+INTERVENTIONS = [
+    ('test-all-with-symptoms', 'Testataan kaikki oirehtivat'),
+    ('test-only-severe-symptoms', 'Testataan ainoastaan vakavasti oirehtivat'),
+    ('limit-mobility', 'Rajoitetaan väestön liikkuvuutta'),
+    ('limit-mass-gatherings', 'Rajoitetaan kokoontumisia'),
+    ('import-infections', 'Alueelle tulee infektioita'),
+]
+
+
 @calcfunc(
-    variables=['simulation_days']
+    variables=['simulation_days', 'interventions']
 )
 def simulate_individuals(variables):
     pc = PerfCounter()
@@ -612,25 +634,15 @@ def simulate_individuals(variables):
     context = Context(pop, people, hc, disease, start_date='2020-02-18')
 
     ivs = nb.typed.List()
-    ivs.append(make_iv(context, 'test-all-with-symptoms'))
-    ivs.append(make_iv(context, 'test-only-severe-symptoms', '2020-03-15'))
 
-    ivs.append(make_iv(context, 'limit-mobility', '2020-03-12', value=20))
-    ivs.append(make_iv(context, 'limit-mass-gatherings', '2020-03-12', value=50))
-    ivs.append(make_iv(context, 'limit-mass-gatherings', '2020-03-18', value=10))
-
-    ivs.append(make_iv(context, 'limit-mobility', '2020-03-26', value=30))
-
-    ivs.append(make_iv(context, 'import-infections', '2020-02-20', value=20))
-    ivs.append(make_iv(context, 'import-infections', '2020-03-05', value=300))
-    ivs.append(make_iv(context, 'import-infections', '2020-03-07', value=300))
-    ivs.append(make_iv(context, 'import-infections', '2020-03-09', value=300))
-    ivs.append(make_iv(context, 'import-infections', '2020-03-11', value=300))
-    ivs.append(make_iv(context, 'import-infections', '2020-03-13', value=100))
-    ivs.append(make_iv(context, 'import-infections', '2020-03-15', value=100))
-
-    #ivs.append(make_iv(context, 'limit-mobility', '2020-08-01', value=0))
-    #ivs.append(make_iv(context, 'limit-mass-gatherings', '2020-08-01', value=0))
+    for iv in variables['interventions']:
+        iv_id = iv[0]
+        iv_date = iv[1]
+        if len(iv) > 2:
+            iv_value = iv[2]
+        else:
+            iv_value = None
+        ivs.append(make_iv(context, iv_id, iv_date, value=iv_value))
 
     context.interventions = ivs
 
@@ -642,7 +654,7 @@ def simulate_individuals(variables):
         'dead', 'recovered'
     ]
     STATE_ATTRS = [
-        'hospital_beds', 'icu_units', 'r'
+        'hospital_beds', 'icu_units', 'r', 'exposed'
     ]
 
     header = '%-12s' % 'day'
@@ -657,6 +669,7 @@ def simulate_individuals(variables):
         rec['hospital_beds'] = state.available_hospital_beds
         rec['icu_units'] = state.available_icu_units
         rec['r'] = state.r
+        rec['exposed_per_day'] = state.exposed_per_day
 
         s = '%-12s' % (date.fromisoformat(context.start_date) + timedelta(days=context.day)).isoformat()
         for attr in POP_ATTRS:
@@ -665,6 +678,7 @@ def simulate_individuals(variables):
         for attr in ['hospital_beds', 'icu_units']:
             s += '%15d' % rec[attr]
         s += '%13.2f' % rec['r']
+        s += '%15f' % rec['exposed_per_day']
         print(s)
         states.append(rec)
         context.iterate()

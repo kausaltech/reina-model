@@ -9,6 +9,14 @@ public health simulations.
 
 ## Installation
 
+If you're using Ubuntu/Debian, you might need to install a couple of packages:
+
+```
+apt install python3.8-dev libpython3.8-dev python3.8-venv \
+    libfreetype6-dev libpng-dev libqhull-dev pkg-config \
+    gcc gfortran libopenblas-dev liblapack-dev cython
+```
+
 Install a Python venv with Python 3.7 or 3.8. Install the requirements:
 
 ```

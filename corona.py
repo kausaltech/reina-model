@@ -12,7 +12,7 @@ import plotly.graph_objs as go
 from dash.dependencies import Input, Output, State
 from utils.colors import THEME_COLORS
 
-from calc.simulation import simulate_individuals
+from calc.simulation import simulate_individuals, INTERVENTIONS
 from calc.datasets import get_detected_cases
 from components.cards import GraphCard
 from components.graphs import make_layout
@@ -42,16 +42,70 @@ def generate_layout():
             html.H2('COVID-19-epidemian kehittyminen: %s' % get_variable('area_name')),
         ], className='mb-4'),
     ], className='mt-4'))
+
+    ivs = get_variable('interventions')
+    iv_rows = []
+    for iv in sorted(ivs, key=lambda x: x[1]):
+        for i in INTERVENTIONS:
+            if i[0] == iv[0]:
+                break
+        else:
+            # FIXME
+            continue
+        if len(iv) > 2:
+            val = iv[2]
+        else:
+            val = None
+        row = dict(date=iv[1], label=i[1], value=val)
+        iv_rows.append(row)
+
     rows.append(dbc.Row([
         dbc.Col([
-            dbc.Button('Laske', id='run-simulation')
+            dash_table.DataTable(
+                id='interventions-table',
+                data=iv_rows,
+                columns=[
+                    {'name': 'Päivämäärä', 'id': 'date'},
+                    {'name': 'Tapahtuma', 'id': 'label'},
+                    {'name': 'Arvo', 'id': 'value'},
+                ],
+                row_deletable=True,
+            )
+        ])
+    ]))
+
+    rows.append(dbc.Row([
+        dbc.Col([
+            dbc.Row([
+                dbc.Col([dcc.DatePickerSingle(
+                    id='new-intervention-date', display_format='YYYY-MM-DD',
+                    first_day_of_week=1,
+                )], md=2),
+                dbc.Col([dcc.Dropdown(
+                    id='new-intervention-date-id',
+                    options=[{'label': i[1], 'value': i[0]} for i in INTERVENTIONS]
+                )], md=4),
+                dbc.Col([dcc.Input(
+                    id='new-intervention-value', type='number'
+                )], md=3),
+                dbc.Col([dbc.Button(
+                    'Lisää', id='new-intervention-add'
+                )], md=2),
+            ])
+        ], className='mb-4'),
+    ], className='mt-4'))
+
+    rows.append(dbc.Row([
+        dbc.Col([
+            dbc.Button('Laske', id='run-simulation'),
+            dbc.Button('Palauta oletukset', id='reset-defaults', color='warning'),
         ])
     ]))
     rows.append(dbc.Row([
         dbc.Col([
             dcc.Loading(html.Div(id="sir-graph-container"))
         ]),
-    ]))
+    ], className='mt-4'))
     rows.append(dbc.Row([
         dbc.Col([
             html.Div(id='day-details-container')
@@ -73,17 +127,38 @@ def show_day_details(data):
 
 
 @app.callback(
+    Output('interventions-table', 'data'),
+    [Input('interventions-table', 'data_timestamp'), Input('reset-defaults', 'n_clicks')],
+    [State('interventions-table', 'data')]
+)
+def interventions_callback(ts, n_clicks, rows):
+    ctx = dash.callback_context
+    if ctx.triggered and n_clicks is not None:
+        if ctx.triggered[0]['prop_id'].split('.')[0] == 'reset-defaults':
+            # FIXME
+            pass
+
+    return rows
+
+
+@app.callback(
     Output('sir-graph-container', 'children'),
     [Input('run-simulation', 'n_clicks')],
 )
 def building_selector_callback(n_clicks):
-    set_variable('simulation_days', 60)
+    ctx = dash.callback_context
+    if not ctx.triggered or n_clicks is None:
+        return
+
+    print(ctx.triggered[0]['prop_id'])
+
+    set_variable('simulation_days', 120)
     det = get_detected_cases()
     df = simulate_individuals()
 
     pop_cols = (
         ('susceptible', 'yellow', 'Alttiit'),
-        ('infected', 'orange', 'Tartunnan saaneet'),
+        ('infected', 'orange', 'Aktiiviset tartunnat'),
         ('all_detected', 'teal', 'Havaitut tapaukset (sim.)'),
         ('hospitalized', 'red', 'Sairaalassa'),
         ('dead', 'indigo', 'Kuolleet'),
@@ -93,11 +168,12 @@ def building_selector_callback(n_clicks):
     card = GraphCard('population', graph=dict(config=dict(responsive=False)))
     traces = []
     for col, color, name in pop_cols:
-        if col in ('susceptible', 'recovered'):
-            continue
+        #if col in ('susceptible', 'recovered'):
+        #    continue
         t = dict(
             type='scatter', line=dict(color=THEME_COLORS[color]),
-            name=name, x=df.index, y=df[col], mode='lines'
+            name=name, x=df.index, y=df[col], mode='lines',
+            hoverformat='%d',
         )
         traces.append(t)
 
@@ -125,8 +201,13 @@ def building_selector_callback(n_clicks):
     card.set_figure(fig)
     c2 = card.render()
 
+    df['ifr'] = (df.dead / (df.infected + df.recovered)) * 100
+    df['cfr'] = (df.dead / df.all_detected) * 100
+
     param_cols = (
         ('r', 'R-luku'),
+        ('ifr', 'Infektiokuolleisuus (IFR, %)'),
+        ('cfr', 'Tapauskuolleisuus (CFR, %)'),
     )
     card = GraphCard('params', graph=dict(config=dict(responsive=False)))
     traces = []
