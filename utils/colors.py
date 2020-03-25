@@ -27,7 +27,7 @@ GHG_MAIN_SECTOR_COLORS = {
     'Agriculture': '#ffc61e'
 }
 
-
+ 
 HELSINKI_COLORS = {
     'brick': '#bd2719',
     'metro': '#fd4f00',
@@ -36,6 +36,19 @@ HELSINKI_COLORS = {
     'fog': '#9fc9eb',
     'silver': '#dedfe1',
     'gold': '#c2a251',
+}
+
+THEME_COLORS = {
+    'blue':    '#4E80A6',
+    'indigo':  '#4C478F',
+    'purple':  '#8849B9',
+    'pink':    '#E37D7D',
+    'red':     '#A73939',
+    'orange':  '#C88217',
+    'yellow':  '#F4CE73',
+    'green':   '#279A6D',
+    'teal':    '#7AD7A4',
+    'cyan':    '#4CACB3',
 }
 
 

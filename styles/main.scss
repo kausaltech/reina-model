@@ -1,64 +1,52 @@
 /*!
- * Open City Design UI Styles Alpha
- * Customised Bootstrap 4 theme
- * Licensed under MIT (https://github.com/twbs/bootstrap/blob/master/LICENSE)
- */
+* Bootstrap v4.1.1 (https://getbootstrap.com)
+* Copyright 2011-2018 The Bootstrap Authors
+* Copyright 2011-2018 Twitter, Inc.
+* Licensed under MIT (https://github.com/twbs/bootstrap/blob/master/LICENSE)
+*/
 
+@import url('https://rsms.me/inter/inter.css');
 
-// Import Bootstrap styles, with 6Aika default variable settings.
+// Toned down Bootstrap palette
+$blue:    #4E80A6;
+$indigo:  #4C478F;
+$purple:  #8849B9;
+$pink:    #E37D7D;
+$red:     #A73939;
+$orange:  #C88217;
+$yellow:  #F4CE73;
+$green:   #279A6D;
+$teal:    #7AD7A4;
+$cyan:    #4CACB3;
 
-/*!
- * Bootstrap v4.1.1 (https://getbootstrap.com)
- * Copyright 2011-2018 The Bootstrap Authors
- * Copyright 2011-2018 Twitter, Inc.
- * Licensed under MIT (https://github.com/twbs/bootstrap/blob/master/LICENSE)
- */
+// Kausal MVP brand colors
+$primary:   #274E13;
+$secondary: #D9EAD3;
+$success:     $green !default;
+$info:        $cyan !default;
+$warning:     $yellow !default;
+$danger:      $red !default;
+//$light:     $gray-100 !default;
+//$dark:      $gray-800 !default;
 
-@import "bootstrap/scss/functions";
-@import "bootstrap/scss/_variables";
+// https://rsms.me/inter/
+// "Inter is a typeface carefully crafted & designed for computer screens."
+$font-family-sans-serif:  'Inter', -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, "Noto Sans", sans;
 
-// Ocds specific variable overrides are not currently in use
+$spacer:	            1rem;
+$enable-rounded:	    true;
+$enable-shadows:	    false;
+$enable-gradients:      false;
+$enable-transitions:	true;
+$enable-hover-media-query:	false;
+$enable-grid-classes:	true;
+$enable-caret:	        true;
+$enable-print-styles:   true;
 
-// Import city specific bootstrap variable overrides:
-@import "open-city-design/src/scss/helsinki/variables";
+$border-radius:     4px;
+$border-radius-lg:  8px;
+$border-radius-sm:  0;
 
-@import "bootstrap/scss/mixins";
-@import "bootstrap/scss/root";
-@import "bootstrap/scss/reboot";
-@import "bootstrap/scss/type";
-@import "bootstrap/scss/images";
-@import "bootstrap/scss/code";
-@import "bootstrap/scss/grid";
-@import "bootstrap/scss/tables";
-@import "bootstrap/scss/forms";
-@import "bootstrap/scss/buttons";
-@import "bootstrap/scss/transitions";
-@import "bootstrap/scss/dropdown";
-@import "bootstrap/scss/button-group";
-@import "bootstrap/scss/input-group";
-@import "bootstrap/scss/custom-forms";
-@import "bootstrap/scss/nav";
-@import "bootstrap/scss/navbar";
-@import "bootstrap/scss/card";
-@import "bootstrap/scss/breadcrumb";
-@import "bootstrap/scss/pagination";
-@import "bootstrap/scss/badge";
-@import "bootstrap/scss/jumbotron";
-@import "bootstrap/scss/alert";
-@import "bootstrap/scss/progress";
-@import "bootstrap/scss/media";
-@import "bootstrap/scss/list-group";
-@import "bootstrap/scss/close";
-@import "bootstrap/scss/modal";
-@import "bootstrap/scss/tooltip";
-@import "bootstrap/scss/popover";
-@import "bootstrap/scss/carousel";
-@import "bootstrap/scss/utilities";
-@import "bootstrap/scss/print";
-
-// Import city specific style overrides.
-
-@import "open-city-design/src/scss/helsinki/mixins";
-@import "open-city-design/src/scss/helsinki/custom-styles";
+@import "bootstrap/scss/bootstrap";
 
 @import "app-styles";

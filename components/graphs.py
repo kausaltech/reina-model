@@ -11,6 +11,7 @@ from utils.colors import GHG_MAIN_SECTOR_COLORS, generate_color_scale
 
 
 def make_layout(**kwargs):
+    fontStack = '\'Inter\', sans-serif'
     params = dict(
         margin=dict(
             t=30,
@@ -24,7 +25,7 @@ def make_layout(**kwargs):
             anchor='free',
             domain=[0.02, 1],
             tickfont=dict(
-                family='HelsinkiGrotesk, Arial',
+                family=fontStack,
                 size=14,
             ),
             gridwidth=1,
@@ -37,7 +38,7 @@ def make_layout(**kwargs):
             anchor='free',
             domain=[0.01, 1],
             tickfont=dict(
-                family='HelsinkiGrotesk, Arial',
+                family=fontStack,
                 size=14,
             ),
             gridwidth=1,
@@ -45,7 +46,7 @@ def make_layout(**kwargs):
             fixedrange=True
         ),
         font=dict(
-            family='HelsinkiGrotesk, Open Sans, Arial'
+            family=fontStack
         ),
         separators=', ',
         plot_bgcolor='#fff',
