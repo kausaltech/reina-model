@@ -38,5 +38,30 @@ def get_population_for_area(variables):
     return df
 
 
+@calcfunc(variables=['country'])
+def get_physical_contacts_for_country(variables):
+    f = open(get_root_path() + '/data/contacts_fin.csv', 'r')
+    df = pd.read_csv(f, skiprows=1, index_col=1)
+    df = df.drop(columns='age of contact')
+    df.index.name = 'age of contact'
+    df.columns.name = 'age group of participant'
+
+    df = df.sum(axis=0)
+    ages = []
+    counts = []
+    for age_group, count in df.items():
+        if age_group == '70+':
+            start, end = 70, 100
+        else:
+            start, end = map(int, age_group.split('-'))
+        for age in range(start, end + 1):
+            ages.append(age)
+            counts.append(count)
+
+    return pd.Series(counts, index=ages)
+
+
 if __name__ == '__main__':
-    print(get_population_for_healthcare_district('HUS'))
+    s = get_physical_contacts_for_country()
+    print(s)
+    # print(df.sum(axis=0))
