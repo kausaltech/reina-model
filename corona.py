@@ -34,6 +34,22 @@ with server.app_context():
     sess = Session()
     sess.init_app(server)
 
+markdown_text = '''
+### Kuinka simulaatio toimii?
+Simulaatiossa tutkitaan kuinka...
+
+#### Oletusarvot
+**HUS alueen väestö:** 1 645 000
+
+#### Tapahtumat
+Tapahtumalistasta voi simulaation lisätä tai poistaa tapahtumia tai toimenpiteitä.
+
+#### Katso myös
+Keskustelua yhteiskehittämisestä [täällä](https://korona.kausal.tech/)
+
+#### Tekijät
+Tämä on työkalun keskeneräinen kehitysversio. Voit tutustua työkalun lähdekoodiin [GitHubissa](https://github.com/juyrjola/corona-scenarios)
+'''
 
 def generate_layout():
     navbar = dbc.NavbarSimple(
@@ -49,7 +65,7 @@ def generate_layout():
     rows.append(dbc.Row([
         dbc.Col([
             html.H3('COVID-19-epidemian kehittyminen: %s' % get_variable('area_name')),
-            html.P('Simulaatio lorem ipsums'),
+            html.P('Tutkitaan kuinka erilaiset interventiot vaikuttavat koronavirusepidemian etenemiseen.', className="lead"),
         ], className='mb-4'),
     ], className='mt-4'))
 
@@ -107,7 +123,7 @@ def generate_layout():
                 ],
                 className="px-5"),
                 dbc.CardFooter([
-                    html.H6('Lisää tapahtuma'),
+                    html.H6('Lisää uusi tapahtuma'),
                     dbc.Row([
                         dbc.Col(dcc.DatePickerSingle(
                             id='new-intervention-date', display_format='YYYY-MM-DD',
@@ -121,7 +137,7 @@ def generate_layout():
                             id='new-intervention-value', type='number', size='6'
                         ), md=2),
                         dbc.Col(dbc.Button(
-                            'Lisää', id='new-intervention-add', color='dark'
+                            'Lisää', id='new-intervention-add', color='primary'
                         ), md=2),
                     ],
                     form=True,
@@ -137,9 +153,9 @@ def generate_layout():
 
     rows.append(dbc.Row([
         dbc.Col([
-            dbc.Button('Laske', id='run-simulation', color='primary'),
+            dbc.Button('Suorita simulaatio', id='run-simulation', color='primary'),
         ],
-        className='text-center')
+        className='text-center mt-3')
     ]))
     rows.append(dbc.Row([
         dbc.Col([
@@ -151,7 +167,22 @@ def generate_layout():
             html.Div(id='day-details-container')
         ])
     ]))
-    return html.Div([navbar, dbc.Container([dbc.Row([dbc.Col(rows)])])])
+    rows.append(dbc.Row([
+        dbc.Col([
+
+        ])
+    ]))
+    return html.Div([
+            navbar,
+            dbc.Container(rows),
+            dbc.Jumbotron(
+                dbc.Container(
+                    dcc.Markdown(children=markdown_text)
+                ),
+                className="mt-5",
+                fluid=True,
+            )
+        ])
 
 app.layout = generate_layout
 
@@ -167,7 +198,7 @@ def toggle_collapse(n, is_open):
 
 @app.callback(
     Output('day-details-container', 'children'),
-    [Input('sir-graph', 'clickData')],
+    [Input('sir-graph', 'clickData')]
 )
 def show_day_details(data):
     print(data)
