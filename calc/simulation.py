@@ -592,7 +592,7 @@ INTERVENTIONS = [
     ('test-all-with-symptoms', 'Testataan kaikki oirehtivat'),
     ('test-only-severe-symptoms', 'Testataan ainoastaan vakavasti oirehtivat'),
     ('limit-mobility', 'Rajoitetaan väestön liikkuvuutta', '%'),
-    ('limit-mass-gatherings', 'Rajoitetaan kokoontumisia', 'max. kontaktia'),
+    ('limit-mass-gatherings', 'Rajoitetaan kokoontumisia', 'kontaktia (max.)'),
     ('import-infections', 'Alueelle tulee infektioita', 'kpl'),
     ('build-new-icu-units', 'Rakennetaan uusia tehohoitopaikkoja', 'kpl'),
 ]

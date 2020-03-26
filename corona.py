@@ -85,7 +85,11 @@ def interventions_to_rows():
             val = None
         # date=datetime.strptime(iv[1], '%Y-%m-%d').strftime("%d.%m.%y")
         # Should we display formatted date on list? Does it mess with DataTable?
-        row = dict(date=iv[1], label=i[1], value=val, name=i[0])
+        if len(i) > 2:
+            unit = i[2]
+        else:
+            unit = None
+        row = dict(date=iv[1], label=i[1], value=val, name=i[0], unit=unit)
         iv_rows.append(row)
     return iv_rows
 
@@ -116,6 +120,7 @@ def generate_layout():
             {'name': 'Päivämäärä', 'id': 'date'},
             {'name': 'Tapahtuma', 'id': 'label'},
             {'name': 'Arvo', 'id': 'value'},
+            {'name': '', 'id': 'unit'},
         ],
         style_cell={'textAlign': 'left'},
         style_cell_conditional=[
