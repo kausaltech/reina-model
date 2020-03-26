@@ -36,10 +36,19 @@ with server.app_context():
 
 
 def generate_layout():
+    navbar = dbc.NavbarSimple(
+        children=[
+            dbc.Badge("v0.1", pill=True, color="primary", className="mr-1"),
+        ],
+        brand="Koronaepidemiasimulaatio",
+        brand_href="#",
+        color="primary",
+        dark=True,
+    )
     rows = []
     rows.append(dbc.Row([
         dbc.Col([
-            html.H2('COVID-19-epidemian kehittyminen: %s' % get_variable('area_name')),
+            html.H3('COVID-19-epidemian kehittyminen: %s' % get_variable('area_name')),
         ], className='mb-4'),
     ], className='mt-4'))
 
@@ -61,16 +70,18 @@ def generate_layout():
 
     rows.append(dbc.Row([
         dbc.Col([
-            dash_table.DataTable(
-                id='interventions-table',
-                data=iv_rows,
-                columns=[
-                    {'name': 'Päivämäärä', 'id': 'date'},
-                    {'name': 'Tapahtuma', 'id': 'label'},
-                    {'name': 'Arvo', 'id': 'value'},
-                ],
-                row_deletable=True,
-            )
+            dbc.Card(dbc.CardBody(
+                dash_table.DataTable(
+                    id='interventions-table',
+                    data=iv_rows,
+                    columns=[
+                        {'name': 'Päivämäärä', 'id': 'date'},
+                        {'name': 'Tapahtuma', 'id': 'label'},
+                        {'name': 'Arvo', 'id': 'value'},
+                    ],
+                    row_deletable=True,
+                )
+            ))
         ])
     ]))
 
@@ -111,8 +122,7 @@ def generate_layout():
             html.Div(id='day-details-container')
         ])
     ]))
-    return dbc.Container([dbc.Row([dbc.Col(rows)])])
-
+    return html.Div([navbar, dbc.Container([dbc.Row([dbc.Col(rows)])])])
 
 app.layout = generate_layout
 
