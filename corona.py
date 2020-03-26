@@ -253,12 +253,12 @@ def interventions_callback(ts, reset_clicks, add_intervention_clicks, rows, new_
             if d < sstart or d > sstart + timedelta(days=get_variable('simulation_days')):
                 raise dash.exceptions.PreventUpdate()
 
-            if new_id in ('test-all-with-symptoms', 'test-only-severe-symptoms'):
+            if new_id in ('test-all-with-symptoms', 'test-only-severe-symptoms', 'test-with-contact-tracing'):
                 new_val = None
             elif new_id in ('limit-mobility',):
                 if new_val > 100 or new_val < 0:
                     raise dash.exceptions.PreventUpdate()
-            elif new_id in ('limit-mass-gatherings', 'import-infections', 'build-new-icu-units'):
+            elif new_id in ('limit-mass-gatherings', 'import-infections', 'build-new-icu-units', 'build-new-hospital-beds'):
                 if new_val < 0:
                     raise dash.exceptions.PreventUpdate()
             else:
