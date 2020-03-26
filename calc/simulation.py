@@ -539,6 +539,9 @@ class Context:
         elif intervention.name == 'test-only-severe-symptoms':
             # Test only those who show severe or critical symptoms
             self.hc.set_testing_mode(TestingMode.ONLY_SEVERE_SYMPTOMS)
+        elif intervention.name == 'build-new-icu-units':
+            self.hc.icu_units += intervention.value
+            self.hc.available_icu_units += intervention.value
         elif intervention.name == 'import-infections':
             # Introduct infections from elsewhere
             count = intervention.value
@@ -595,9 +598,10 @@ LOMBARDIA_HC_CAP = (25000, 720)
 INTERVENTIONS = [
     ('test-all-with-symptoms', 'Testataan kaikki oirehtivat'),
     ('test-only-severe-symptoms', 'Testataan ainoastaan vakavasti oirehtivat'),
-    ('limit-mobility', 'Rajoitetaan väestön liikkuvuutta'),
-    ('limit-mass-gatherings', 'Rajoitetaan kokoontumisia'),
-    ('import-infections', 'Alueelle tulee infektioita'),
+    ('limit-mobility', 'Rajoitetaan väestön liikkuvuutta', '%'),
+    ('limit-mass-gatherings', 'Rajoitetaan kokoontumisia', 'max. kontaktia'),
+    ('import-infections', 'Alueelle tulee infektioita', 'kpl'),
+    ('build-new-icu-units', 'Rakennetaan uusia tehohoitopaikkoja', 'kpl'),
 ]
 
 
