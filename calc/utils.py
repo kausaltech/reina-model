@@ -95,6 +95,7 @@ def calcfunc(variables=None, datasets=None, funcs=None):
             should_profile = os.environ.get('PROFILE_CALC', '').lower() in ('1', 'true', 'yes')
 
             only_if_in_cache = kwargs.pop('only_if_in_cache', False)
+            skip_cache = kwargs.pop('skip_cache', False)
 
             if should_profile:
                 pc = PerfCounter('%s.%s' % (func.__module__, func.__name__))
@@ -107,7 +108,7 @@ def calcfunc(variables=None, datasets=None, funcs=None):
             assert 'datasets' not in kwargs
 
             unknown_kwargs = set(kwargs.keys()) - set(['step_callback'])
-            if not args and not unknown_kwargs:
+            if not args and not unknown_kwargs and not skip_cache:
                 should_cache_func = True
             else:
                 should_cache_func = False

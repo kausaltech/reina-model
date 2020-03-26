@@ -10,9 +10,35 @@ VARIABLE_DEFAULTS = {
     'start_date': '2020-02-18',
     'hospital_beds': 2600,
     'icu_units': 300,
+
+    #
+    # Disease parameters
+    #
+
+    # Chance to be asymptomatic
+    'p_asymptomatic': 50,  # %
+
+    # Overall chance to become infected after being exposed.
+    # This is modified by viral load of the infector, which
+    # depends on the day of the illness.
+    'p_infection': 20,  # %
+
+    # For people having at least severe symptoms, chance to
+    # have critical symptoms (and requiring ICU care).
+    'p_critical': 25,  # %
+
+    # Chance to die after regular hospital care
+    'p_hospital_death': 10,  # %
+    # Chance to die after ICU care
+    'p_icu_death': 20,  # %
+    # Chance to die if no hospital beds are available (but not
+    # needing ICU care)
+    'p_hospital_death_no_beds': 20,  # %
+
     'interventions': [
         ['test-all-with-symptoms', '2020-02-20'],
         ['test-only-severe-symptoms', '2020-03-15'],
+
         ['limit-mobility', '2020-03-12', 10],
         ['limit-mass-gatherings', '2020-03-12', 50],
 
