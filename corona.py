@@ -1,5 +1,5 @@
 import dash
-from datetime import date, timedelta
+from datetime import date, timedelta, datetime
 from flask_session import Session
 from common import cache
 import os
@@ -49,6 +49,7 @@ def generate_layout():
     rows.append(dbc.Row([
         dbc.Col([
             html.H3('COVID-19-epidemian kehittyminen: %s' % get_variable('area_name')),
+            html.P('Simulaatio lorem ipsums'),
         ], className='mb-4'),
     ], className='mt-4'))
 
@@ -65,52 +66,80 @@ def generate_layout():
             val = iv[2]
         else:
             val = None
+        # date=datetime.strptime(iv[1], '%Y-%m-%d').strftime("%d.%m.%y")
+        # Should we display formatted date on list? Does it mess with DataTable?
         row = dict(date=iv[1], label=i[1], value=val)
         iv_rows.append(row)
 
     rows.append(dbc.Row([
         dbc.Col([
-            dbc.Card(dbc.CardBody(
-                dash_table.DataTable(
-                    id='interventions-table',
-                    data=iv_rows,
-                    columns=[
-                        {'name': 'Päivämäärä', 'id': 'date'},
-                        {'name': 'Tapahtuma', 'id': 'label'},
-                        {'name': 'Arvo', 'id': 'value'},
+            dbc.Card([
+                dbc.CardHeader([
+                    html.H6("Tapahtumat ("+str(len(ivs))+")", className="float-left mt-2"),
+                    dbc.Button(
+                        "[ - ]",
+                        id="collapse-button",
+                        color="link",
+                        className="float-right"
+                    ),
+                ]),
+                dbc.Collapse([
+                dbc.CardBody([
+                    dash_table.DataTable(
+                        id='interventions-table',
+                        data=iv_rows,
+                        columns=[
+                            {'name': 'Päivämäärä', 'id': 'date'},
+                            {'name': 'Tapahtuma', 'id': 'label'},
+                            {'name': 'Arvo', 'id': 'value'},
+                        ],
+                        style_cell={'textAlign': 'left'},
+                        style_cell_conditional=[
+                            {
+                                'if': {'column_id': 'value'},
+                                'textAlign': 'right'
+                            }
+                        ],
+                        row_deletable=True,
+                        style_as_list_view=True,
+                    ),
+                    html.Div(dbc.Button('Palauta oletustapahtumat', id='reset-defaults', color='secondary', size='sm', className='mt-3'), className='text-right'),
+                ],
+                className="px-5"),
+                dbc.CardFooter([
+                    html.H6('Lisää tapahtuma'),
+                    dbc.Row([
+                        dbc.Col(dcc.DatePickerSingle(
+                            id='new-intervention-date', display_format='YYYY-MM-DD',
+                            first_day_of_week=1,
+                        ), md=3),
+                        dbc.Col(dcc.Dropdown(
+                            id='new-intervention-date-id',
+                            options=[{'label': i[1], 'value': i[0]} for i in INTERVENTIONS]
+                        ), md=5),
+                        dbc.Col(dbc.Input(
+                            id='new-intervention-value', type='number', size='6'
+                        ), md=2),
+                        dbc.Col(dbc.Button(
+                            'Lisää', id='new-intervention-add', color='dark'
+                        ), md=2),
                     ],
-                    row_deletable=True,
-                )
-            ))
+                    form=True,
+                    )
+                ]),
+            ],
+            is_open=True,
+            id='collapse'),
+            ],
+            className='mb-4')
         ])
     ]))
 
     rows.append(dbc.Row([
         dbc.Col([
-            dbc.Row([
-                dbc.Col([dcc.DatePickerSingle(
-                    id='new-intervention-date', display_format='YYYY-MM-DD',
-                    first_day_of_week=1,
-                )], md=2),
-                dbc.Col([dcc.Dropdown(
-                    id='new-intervention-date-id',
-                    options=[{'label': i[1], 'value': i[0]} for i in INTERVENTIONS]
-                )], md=4),
-                dbc.Col([dcc.Input(
-                    id='new-intervention-value', type='number'
-                )], md=3),
-                dbc.Col([dbc.Button(
-                    'Lisää', id='new-intervention-add'
-                )], md=2),
-            ])
-        ], className='mb-4'),
-    ], className='mt-4'))
-
-    rows.append(dbc.Row([
-        dbc.Col([
-            dbc.Button('Laske', id='run-simulation'),
-            dbc.Button('Palauta oletukset', id='reset-defaults', color='warning'),
-        ])
+            dbc.Button('Laske', id='run-simulation', color='primary'),
+        ],
+        className='text-center')
     ]))
     rows.append(dbc.Row([
         dbc.Col([
@@ -126,10 +155,19 @@ def generate_layout():
 
 app.layout = generate_layout
 
+@app.callback(
+    Output("collapse", "is_open"),
+    [Input("collapse-button", "n_clicks")],
+    [State("collapse", "is_open")],
+)
+def toggle_collapse(n, is_open):
+    if n:
+        return not is_open
+    return is_open
 
 @app.callback(
     Output('day-details-container', 'children'),
-    [Input('sir-graph', 'clickData')]
+    [Input('sir-graph', 'clickData')],
 )
 def show_day_details(data):
     print(data)
