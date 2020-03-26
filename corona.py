@@ -28,7 +28,11 @@ app.css.config.serve_locally = True
 app.scripts.config.serve_locally = True
 server = app.server
 with server.app_context():
+    from common import settings
+
     server.config.from_object('common.settings')
+    if settings.URL_PREFIX:
+        app.config.update(dict(routes_pathname_prefix=settings.URL_PREFIX))
 
     cache.init_app(server)
     sess = Session()
