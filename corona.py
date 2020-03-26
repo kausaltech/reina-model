@@ -1,5 +1,5 @@
 import dash
-from datetime import date, timedelta
+from datetime import date, timedelta, datetime
 from flask_session import Session
 from common import cache
 import os
@@ -34,12 +34,38 @@ with server.app_context():
     sess = Session()
     sess.init_app(server)
 
+markdown_text = '''
+### Kuinka simulaatio toimii?
+Simulaatiossa tutkitaan kuinka...
+
+#### Oletusarvot
+**HUS alueen väestö:** 1 645 000
+
+#### Tapahtumat
+Tapahtumalistasta voi simulaation lisätä tai poistaa tapahtumia tai toimenpiteitä.
+
+#### Katso myös
+Keskustelua yhteiskehittämisestä [täällä](https://korona.kausal.tech/)
+
+#### Tekijät
+Tämä on työkalun keskeneräinen kehitysversio. Voit tutustua työkalun lähdekoodiin [GitHubissa](https://github.com/juyrjola/corona-scenarios)
+'''
 
 def generate_layout():
+    navbar = dbc.NavbarSimple(
+        children=[
+            dbc.Badge("v0.1", pill=True, color="primary", className="mr-1"),
+        ],
+        brand="Koronaepidemiasimulaatio",
+        brand_href="#",
+        color="primary",
+        dark=True,
+    )
     rows = []
     rows.append(dbc.Row([
         dbc.Col([
-            html.H2('COVID-19-epidemian kehittyminen: %s' % get_variable('area_name')),
+            html.H3('COVID-19-epidemian kehittyminen: %s' % get_variable('area_name')),
+            html.P('Tutkitaan kuinka erilaiset interventiot vaikuttavat koronavirusepidemian etenemiseen.', className="lead"),
         ], className='mb-4'),
     ], className='mt-4'))
 
@@ -56,50 +82,80 @@ def generate_layout():
             val = iv[2]
         else:
             val = None
+        # date=datetime.strptime(iv[1], '%Y-%m-%d').strftime("%d.%m.%y")
+        # Should we display formatted date on list? Does it mess with DataTable?
         row = dict(date=iv[1], label=i[1], value=val)
         iv_rows.append(row)
 
     rows.append(dbc.Row([
         dbc.Col([
-            dash_table.DataTable(
-                id='interventions-table',
-                data=iv_rows,
-                columns=[
-                    {'name': 'Päivämäärä', 'id': 'date'},
-                    {'name': 'Tapahtuma', 'id': 'label'},
-                    {'name': 'Arvo', 'id': 'value'},
+            dbc.Card([
+                dbc.CardHeader([
+                    html.H6("Tapahtumat ("+str(len(ivs))+")", className="float-left mt-2"),
+                    dbc.Button(
+                        "[ - ]",
+                        id="collapse-button",
+                        color="link",
+                        className="float-right"
+                    ),
+                ]),
+                dbc.Collapse([
+                dbc.CardBody([
+                    dash_table.DataTable(
+                        id='interventions-table',
+                        data=iv_rows,
+                        columns=[
+                            {'name': 'Päivämäärä', 'id': 'date'},
+                            {'name': 'Tapahtuma', 'id': 'label'},
+                            {'name': 'Arvo', 'id': 'value'},
+                        ],
+                        style_cell={'textAlign': 'left'},
+                        style_cell_conditional=[
+                            {
+                                'if': {'column_id': 'value'},
+                                'textAlign': 'right'
+                            }
+                        ],
+                        row_deletable=True,
+                        style_as_list_view=True,
+                    ),
+                    html.Div(dbc.Button('Palauta oletustapahtumat', id='reset-defaults', color='secondary', size='sm', className='mt-3'), className='text-right'),
                 ],
-                row_deletable=True,
-            )
+                className="px-5"),
+                dbc.CardFooter([
+                    html.H6('Lisää uusi tapahtuma'),
+                    dbc.Row([
+                        dbc.Col(dcc.DatePickerSingle(
+                            id='new-intervention-date', display_format='YYYY-MM-DD',
+                            first_day_of_week=1,
+                        ), md=3),
+                        dbc.Col(dcc.Dropdown(
+                            id='new-intervention-date-id',
+                            options=[{'label': i[1], 'value': i[0]} for i in INTERVENTIONS]
+                        ), md=5),
+                        dbc.Col(dbc.Input(
+                            id='new-intervention-value', type='number', size='6'
+                        ), md=2),
+                        dbc.Col(dbc.Button(
+                            'Lisää', id='new-intervention-add', color='primary'
+                        ), md=2),
+                    ],
+                    form=True,
+                    )
+                ]),
+            ],
+            is_open=True,
+            id='collapse'),
+            ],
+            className='mb-4')
         ])
     ]))
 
     rows.append(dbc.Row([
         dbc.Col([
-            dbc.Row([
-                dbc.Col([dcc.DatePickerSingle(
-                    id='new-intervention-date', display_format='YYYY-MM-DD',
-                    first_day_of_week=1,
-                )], md=2),
-                dbc.Col([dcc.Dropdown(
-                    id='new-intervention-date-id',
-                    options=[{'label': i[1], 'value': i[0]} for i in INTERVENTIONS]
-                )], md=4),
-                dbc.Col([dcc.Input(
-                    id='new-intervention-value', type='number'
-                )], md=3),
-                dbc.Col([dbc.Button(
-                    'Lisää', id='new-intervention-add'
-                )], md=2),
-            ])
-        ], className='mb-4'),
-    ], className='mt-4'))
-
-    rows.append(dbc.Row([
-        dbc.Col([
-            dbc.Button('Laske', id='run-simulation'),
-            dbc.Button('Palauta oletukset', id='reset-defaults', color='warning'),
-        ])
+            dbc.Button('Suorita simulaatio', id='run-simulation', color='primary'),
+        ],
+        className='text-center mt-3')
     ]))
     rows.append(dbc.Row([
         dbc.Col([
@@ -111,11 +167,34 @@ def generate_layout():
             html.Div(id='day-details-container')
         ])
     ]))
-    return dbc.Container([dbc.Row([dbc.Col(rows)])])
+    rows.append(dbc.Row([
+        dbc.Col([
 
+        ])
+    ]))
+    return html.Div([
+            navbar,
+            dbc.Container(rows),
+            dbc.Jumbotron(
+                dbc.Container(
+                    dcc.Markdown(children=markdown_text)
+                ),
+                className="mt-5",
+                fluid=True,
+            )
+        ])
 
 app.layout = generate_layout
 
+@app.callback(
+    Output("collapse", "is_open"),
+    [Input("collapse-button", "n_clicks")],
+    [State("collapse", "is_open")],
+)
+def toggle_collapse(n, is_open):
+    if n:
+        return not is_open
+    return is_open
 
 @app.callback(
     Output('day-details-container', 'children'),
