@@ -14,6 +14,7 @@ from utils.colors import THEME_COLORS
 
 from calc.simulation import simulate_individuals, INTERVENTIONS
 from calc.datasets import get_detected_cases
+from common import settings
 from components.cards import GraphCard
 from components.graphs import make_layout
 from variables import set_variable, get_variable
@@ -22,17 +23,16 @@ from variables import set_variable, get_variable
 os.environ['DASH_PRUNE_ERRORS'] = 'False'
 os.environ['DASH_SILENCE_ROUTES_LOGGING'] = 'False'
 
+app_kwargs = dict(suppress_callback_exceptions=True)
+if settings.URL_PREFIX:
+    app_kwargs['routes_pathname_prefix'] = settings.URL_PREFIX
 
-app = dash.Dash(__name__, suppress_callback_exceptions=True)
+app = dash.Dash(__name__, **app_kwargs)
 app.css.config.serve_locally = True
 app.scripts.config.serve_locally = True
 server = app.server
 with server.app_context():
-    from common import settings
-
     server.config.from_object('common.settings')
-    if settings.URL_PREFIX:
-        app.config.update(dict(routes_pathname_prefix=settings.URL_PREFIX))
 
     cache.init_app(server)
     sess = Session()
