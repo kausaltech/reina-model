@@ -17,11 +17,8 @@ VARIABLE_DEFAULTS = {
         ['limit-mass-gatherings', '2020-03-12', 50],
 
         ['limit-mobility', '2020-03-15', 20],
-        ['limit-mobility', '2020-03-20', 30],
-        ['limit-mobility', '2020-03-25', 50],
-
-        ['limit-mobility', '2020-04-01', 90],
-        ['limit-mobility', '2020-04-30', 50],
+        ['limit-mobility', '2020-03-20', 50],
+        ['limit-mobility', '2020-03-27', 60],
 
         ['build-new-icu-units', '2020-04-30', 150],
         ['build-new-icu-units', '2020-05-30', 150],
