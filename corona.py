@@ -61,7 +61,7 @@ Tapahtumalistasta voi simulaation lisätä tai poistaa tapahtumia tai toimenpite
 Keskustelua yhteiskehittämisestä [täällä](https://korona.kausal.tech/)
 
 #### Tekijät
-Tämä on työkalun keskeneräinen kehitysversio. Voit tutustua työkalun lähdekoodiin [GitHubissa](https://github.com/juyrjola/corona-scenarios)
+Tämä on työkalun keskeneräinen kehitysversio. Voit tutustua työkalun lähdekoodiin [GitHubissa](https://github.com/kausaltech/corona-agent-simulation)
 '''
 
 
@@ -270,7 +270,7 @@ def render_results(df):
 
     card = GraphCard('healthcare', graph=dict(config=dict(responsive=False)))
     layout = make_layout(
-        title='Sairaanhoitojärjestelmä', height=250, showlegend=True,
+        title='Sairaanhoitojärjestelmän vapaa kapasiteetti', height=250, showlegend=True,
         margin=dict(r=250)
     )
     fig = dict(data=traces, layout=layout)
