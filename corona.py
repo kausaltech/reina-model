@@ -40,7 +40,11 @@ with server.app_context():
 
 markdown_text = '''
 ### Kuinka simulaatio toimii?
-Simulaatiossa tutkitaan kuinka...
+Simulaatiossa mallinnetaan kuinka COVID-19 epidemia etenee sairaanhoitokapasiteetista,
+testauskäytännöistä ja ihmiset liikkuvuutta rajoittavista toimenpiteistä riippuen.
+
+Simulaation taustalla on agenttipohjainen malli, jossa käydään läpi jokainen sairastunut
+koko infektio- ja sairauspolun aikana.
 
 #### Oletusarvot
 **HUS alueen väestö:** 1 645 000
@@ -235,7 +239,6 @@ def building_selector_callback(n_clicks):
 
     print(ctx.triggered[0]['prop_id'])
 
-    set_variable('simulation_days', 120)
     det = get_detected_cases()
     df = simulate_individuals()
 

@@ -6,7 +6,7 @@ from flask import session
 VARIABLE_DEFAULTS = {
     'area_name': 'HUS',
     'country': 'Finland',
-    'simulation_days': 365,
+    'simulation_days': 270,
     'interventions': [
         ['test-all-with-symptoms', '2020-02-20'],
         ['test-only-severe-symptoms', '2020-03-15'],
@@ -19,6 +19,9 @@ VARIABLE_DEFAULTS = {
 
         ['limit-mobility', '2020-04-01', 90],
         ['limit-mobility', '2020-04-30', 50],
+
+        ['build-new-icu-units', '2020-04-30', 150],
+        ['build-new-icu-units', '2020-05-30', 150],
 
         ['import-infections', '2020-02-20', 20],
         ['import-infections', '2020-03-05', 300],
@@ -47,7 +50,16 @@ def set_variable(var_name, value):
 
 
 def get_variable(var_name):
-    if flask.has_request_context():
-        if var_name in session:
-            return session[var_name]
-    return VARIABLE_DEFAULTS[var_name]
+    if flask.has_request_context() and var_name in session:
+        out = session[var_name]
+    else:
+        out = VARIABLE_DEFAULTS[var_name]
+    if isinstance(out, list):
+        # Make a copy
+        return list(out)
+    return out
+
+
+def reset_variable(var_name):
+    if flask.has_request_context() and var_name in session:
+        del session[var_name]
