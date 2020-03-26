@@ -94,6 +94,8 @@ def calcfunc(variables=None, datasets=None, funcs=None):
         def wrap_calc_func(*args, **kwargs):
             should_profile = os.environ.get('PROFILE_CALC', '').lower() in ('1', 'true', 'yes')
 
+            only_if_in_cache = kwargs.pop('only_if_in_cache', False)
+
             if should_profile:
                 pc = PerfCounter('%s.%s' % (func.__module__, func.__name__))
                 pc.display('enter')
@@ -104,7 +106,8 @@ def calcfunc(variables=None, datasets=None, funcs=None):
             assert 'variables' not in kwargs
             assert 'datasets' not in kwargs
 
-            if not args and not kwargs:
+            unknown_kwargs = set(kwargs.keys()) - set(['step_callback'])
+            if not args and not unknown_kwargs:
                 should_cache_func = True
             else:
                 should_cache_func = False
@@ -115,6 +118,8 @@ def calcfunc(variables=None, datasets=None, funcs=None):
                     if should_profile:
                         pc.display('cache hit')
                     return ret
+                if only_if_in_cache:
+                    return None
 
             if variables is not None:
                 kwargs['variables'] = {x: get_variable(y) for x, y in variables.items()}
@@ -138,6 +143,7 @@ def calcfunc(variables=None, datasets=None, funcs=None):
                 kwargs['datasets'] = {ds_name: _dataset_cache[ds_url] for ds_name, ds_url in datasets.items()}
 
             ret = func(*args, **kwargs)
+
             if should_profile:
                 pc.display('func ret')
             if should_cache_func:

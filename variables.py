@@ -7,6 +7,9 @@ VARIABLE_DEFAULTS = {
     'area_name': 'HUS',
     'country': 'Finland',
     'simulation_days': 270,
+    'start_date': '2020-02-18',
+    'hospital_beds': 2600,
+    'icu_units': 300,
     'interventions': [
         ['test-all-with-symptoms', '2020-02-20'],
         ['test-only-severe-symptoms', '2020-03-15'],

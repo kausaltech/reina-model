@@ -2,7 +2,7 @@ from collections import namedtuple
 import numpy as np
 import pandas as pd
 
-from . import calcfunc
+from . import calcfunc, ExecutionInterrupted
 from enum import IntEnum, auto
 from calc.datasets import get_population_for_area, get_physical_contacts_for_country
 from utils.perf import PerfCounter
@@ -500,10 +500,10 @@ class Context:
             if not person.is_infected:
                 continue
 
+            exposed_per_day += person.other_people_exposed_today
+
             if person.state != PersonState.ILLNESS:
                 continue
-
-            exposed_per_day += person.other_people_exposed_today
 
             total_infectors += 1
             total_infections += person.other_people_infected
@@ -513,7 +513,7 @@ class Context:
 
         return (
             total_infections / total_infectors,
-            exposed_per_day / total_infectors,
+            exposed_per_day,
         )
 
     def generate_state(self):
@@ -588,13 +588,6 @@ def create_population(age_counts):
     return pop
 
 
-# Lombardia
-AGES = [0, 10, 20, 30, 40, 50, 60, 70, 80]
-LOMBARDIA_POP = [884414, 961237, 982354, 1187594, 1591034, 1566175, 1182159, 994236, 711371]
-LOMBARDIA_CONTACTS = 25
-LOMBARDIA_HC_CAP = (25000, 720)
-
-
 INTERVENTIONS = [
     ('test-all-with-symptoms', 'Testataan kaikki oirehtivat'),
     ('test-only-severe-symptoms', 'Testataan ainoastaan vakavasti oirehtivat'),
@@ -605,22 +598,29 @@ INTERVENTIONS = [
 ]
 
 
+POP_ATTRS = [
+    'susceptible', 'infected', 'all_detected', 'hospitalized',
+    'dead', 'recovered',
+]
+STATE_ATTRS = [
+    'exposed_per_day', 'hospital_beds', 'icu_units', 'r', 'sim_time_ms',
+]
+
+
 @calcfunc(
-    variables=['simulation_days', 'interventions']
+    variables=[
+        'simulation_days', 'interventions', 'start_date',
+        'hospital_beds', 'icu_units',
+    ],
 )
-def simulate_individuals(variables):
+def simulate_individuals(variables, step_callback=None):
     pc = PerfCounter()
-    if True:
-        df = get_population_for_area().sum(axis=1)
-        ages = df.index.values
-        counts = df.values
-        avg_contacts_per_day = get_physical_contacts_for_country()
-        hc_cap = (2600, 300)
-    else:
-        ages = tuple(AGES)
-        counts = tuple(LOMBARDIA_POP)
-        avg_contacts_per_day = LOMBARDIA_CONTACTS
-        hc_cap = LOMBARDIA_HC_CAP
+
+    df = get_population_for_area().sum(axis=1)
+    ages = df.index.values
+    counts = df.values
+    avg_contacts_per_day = get_physical_contacts_for_country()
+    hc_cap = (variables['hospital_beds'], variables['icu_units'])
 
     max_age = max(ages)
     age_counts = np.array(np.zeros(max_age + 1, dtype=np.int32))
@@ -635,7 +635,8 @@ def simulate_individuals(variables):
     pop = Population(age_counts, avg_contacts)
     hc = HealthcareSystem(hc_cap[0], hc_cap[1])
     disease = Disease()
-    context = Context(pop, people, hc, disease, start_date='2020-02-18')
+    context = Context(pop, people, hc, disease, start_date=variables['start_date'])
+    start_date = date.fromisoformat(variables['start_date'])
 
     ivs = nb.typed.List()
 
@@ -646,26 +647,19 @@ def simulate_individuals(variables):
             iv_value = iv[2]
         else:
             iv_value = None
+        # Extremely awkward, but Numba poses some limitations.
         ivs.append(make_iv(context, iv_id, iv_date, value=iv_value))
 
     context.interventions = ivs
 
     pc.display('after init')
-    states = []
 
-    POP_ATTRS = [
-        'susceptible', 'infected', 'all_detected', 'hospitalized',
-        'dead', 'recovered'
-    ]
-    STATE_ATTRS = [
-        'hospital_beds', 'icu_units', 'r', 'exposed'
-    ]
+    print(variables['simulation_days'])
 
-    header = '%-12s' % 'day'
-    for attr in POP_ATTRS + STATE_ATTRS:
-        header += '%15s' % attr
-    print(header)
-
+    df = pd.DataFrame(
+        columns=POP_ATTRS + STATE_ATTRS,
+        index=pd.date_range(start_date, periods=variables['simulation_days'])
+    )
     for day in range(variables['simulation_days']):
         state = context.generate_state()
 
@@ -674,29 +668,39 @@ def simulate_individuals(variables):
         rec['icu_units'] = state.available_icu_units
         rec['r'] = state.r
         rec['exposed_per_day'] = state.exposed_per_day
+        rec['sim_time_ms'] = pc.measure()
 
-        s = '%-12s' % (date.fromisoformat(context.start_date) + timedelta(days=context.day)).isoformat()
-        for attr in POP_ATTRS:
-            s += '%15d' % rec[attr]
+        d = start_date + timedelta(days=day)
+        df.loc[d] = rec
 
-        for attr in ['hospital_beds', 'icu_units']:
-            s += '%15d' % rec[attr]
-        s += '%13.2f' % rec['r']
-        s += '%15f' % rec['exposed_per_day']
-        print(s)
-        states.append(rec)
+        if step_callback is not None:
+            ret = step_callback(df)
+            if not ret:
+                raise ExecutionInterrupted()
         context.iterate()
 
-    return pd.DataFrame.from_records(
-        states,
-        index=pd.date_range(start=context.start_date, periods=len(states)),
-        columns=POP_ATTRS + STATE_ATTRS,
-    )
+    return df
 
 
 if __name__ == '__main__':
-    df = simulate_individuals()
-    df['total'] = df.infected + df.recovered + df.susceptible + df.dead
-    df['cfr'] = df.dead / (df.infected + df.recovered)
-    pd.set_option('display.max_rows', 200)
-    print(df)
+    header = '%-12s' % 'day'
+    for attr in POP_ATTRS + STATE_ATTRS:
+        header += '%15s' % attr
+    print(header)
+
+    def step_callback(df):
+        rec = df.dropna().iloc[-1]
+
+        s = '%-12s' % rec.name.date().isoformat()
+        for attr in POP_ATTRS:
+            s += '%15d' % rec[attr]
+
+        for attr in ['exposed_per_day', 'hospital_beds', 'icu_units']:
+            s += '%15d' % rec[attr]
+        s += '%13.2f' % rec['r']
+        if rec['infected']:
+            s += '%13.2f' % (rec['sim_time_ms'] * 1000 / rec['infected'])
+        print(s)
+        return True
+
+    simulate_individuals(step_callback=step_callback)

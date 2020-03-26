@@ -9,7 +9,7 @@ pc_data = threading.local()
 class PerfCounter:
     def __init__(self, tag=None, show_time_to_last=False):
         self.start = time.perf_counter_ns()
-        self.last_display = self.start
+        self.last_value = self.start
         if tag is None:
             # If no tag given, default to the name of the calling func
             calling_frame = inspect.currentframe().f_back
@@ -25,13 +25,19 @@ class PerfCounter:
     def __del__(self):
         pc_data.depth -= 1
 
+    def measure(self):
+        now = time.perf_counter_ns()
+        cur_ms = (now - self.last_value) / 1000000
+        self.last_value = now
+        return cur_ms
+
     def display(self, name, show_time_to_last=False):
         now = time.perf_counter_ns()
         cur_ms = (now - self.start) / 1000000
         tag_str = '[%s] ' % self.tag if self.tag else ''
         if self.show_time_to_last:
-            diff_str = ' (to previous %4.1f ms)' % ((now - self.last_display) / 1000000)
+            diff_str = ' (to previous %4.1f ms)' % ((now - self.last_value) / 1000000)
         else:
             diff_str = ''
         print('%s%s%4.1f ms%s: %s' % ((pc_data.depth - 1) * '  ', tag_str, cur_ms, diff_str, name))
-        self.last_display = now
+        self.last_value = now
