@@ -233,11 +233,13 @@ def interventions_callback(ts, n_clicks, rows):
     [Input('run-simulation', 'n_clicks')],
 )
 def building_selector_callback(n_clicks):
+    """
     ctx = dash.callback_context
     if not ctx.triggered or n_clicks is None:
         return
 
     print(ctx.triggered[0]['prop_id'])
+    """
 
     det = get_detected_cases()
     df = simulate_individuals()
