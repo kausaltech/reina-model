@@ -155,7 +155,7 @@ def generate_layout():
                                 first_day_of_week=1,
                             ), md=3),
                             dbc.Col(dcc.Dropdown(
-                                id='new-intervention-date-id',
+                                id='new-intervention-id',
                                 options=[{'label': i[1], 'value': i[0]} for i in INTERVENTIONS]
                             ), md=5),
                             dbc.Col(dbc.Input(
@@ -204,6 +204,7 @@ def generate_layout():
 app.layout = generate_layout
 
 
+
 @app.callback(
     Output("interventions-collapse", "is_open"),
     [Input("interventions-collapse-button", "n_clicks")],
@@ -226,21 +227,48 @@ def show_day_details(data):
 
 @app.callback(
     Output('interventions-table', 'data'),
-    [Input('interventions-table', 'data_timestamp'), Input('reset-defaults', 'n_clicks')],
-    [State('interventions-table', 'data')]
+    [
+        Input('interventions-table', 'data_timestamp'),
+        Input('reset-defaults', 'n_clicks'),
+        Input('new-intervention-add', 'n_clicks'),
+    ], [
+        State('interventions-table', 'data'),
+        State('new-intervention-date', 'date'),
+        State('new-intervention-id', 'value'),
+        State('new-intervention-value', 'value'),
+    ]
 )
-def interventions_callback(ts, n_clicks, rows):
+def interventions_callback(ts, reset_clicks, add_intervention_clicks, rows, new_date, new_id, new_val):
     ctx = dash.callback_context
     is_reset = False
-    if ctx.triggered and n_clicks is not None:
-        if ctx.triggered[0]['prop_id'].split('.')[0] == 'reset-defaults':
+    if ctx.triggered:
+        c_id = ctx.triggered[0]['prop_id'].split('.')[0]
+        if reset_clicks is not None and c_id == 'reset-defaults':
             reset_variable('interventions')
             reset_variable('simulation_days')
             is_reset = True
+        if add_intervention_clicks is not None and c_id == 'new-intervention-add':
+            d = date.fromisoformat(new_date)
+            sstart = date.fromisoformat(get_variable('start_date'))
+            if d < sstart or d > sstart + timedelta(days=get_variable('simulation_days')):
+                raise dash.exceptions.PreventUpdate()
+
+            if new_id in ('test-all-with-symptoms', 'test-only-severe-symptoms'):
+                new_val = None
+            elif new_id in ('limit-mobility',):
+                if new_val > 100 or new_val < 0:
+                    raise dash.exceptions.PreventUpdate()
+            elif new_id in ('limit-mass-gatherings', 'import-infections', 'build-new-icu-units'):
+                if new_val < 0:
+                    raise dash.exceptions.PreventUpdate()
+            else:
+                raise dash.exceptions.PreventUpdate()
+
+            rows.append(dict(name=new_id, date=d.isoformat(), value=new_val))
 
     if not is_reset:
         ivs = []
-        for row in rows:
+        for row in sorted(rows, key=lambda x: x['date']):
             ivs.append([row['name'], row['date'], row['value']])
         set_variable('interventions', ivs)
 
@@ -386,7 +414,8 @@ def update_simulation_results(n_intervals):
     if df is None:
         raise dash.exceptions.PreventUpdate()
 
-    return render_results(df)
+    out = render_results(df)
+    return out
 
 
 @app.callback(
