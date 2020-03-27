@@ -16,24 +16,40 @@ VARIABLE_DEFAULTS = {
     #
 
     # Chance to be asymptomatic
-    'p_asymptomatic': 50,  # %
+    'p_asymptomatic': 50.0,  # %
 
     # Overall chance to become infected after being exposed.
     # This is modified by viral load of the infector, which
     # depends on the day of the illness.
-    'p_infection': 20,  # %
+    'p_infection': 20.0,  # %
 
     # For people having at least severe symptoms, chance to
     # have critical symptoms (and requiring ICU care).
-    'p_critical': 25,  # %
+    'p_critical': 25.0,  # %
 
     # Chance to die after regular hospital care
-    'p_hospital_death': 10,  # %
+    'p_hospital_death': 10.0,  # %
     # Chance to die after ICU care
-    'p_icu_death': 20,  # %
+    'p_icu_death': 20.0,  # %
     # Chance to die if no hospital beds are available (but not
     # needing ICU care)
-    'p_hospital_death_no_beds': 20,  # %
+    'p_hospital_death_no_beds': 20.0,  # %
+    # Chance to die if no ICU care units are available
+    'p_icu_death_no_beds': 100.0,  # %
+
+    # Ratio of all infected people that require hospitalization
+    # (more than mild symptoms) by age group
+    'p_severe': [
+        [0, 0.0],
+        [10, 0.04],
+        [20, 1.1],
+        [30, 3.4],
+        [40, 4.3],
+        [50, 8.2],
+        [60, 11.8],
+        [70, 16.6],
+        [80, 18.4]
+    ],
 
     'interventions': [
         ['test-all-with-symptoms', '2020-02-20'],

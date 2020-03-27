@@ -11,6 +11,9 @@ from datetime import date, timedelta
 import numba as nb
 
 
+nb.runtime.nrtdynmod._disable_atomicity = 1
+
+
 class SymptomSeverity(IntEnum):
     ASYMPTOMATIC = auto()
     MILD = auto()
@@ -210,13 +213,35 @@ class HealthcareSystem:
         self.testing_queue = nb.typed.List.empty_list(nb.int32)
         self.tests_run_per_day = 0
 
-    def queue_for_testing(self, idx, context):
-        p = context.people[idx]
+    def queue_for_testing(self, person_idx, context):
+        p = context.people[person_idx]
         if p.state == PersonState.DEAD or p.was_detected or p.queued_for_testing:
             return False
         p.queued_for_testing = 1
-        self.testing_queue.append(idx)
+        self.testing_queue.append(person_idx)
         return True
+
+    def perform_contact_tracing(self, person, context):
+        contacts = nb.typed.List.empty_list(nb.int32)
+
+        contacts.append(person.infector)
+        for idx in person.infectees:
+            contacts.append(idx)
+
+        for i in range(3):
+            next_contacts = nb.typed.List.empty_list(nb.int32)
+            for idx in contacts:
+                if idx < 0:
+                    continue
+                if not self.queue_for_testing(idx, context):
+                    continue
+
+                p = context.people[idx]
+                next_contacts.append(p.infector)
+                for pi in p.infectees:
+                    next_contacts.append(pi)
+
+            contacts = next_contacts
 
     def iterate(self, context):
         people = context.people
@@ -230,7 +255,7 @@ class HealthcareSystem:
             person = people[idx]
             if not person.queued_for_testing:
                 raise Exception()
-            person.queued_for_testing = 0
+            person.queued_for_testing = 1
 
             if not person.is_infected or person.was_detected:
                 continue
@@ -244,11 +269,7 @@ class HealthcareSystem:
                 # With contact tracing we queue the infector and the
                 # infectees for testing.
                 # FIXME: Simulate non-perfect contact tracing?
-                if person.infector >= 0:
-                    self.queue_for_testing(person.infector, context)
-
-                for idx in person.infectees:
-                    self.queue_for_testing(idx, context)
+                self.perform_contact_tracing(person, context)
 
     def seek_testing(self, person, context):
         queue_for_testing = False
@@ -257,10 +278,11 @@ class HealthcareSystem:
         elif self.testing_mode == TestingMode.ONLY_SEVERE_SYMPTOMS:
             if person.symptom_severity in (SymptomSeverity.SEVERE, SymptomSeverity.CRITICAL):
                 queue_for_testing = True
-            elif context.random.chance(0.02):
+            elif context.random.chance(.02):
                 # Some people get tests anyway (healthcare workers etc.)
                 queue_for_testing = True
-
+        else:
+            raise Exception()
         if queue_for_testing:
             self.queue_for_testing(person.idx, context)
 
@@ -298,21 +320,6 @@ class HealthcareSystem:
         assert self.available_icu_units <= self.icu_units
 
 
-# Ratio of all infected people that require hospitalization
-# (more than mild symptoms)
-SEVERE_CHANCE_BY_AGE = (
-    (0, 0.0),
-    (10, 0.04),
-    (20, 1.1),
-    (30, 3.4),
-    (40, 4.3),
-    (50, 8.2),
-    (60, 11.8),
-    (70, 16.6),
-    (80, 18.4)
-)
-
-
 # The infectiousness profile of the pathogen over time.
 # Day 0 is the symptom onset day.
 # Source: https://www.medrxiv.org/content/10.1101/2020.03.15.20036707v2.full.pdf
@@ -340,19 +347,23 @@ INFECTIOUSNESS_OVER_TIME = (
     ('p_hospital_death', nb.float32),
     ('p_icu_death', nb.float32),
     ('p_hospital_death_no_beds', nb.float32),
+    ('p_icu_death_no_beds', nb.float32),
+    ('p_severe', nb.float32[:, :]),
 ])
 class Disease:
     def __init__(
-        self, p_infection, p_asymptomatic, p_critical, p_hospital_death, p_icu_death,
-        p_hospital_death_no_beds
+        self, p_infection, p_asymptomatic, p_severe, p_critical, p_hospital_death,
+        p_icu_death, p_hospital_death_no_beds, p_icu_death_no_beds
     ):
         self.p_infection = p_infection
         self.p_asymptomatic = p_asymptomatic
         self.p_critical = p_critical
+        self.p_severe = p_severe
 
         self.p_hospital_death = p_hospital_death
         self.p_icu_death = p_icu_death
         self.p_hospital_death_no_beds = p_hospital_death_no_beds
+        self.p_icu_death_no_beds = p_icu_death_no_beds
 
     def get_source_infectiousness(self, source):
         if source.state == PersonState.INCUBATION:
@@ -400,7 +411,7 @@ class Disease:
             if care_available:
                 chance = self.p_icu_death
             else:
-                return True
+                chance = self.p_icu_death_no_beds
         else:
             if care_available:
                 chance = self.p_hospital_death
@@ -428,11 +439,13 @@ class Disease:
 
     def get_symptom_severity(self, person, context):
         val = context.random.get()
-        for age, severe_chance in SEVERE_CHANCE_BY_AGE:
-            if person.age < age + 10:
+        severe_chance = 0.0
+        for i in range(self.p_severe.size // 2):
+            age, sc = self.p_severe[i]
+            if age > person.age:
                 break
+            severe_chance = sc
 
-        severe_chance /= 100
         if val < severe_chance * self.p_critical:
             return SymptomSeverity.CRITICAL
         if val < severe_chance:
@@ -442,12 +455,13 @@ class Disease:
         return SymptomSeverity.ASYMPTOMATIC
 
 
-ModelState = namedtuple('ModelState', [
+MODEL_STATE_FIELDS = [
     'susceptible', 'infected', 'detected', 'all_detected',
     'hospitalized', 'dead', 'recovered',
     'available_hospital_beds', 'available_icu_units',
     'r', 'exposed_per_day', 'tests_run_per_day',
-])
+]
+ModelState = namedtuple('ModelState', MODEL_STATE_FIELDS)
 
 
 @nb.jitclass([
@@ -529,6 +543,11 @@ class RandomPool:
         return np.random.random()
 
     def chance(self, p):
+        if p == 1.0:
+            return True
+        elif p == 0:
+            return False
+
         val = self.get()
         return val < p
 
@@ -693,8 +712,9 @@ STATE_ATTRS = [
     variables=[
         'simulation_days', 'interventions', 'start_date',
         'hospital_beds', 'icu_units',
-        'p_infection', 'p_asymptomatic', 'p_critical',
+        'p_infection', 'p_asymptomatic', 'p_critical', 'p_severe',
         'p_icu_death', 'p_hospital_death', 'p_hospital_death_no_beds',
+        'p_icu_death_no_beds',
     ],
 )
 def simulate_individuals(variables, step_callback=None):
@@ -711,28 +731,31 @@ def simulate_individuals(variables, step_callback=None):
     for age, count in zip(ages, counts):
         age_counts[age] = count
 
-    pc.display('1')
     people = create_population(age_counts)
-    pc.display('2')
 
     avg_contacts = np.array(avg_contacts_per_day.values, dtype=np.float32)
     assert avg_contacts.size == max_age + 1
 
     pop = Population(age_counts, avg_contacts)
     hc = HealthcareSystem(hc_cap[0], hc_cap[1])
-    pc.display('3')
+
+    sevvar = variables['p_severe']
+    sev_arr = np.ndarray((len(sevvar), 2), dtype=np.float32)
+    for idx, (age, sev) in enumerate(sevvar):
+        sev_arr[idx] = (age, sev / 100)
 
     disease = Disease(
-        variables['p_infection'] / 100,
-        variables['p_asymptomatic'] / 100,
-        variables['p_critical'] / 100,
-        variables['p_hospital_death'] / 100,
-        variables['p_icu_death'] / 100,
-        variables['p_hospital_death_no_beds'] / 100
+        p_infection=variables['p_infection'] / 100,
+        p_asymptomatic=variables['p_asymptomatic'] / 100,
+        p_severe=sev_arr,
+        p_critical=variables['p_critical'] / 100,
+        p_hospital_death=variables['p_hospital_death'] / 100,
+        p_icu_death=variables['p_icu_death'] / 100,
+        p_hospital_death_no_beds=variables['p_hospital_death_no_beds'] / 100,
+        p_icu_death_no_beds=variables['p_icu_death_no_beds'] / 100,
     )
     context = Context(pop, people, hc, disease, start_date=variables['start_date'])
     start_date = date.fromisoformat(variables['start_date'])
-    pc.display('4')
 
     ivs = nb.typed.List()
 

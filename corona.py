@@ -1,6 +1,6 @@
 import dash
 import time
-from datetime import date, timedelta, datetime
+from datetime import date, timedelta
 from flask_session import Session
 from common import cache
 import uuid
@@ -94,24 +94,75 @@ def interventions_to_rows():
     return iv_rows
 
 
-def generate_layout():
-    navbar = dbc.NavbarSimple(
-        children=[
-            dbc.Badge("v0.1", pill=True, color="primary", className="mr-1"),
-        ],
-        brand="Koronaepidemiasimulaatio",
-        brand_href="#",
-        color="primary",
-        dark=True,
-    )
-    rows = []
-    rows.append(dbc.Row([
-        dbc.Col([
-            html.H3('COVID-19-epidemian kehittyminen: %s' % get_variable('area_name')),
-            html.P('Tutkitaan kuinka erilaiset interventiot vaikuttavat koronavirusepidemian etenemiseen.', className="lead"),
-        ], className='mb-4'),
-    ], className='mt-4'))
+DISEASE_PARAMS = (
+    ('p_asymptomatic', 'Osuus tartunnan saaneista, jotka jäävät oireettomiksi', '%',),
+    ('p_infection', 'Todennäköisyys, että taudille altistunut saa tartunnan', '%',),
+    ('p_critical', 'Osuus vakavasti oirehtivista, jotka tarvitsevat tehohoitoa', '%',),
+    ('p_icu_death', 'Tehohoitoa tarvitsevien osuus, joka kuolee tehohoitojakson päätteeksi', '%'),
+    ('p_hospital_death', 'Sairaalahoitoa tarvitsevista osuus, joka kuolee sairaalahoidon päätteeksi', '%'),
+    ('p_hospital_death_no_beds', 'Sairaalahoitoa tarvitsevien osuus, joka kuolee jos sairaalapaikkaa ei ole vapaana', '%'),
+    ('p_icu_death_no_beds', 'Tehohoitoa tarvitsevien osuus, joka kuolee jos tehohoitopaikkaa ei ole vapaana', '%'),
+    # ('p_severe', 'Sairaalahoitoa tarvitsevien osuus kaikista tartunnan saaneista ikäryhmittäin', '%'),
+)
 
+
+def render_disease_params():
+    rows = []
+    for pid, label, unit in DISEASE_PARAMS:
+        val = get_variable(pid)
+        rows.append(dict(id=pid, label=label, value=val, unit=unit))
+
+    value_fmt = {
+        'locale': dict(decimal=',')
+    }
+
+    dp_table = dash_table.DataTable(
+        id='disease-params-table',
+        data=rows,
+        columns=[
+            {'name': 'Kuvaus', 'id': 'label'},
+            {
+                'name': 'Arvo',
+                'id': 'value',
+                'editable': True,
+                'format': value_fmt,
+                'type': 'numeric',
+                'validation': dict(allow_null=False),
+            },
+            {'name': '', 'id': 'unit'},
+        ],
+        style_cell={'textAlign': 'left'},
+        style_cell_conditional=[
+            {
+                'if': {'column_id': 'value'},
+                'textAlign': 'right'
+            }
+        ],
+        style_as_list_view=True,
+    )
+
+    card = dbc.Card([
+        dbc.CardHeader([
+            html.H2(dbc.Button(
+                "Taudin oletukset", className="float-left mt-2",
+                id="disease-collapse-button",
+            )),
+        ]),
+        dbc.Collapse([
+            dbc.CardBody([
+                dp_table,
+                html.Div(dbc.Button(
+                    'Palauta oletusarvot', id='disease-params-reset-defaults', color='secondary',
+                    size='sm', className='mt-3'
+                ), className='text-right'),
+            ], className="px-5"),
+        ], is_open=False, id='disease-collapse'),
+    ], className='mb-4')
+
+    return card
+
+
+def render_iv_card():
     ivs = interventions_to_rows()
     iv_table = dash_table.DataTable(
         id='interventions-table',
@@ -133,43 +184,69 @@ def generate_layout():
         style_as_list_view=True,
     )
 
+    iv_card = dbc.Card([
+        dbc.CardHeader([
+            html.H2(dbc.Button(
+                "Tapahtumat (%d)" % len(ivs), className="float-left mt-2",
+                id="interventions-collapse-button",
+            )),
+        ]),
+        dbc.Collapse([
+            dbc.CardBody([
+                iv_table,
+                html.Div(dbc.Button(
+                    'Palauta oletustapahtumat', id='interventions-reset-defaults', color='secondary',
+                    size='sm', className='mt-3'
+                ), className='text-right'),
+            ], className="px-5"),
+            dbc.CardFooter([
+                html.H6('Lisää uusi tapahtuma'),
+                dbc.Row([
+                    dbc.Col(dcc.DatePickerSingle(
+                        id='new-intervention-date', display_format='YYYY-MM-DD',
+                        first_day_of_week=1,
+                    ), md=3),
+                    dbc.Col(dcc.Dropdown(
+                        id='new-intervention-id',
+                        options=[{'label': i[1], 'value': i[0]} for i in INTERVENTIONS]
+                    ), md=5),
+                    dbc.Col(dbc.Input(
+                        id='new-intervention-value', type='number', size='6'
+                    ), md=2),
+                    dbc.Col(dbc.Button(
+                        'Lisää', id='new-intervention-add', color='primary'
+                    ), md=2),
+                ], form=True)
+            ]),
+        ], is_open=False, id='interventions-collapse'),
+    ], className='mb-4')
+
+    return iv_card
+
+
+def generate_layout():
+    navbar = dbc.NavbarSimple(
+        children=[
+            dbc.Badge("v0.1", pill=True, color="primary", className="mr-1"),
+        ],
+        brand="Koronaepidemiasimulaatio",
+        brand_href="#",
+        color="primary",
+        dark=True,
+    )
+    rows = []
     rows.append(dbc.Row([
         dbc.Col([
-            dbc.Card([
-                dbc.CardHeader([
-                    html.H2(dbc.Button(
-                        "Tapahtumat (%d)" % len(ivs), className="float-left mt-2",
-                        id="interventions-collapse-button",
-                    )),
-                ]),
-                dbc.Collapse([
-                    dbc.CardBody([
-                        iv_table,
-                        html.Div(dbc.Button('Palauta oletustapahtumat', id='reset-defaults', color='secondary', size='sm', className='mt-3'), className='text-right'),
-                    ], className="px-5"),
-                    dbc.CardFooter([
-                        html.H6('Lisää uusi tapahtuma'),
-                        dbc.Row([
-                            dbc.Col(dcc.DatePickerSingle(
-                                id='new-intervention-date', display_format='YYYY-MM-DD',
-                                first_day_of_week=1,
-                            ), md=3),
-                            dbc.Col(dcc.Dropdown(
-                                id='new-intervention-id',
-                                options=[{'label': i[1], 'value': i[0]} for i in INTERVENTIONS]
-                            ), md=5),
-                            dbc.Col(dbc.Input(
-                                id='new-intervention-value', type='number', size='6'
-                            ), md=2),
-                            dbc.Col(dbc.Button(
-                                'Lisää', id='new-intervention-add', color='primary'
-                            ), md=2),
-                        ], form=True)
-                    ]),
-                ], is_open=False, id='interventions-collapse'),
-            ], className='mb-4')
-        ])
-    ]))
+            html.H3('COVID-19-epidemian kehittyminen: %s' % get_variable('area_name')),
+            html.P('Tutkitaan kuinka erilaiset interventiot vaikuttavat koronavirusepidemian etenemiseen.', className="lead"),
+        ], className='mb-4'),
+    ], className='mt-4'))
+
+    dp_card = render_disease_params()
+    rows.append(dbc.Row([dbc.Col(dp_card)]))
+
+    iv_card = render_iv_card()
+    rows.append(dbc.Row([dbc.Col(iv_card)]))
 
     rows.append(dbc.Row([
         dbc.Col([
@@ -210,7 +287,18 @@ app.layout = generate_layout
     [Input("interventions-collapse-button", "n_clicks")],
     [State("interventions-collapse", "is_open")],
 )
-def toggle_collapse(n, is_open):
+def toggle_iv_collapse(n, is_open):
+    if n:
+        return not is_open
+    return is_open
+
+
+@app.callback(
+    Output("disease-collapse", "is_open"),
+    [Input("disease-collapse-button", "n_clicks")],
+    [State("disease-collapse", "is_open")],
+)
+def toggle_disease_collapse(n, is_open):
     if n:
         return not is_open
     return is_open
@@ -226,10 +314,28 @@ def show_day_details(data):
 
 
 @app.callback(
+    Output('disease-params-table', 'data'),
+    [
+        Input('disease-params-table', 'data_timestamp'),
+        Input('disease-reset-defaults', 'n_clicks'),
+    ], [
+        State('disease-params-table', 'data'),
+    ]
+)
+def disease_params_data_callback(ts, rows):
+    for row in rows:
+        if row['value'] < 0:
+            row['value'] = 0
+        elif row['value'] > 100:
+            row['value'] = 100
+    return rows
+
+
+@app.callback(
     Output('interventions-table', 'data'),
     [
         Input('interventions-table', 'data_timestamp'),
-        Input('reset-defaults', 'n_clicks'),
+        Input('interventions-reset-defaults', 'n_clicks'),
         Input('new-intervention-add', 'n_clicks'),
     ], [
         State('interventions-table', 'data'),
@@ -243,7 +349,7 @@ def interventions_callback(ts, reset_clicks, add_intervention_clicks, rows, new_
     is_reset = False
     if ctx.triggered:
         c_id = ctx.triggered[0]['prop_id'].split('.')[0]
-        if reset_clicks is not None and c_id == 'reset-defaults':
+        if reset_clicks is not None and c_id == 'interventions-reset-defaults':
             reset_variable('interventions')
             reset_variable('simulation_days')
             is_reset = True
