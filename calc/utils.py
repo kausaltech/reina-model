@@ -149,7 +149,7 @@ def calcfunc(variables=None, datasets=None, funcs=None):
                 pc.display('func ret')
             if should_cache_func:
                 assert ret is not None
-                cache.set(cache_key, ret, timeout=3600)
+                cache.set(cache_key, ret, timeout=24 * 3600)
 
             return ret
 
