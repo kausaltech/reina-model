@@ -576,6 +576,7 @@ class Intervention:
     ('total_infections', nb.int32),
     ('total_infectors', nb.int32),
     ('exposed_per_day', nb.int32),
+    ('import_infections_per_day', nb.int32),
 ])
 class Context:
     def __init__(self, pop, people, hc, disease, start_date):
@@ -586,6 +587,7 @@ class Context:
         self.random = RandomPool()
         self.start_date = start_date
         self.day = 0
+        self.import_infections_per_day = 0
 
         # Per day
         self.total_infectors = 0
@@ -609,6 +611,13 @@ class Context:
         )
         return s
 
+    def import_infections(self, count):
+        for i in range(count):
+            idx = int(self.random.get() * len(self.people))
+            p = self.people[idx]
+            if p.state == PersonState.SUSCEPTIBLE:
+                p.infect(self)
+
     def apply_intervention(self, intervention):
         if intervention.name == 'test-all-with-symptoms':
             # Start testing everyone who shows even mild symptoms
@@ -627,10 +636,10 @@ class Context:
             self.hc.available_beds += intervention.value
         elif intervention.name == 'import-infections':
             # Introduct infections from elsewhere
-            count = intervention.value
-            for i in range(count):
-                idx = int(self.random.get() * len(self.people))
-                self.people[idx].infect(self)
+            self.import_infections(intervention.value)
+        elif intervention.name == 'import-infections-per-day':
+            # Introduct infections from elsewhere every day
+            self.import_infections_per_day = intervention.value
         elif intervention.name == 'limit-mass-gatherings':
             self.pop.limit_mass_gatherings = intervention.value
         elif intervention.name == 'limit-mobility':
@@ -647,6 +656,9 @@ class Context:
         self.total_infectors = 0
         self.total_infections = 0
         self.exposed_per_day = 0
+
+        if self.import_infections_per_day:
+            self.import_infections(self.import_infections_per_day)
 
         self.hc.iterate(self)
 
@@ -694,6 +706,7 @@ INTERVENTIONS = [
     ('limit-mobility', 'Rajoitetaan väestön liikkuvuutta', '%'),
     ('limit-mass-gatherings', 'Rajoitetaan kokoontumisia', 'kontaktia (max.)'),
     ('import-infections', 'Alueelle tulee infektioita', 'kpl'),
+    ('import-infections-per-day', 'Alueelle tulee päivittäin uusia infektioita', 'kpl/pv'),
     ('build-new-hospital-beds', 'Rakennetaan uusia sairaansijoja', 'kpl'),
     ('build-new-icu-units', 'Rakennetaan uusia tehohoitopaikkoja', 'kpl'),
 ]
@@ -755,6 +768,7 @@ def simulate_individuals(variables, step_callback=None):
         p_icu_death_no_beds=variables['p_icu_death_no_beds'] / 100,
     )
     context = Context(pop, people, hc, disease, start_date=variables['start_date'])
+
     start_date = date.fromisoformat(variables['start_date'])
 
     ivs = nb.typed.List()
