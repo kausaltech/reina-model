@@ -1,6 +1,6 @@
 # cython: language_level=3
-# cython: profile=True
-# cython: boundscheck=True
+# zzcython: profile=True
+# cython: boundscheck=False
 # cython: wraparound=False
 
 
@@ -140,7 +140,7 @@ cdef void person_hospitalize(Person *self, Context context) nogil:
     context.pop.hospitalize(self)
 
 
-cdef void person_release_from_hospital(Person *self, Context context):
+cdef void person_release_from_hospital(Person *self, Context context) nogil:
     context.pop.release_from_hospital(self)
     if self.state == PersonState.IN_ICU:
         death = context.disease.dies_in_hospital(self, context, in_icu=True, care_available=True)
@@ -154,7 +154,7 @@ cdef void person_release_from_hospital(Person *self, Context context):
     else:
         person_recover(self, context)
 
-cdef void person_die(Person *self, Context context):
+cdef void person_die(Person *self, Context context) nogil:
     self.is_infected = 0
     # This is a way to get long-lasting immunity.
     self.has_immunity = 1
@@ -188,36 +188,10 @@ cdef void person_advance(Person *self, Context context) nogil:
                 person_hospitalize(self, context)
             else:
                 person_recover(self, context)
-    """
     elif self.state in (PersonState.HOSPITALIZED, PersonState.IN_ICU):
         self.days_left -= 1
         if self.days_left == 0:
-            self.release_from_hospital(context)
-    """
-
-"""
-cdef class Person:
-    cdef public int32 idx, infector
-    cdef public list infectees
-    cdef public int8 age, has_immunity, is_infected, was_detected, queued_for_testing, \
-        symptom_severity, days_left, day_of_illness, state
-    cdef public int16 other_people_infected, other_people_exposed_today
-
-    def __init__(self, idx, age):
-        self.idx = idx
-        self.age = age
-        self.is_infected = 0
-        self.was_detected = 0
-        self.has_immunity = 0
-        self.days_left = 0
-        self.day_of_illness = 0
-        self.queued_for_testing = 0
-        self.other_people_infected = 0
-        self.symptom_severity = SymptomSeverity.ASYMPTOMATIC
-        self.state = PersonState.SUSCEPTIBLE
-        self.infector = -1
-
-"""
+            person_release_from_hospital(self, context)
 
 
 cdef enum TestingMode:
@@ -340,7 +314,6 @@ cdef class HealthcareSystem:
 
     cdef void release(self) nogil:
         self.available_beds += 1
-        assert self.available_beds <= self.beds
 
     cdef bint to_icu(self) nogil:
         if self.available_icu_units == 0:
@@ -350,7 +323,6 @@ cdef class HealthcareSystem:
 
     cdef void release_from_icu(self) nogil:
         self.available_icu_units += 1
-        assert self.available_icu_units <= self.icu_units
 
 
 # The infectiousness profile of the pathogen over time.
@@ -372,36 +344,36 @@ INFECTIOUSNESS_OVER_TIME = (
     (10, 0.01),
 )
 
-cdef class ProbabilityClass:
+cdef class ClassedValues:
     cdef int[::1] classes
-    cdef float[::1] probabilities
+    cdef float[::1] values
 
     def __init__(self, pairs):
         self.classes = np.array([x[0] for x in pairs], dtype='i')
-        self.probabilities = np.array([x[1] for x in pairs], dtype='f')
+        self.values = np.array([x[1] for x in pairs], dtype='f')
 
     cdef float get(self, int kls, float default) nogil:
         cdef int idx;
         for idx in range(len(self.classes)):
             if self.classes[idx] == kls:
-                return self.probabilities[idx]
+                return self.values[idx]
         return default
 
     cdef float get_last_under(self, int kls) nogil:
-        cdef int idx
+        cdef int idx = 0
         cdef float last
 
         for idx in range(len(self.classes)):
             if self.classes[idx] > kls:
                 break
-        return self.probabilities[idx]
+        return self.values[idx]
 
 
 cdef class Disease:
     cdef float p_infection, p_asymptomatic, p_critical, p_hospital_death, p_icu_death
     cdef float p_icu_death_no_beds, p_hospital_death_no_beds
-    cdef ProbabilityClass p_severe
-    cdef ProbabilityClass infectiousness_over_time 
+    cdef ClassedValues p_severe
+    cdef ClassedValues infectiousness_over_time 
 
     def __init__(
         self, p_infection, p_asymptomatic, p_severe, p_critical, p_hospital_death,
@@ -416,8 +388,8 @@ cdef class Disease:
         self.p_hospital_death_no_beds = p_hospital_death_no_beds
         self.p_icu_death_no_beds = p_icu_death_no_beds
 
-        self.p_severe = ProbabilityClass(p_severe)
-        self.infectiousness_over_time = ProbabilityClass(INFECTIOUSNESS_OVER_TIME)
+        self.p_severe = ClassedValues(p_severe)
+        self.infectiousness_over_time = ClassedValues(INFECTIOUSNESS_OVER_TIME)
 
     cdef float get_source_infectiousness(self, Person *source) nogil:
         cdef int day
@@ -481,10 +453,6 @@ cdef class Disease:
             days = 14
         return days
 
-    cpdef int sample(self, Context context):
-        cdef Person *person = context.people
-        return self.get_incubation_days(person, context)
-
     cdef int get_illness_days(self, Person *person, Context context) nogil:
         return 7
 
@@ -521,7 +489,7 @@ ModelState = namedtuple('ModelState', MODEL_STATE_FIELDS)
 
 cdef class Population:
     cdef int[::1] infected, detected, all_detected, hospitalized, dead, susceptible, recovered
-    cdef float[::1] avg_contacts_per_day
+    cdef ClassedValues avg_contacts_per_day
     cdef int limit_mass_gatherings
     cdef float population_mobility_factor
 
@@ -535,7 +503,7 @@ cdef class Population:
         self.recovered = np.zeros(nr_ages, dtype=np.int32)
         self.hospitalized = np.zeros(nr_ages, dtype=np.int32)
         self.dead = np.zeros(nr_ages, dtype=np.int32)
-        self.avg_contacts_per_day = avg_contacts_per_day.copy()
+        self.avg_contacts_per_day = ClassedValues(avg_contacts_per_day)
         self.limit_mass_gatherings = 0
         self.population_mobility_factor = 1.0
 
@@ -544,9 +512,9 @@ cdef class Population:
         # Contacts per day follows a lognormal distribution with
         # mean at `avg_contacts_per_day`.
         cdef float f = factor * self.population_mobility_factor
-        f *= context.random.lognormal(1.0, 0.7) * self.avg_contacts_per_day[person.age]
+        f *= context.random.lognormal(0, 0.5) * self.avg_contacts_per_day.get_last_under(person.age)
 
-        cdef int contacts = <int> f
+        cdef int contacts = <int> f - 1
         if self.limit_mass_gatherings:
             if contacts > self.limit_mass_gatherings:
                 contacts = self.limit_mass_gatherings
@@ -588,9 +556,9 @@ cdef class Population:
 
 
 cdef class Intervention:
-    cdef int day
-    cdef str name
-    cdef int value
+    cdef public int day
+    cdef public str name
+    cdef public int value
 
     def __init__(self, day, name, value):
         self.day = day
@@ -606,7 +574,7 @@ cdef class Context:
     cdef int day
     cdef Person *people
     cdef int total_people
-    cdef public Intervention[:] interventions
+    cdef list interventions
     cdef str start_date
     cdef int total_infections, total_infectors, exposed_per_day
 
@@ -619,11 +587,15 @@ cdef class Context:
         self.random = RandomPool()
         self.start_date = start_date
         self.day = 0
+        self.interventions = []
 
         # Per day
         self.total_infectors = 0
         self.total_infections = 0
         self.exposed_per_day = 0
+
+    def add_intervention(self, day, name, value):
+        self.interventions.append(Intervention(day, name, value))
 
     def __dealloc__(self):
         PyMem_Free(self.people)
@@ -673,10 +645,8 @@ cdef class Context:
         cdef int idx
         cdef Person *person
 
-        if count > self.total_people:
-            raise Exception()
-
-        for idx in range(count):
+        for i in range(count):
+            idx = self.random.getint() % self.total_people
             person = self.people + idx
             person_infect(person, self)
 
@@ -699,9 +669,7 @@ cdef class Context:
         elif intervention.name == 'import-infections':
             # Introduct infections from elsewhere
             count = intervention.value
-            for i in range(count):
-                idx = int(self.random.get() * self.total_people)
-                self.people[idx].infect(self)
+            self.infect_people(count)
         elif intervention.name == 'limit-mass-gatherings':
             self.pop.limit_mass_gatherings = intervention.value
         elif intervention.name == 'limit-mobility':
@@ -710,15 +678,13 @@ cdef class Context:
             raise Exception()
 
     cdef void _iterate(self):
-        """
-        FIXME
+        cdef Person *person
+        cdef int idx;
+
         for intervention in self.interventions:
             if intervention.day == self.day:
                 print(intervention.name)
                 self.apply_intervention(intervention)
-        """
-        cdef Person *person
-        cdef int idx;
 
         self.total_infectors = 0
         self.total_infections = 0
@@ -746,6 +712,17 @@ cdef class Context:
 
     def iterate(self):
         self._iterate()
+
+    cpdef sample(self, int age):
+        cdef Person p = self.people[0]
+        cdef int i
+
+        out = np.empty(10000, dtype='i')
+        print('should be ', self.pop.avg_contacts_per_day.get_last_under(age))
+        p.age = age
+        for i in range(out.size):
+            out[i] = self.pop.contacts_per_day(&p, self)
+        return out
 
 
 def make_iv(context, intervention, date_str=None, value=None):
