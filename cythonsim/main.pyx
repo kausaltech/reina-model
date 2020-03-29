@@ -411,7 +411,8 @@ cdef class ClassedValues:
                 return self.values[idx]
         return default
 
-    cdef float get_last_under(self, int kls) nogil:
+    cdef float get_greatest_lte(self, int kls) nogil:
+        """Returns the greatest value less-than-or-equal to the given class""" 
         cdef int idx = 0
         cdef float last
 
@@ -422,9 +423,10 @@ cdef class ClassedValues:
 
 
 cdef class Disease:
-    cdef float p_infection, p_asymptomatic, p_critical, p_hospital_death, p_icu_death
+    cdef float p_infection, p_asymptomatic, p_hospital_death, p_icu_death
     cdef float p_icu_death_no_beds, p_hospital_death_no_beds
     cdef ClassedValues p_severe
+    cdef ClassedValues p_critical
     cdef ClassedValues infectiousness_over_time 
 
     def __init__(
@@ -433,7 +435,6 @@ cdef class Disease:
     ):
         self.p_infection = p_infection
         self.p_asymptomatic = p_asymptomatic
-        self.p_critical = p_critical
 
         self.p_hospital_death = p_hospital_death
         self.p_icu_death = p_icu_death
@@ -441,6 +442,7 @@ cdef class Disease:
         self.p_icu_death_no_beds = p_icu_death_no_beds
 
         self.p_severe = ClassedValues(p_severe)
+        self.p_critical = ClassedValues(p_critical)
         self.infectiousness_over_time = ClassedValues(INFECTIOUSNESS_OVER_TIME)
 
     cdef float get_source_infectiousness(self, Person *source) nogil:
@@ -516,12 +518,13 @@ cdef class Disease:
 
     cdef SymptomSeverity get_symptom_severity(self, Person *person, Context context) nogil:
         cdef int i
-        cdef float sc, val
+        cdef float sc, cc, val
 
         val = context.random.get()
-        sc = self.p_severe.get_last_under(person.age)
+        sc = self.p_severe.get_greatest_lte(person.age)
+        cc = self.p_critical.get_greatest_lte(person.age)
 
-        if val < sc * self.p_critical:
+        if val < sc * cc:
             return SymptomSeverity.CRITICAL
         if val < sc:
             return SymptomSeverity.SEVERE
@@ -531,7 +534,8 @@ cdef class Disease:
 
 
 MODEL_STATE_FIELDS = [
-    'susceptible', 'infected', 'detected', 'all_detected',
+    'susceptible', 'infected', 'all_infected',
+    'detected', 'all_detected',
     'hospitalized', 'dead', 'recovered',
     'available_hospital_beds', 'available_icu_units',
     'r', 'exposed_per_day', 'tests_run_per_day',
@@ -540,18 +544,19 @@ ModelState = namedtuple('ModelState', MODEL_STATE_FIELDS)
 
 
 cdef class Population:
-    cdef int[::1] infected, detected, all_detected, hospitalized, dead, susceptible, recovered
+    cdef int[::1] infected, detected, all_detected, all_infected, hospitalized, dead, susceptible, recovered
     cdef ClassedValues avg_contacts_per_day
     cdef int limit_mass_gatherings
     cdef float population_mobility_factor
 
     def __init__(self, age_counts, avg_contacts_per_day):
-        nr_ages = age_counts.size
-        self.susceptible = age_counts.copy()
+        nr_ages = len(age_counts)
 
+        self.susceptible = np.array(age_counts, dtype=np.int32)
         self.infected = np.zeros(nr_ages, dtype=np.int32)
         self.detected = np.zeros(nr_ages, dtype=np.int32)
         self.all_detected = np.zeros(nr_ages, dtype=np.int32)
+        self.all_infected = np.zeros(nr_ages, dtype=np.int32)
         self.recovered = np.zeros(nr_ages, dtype=np.int32)
         self.hospitalized = np.zeros(nr_ages, dtype=np.int32)
         self.dead = np.zeros(nr_ages, dtype=np.int32)
@@ -559,12 +564,11 @@ cdef class Population:
         self.limit_mass_gatherings = 0
         self.population_mobility_factor = 1.0
 
-
     cdef int contacts_per_day(self, Person *person, Context context, float factor=1.0, int limit=100) nogil:
         # Contacts per day follows a lognormal distribution with
         # mean at `avg_contacts_per_day`.
         cdef float f = factor * self.population_mobility_factor
-        f *= context.random.lognormal(0, 0.5) * self.avg_contacts_per_day.get_last_under(person.age)
+        f *= context.random.lognormal(0, 0.5) * self.avg_contacts_per_day.get_greatest_lte(person.age)
 
         cdef int contacts = <int> f - 1
         if self.limit_mass_gatherings:
@@ -578,6 +582,7 @@ cdef class Population:
         age = person.age
         self.susceptible[age] -= 1
         self.infected[age] += 1
+        self.all_infected[age] += 1
 
     cdef void recover(self, Person *person) nogil:
         cdef int age = person.age
@@ -631,9 +636,8 @@ cdef class Context:
     cdef str start_date
     cdef int total_infections, total_infectors, exposed_per_day
 
-
-    def __init__(self, pop, age_counts, hc, disease, start_date):
-        self.create_population(age_counts)
+    def __init__(self, Population pop, HealthcareSystem hc, Disease disease, str start_date):
+        self.create_population(pop.susceptible)
 
         self.problem = SimulationProblem.NO_PROBLEMOS
         self.pop = pop
@@ -688,6 +692,7 @@ cdef class Context:
         r = self.total_infections / self.total_infectors if self.total_infectors else 0
         s = ModelState(
             infected=p.infected, susceptible=p.susceptible,
+            all_infected=p.all_infected,
             recovered=p.recovered, hospitalized=p.hospitalized,
             detected=p.detected, all_detected=p.all_detected,
             dead=p.dead,
@@ -773,15 +778,27 @@ cdef class Context:
     def iterate(self):
         self._iterate()
 
-    cpdef sample(self, int age):
+    cpdef sample(self, str what, int age):
+        cdef int sample_size = 10000
         cdef Person p = self.people[0]
         cdef int i
 
-        out = np.empty(10000, dtype='i')
-        print('should be ', self.pop.avg_contacts_per_day.get_last_under(age))
         p.age = age
-        for i in range(out.size):
-            out[i] = self.pop.contacts_per_day(&p, self)
+        if what == 'contacts_per_day':
+            out = np.empty(sample_size, dtype='i')
+            for i in range(out.size):
+                out[i] = self.pop.contacts_per_day(&p, self)
+        elif what == 'symptom_severity':
+            out = np.empty(sample_size, dtype='i')
+            for i in range(out.size):
+                out[i] = self.disease.get_symptom_severity(&p, self)
+        elif what == 'incubation_period':
+            out = np.empty(sample_size, dtype='i')
+            for i in range(out.size):
+                out[i] = self.disease.get_incubation_days(&p, self)
+        else:
+            raise Exception('unknown sample type')
+
         return out
 
 

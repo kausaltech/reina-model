@@ -2,7 +2,7 @@ from calc import calcfunc, ExecutionInterrupted
 import numpy as np
 import pandas as pd
 
-from cythonsim import simc
+from cythonsim import model
 from utils.perf import PerfCounter
 from calc.datasets import get_population_for_area, get_physical_contacts_for_country
 from datetime import date, timedelta
@@ -30,6 +30,25 @@ STATE_ATTRS = [
 ]
 
 
+def create_disease(variables):
+    sevvar = variables['p_severe']
+    sev_arr = [(age, sev / 100) for age, sev in sevvar]
+    critvar = variables['p_critical']
+    crit_arr = [(age, sev / 100) for age, sev in critvar]
+
+    disease = model.Disease(
+        p_infection=variables['p_infection'] / 100,
+        p_asymptomatic=variables['p_asymptomatic'] / 100,
+        p_severe=sev_arr,
+        p_critical=crit_arr,
+        p_hospital_death=variables['p_hospital_death'] / 100,
+        p_icu_death=variables['p_icu_death'] / 100,
+        p_hospital_death_no_beds=variables['p_hospital_death_no_beds'] / 100,
+        p_icu_death_no_beds=variables['p_icu_death_no_beds'] / 100,
+    )
+    return disease
+
+
 @calcfunc(
     variables=[
         'simulation_days', 'interventions', 'start_date',
@@ -38,6 +57,7 @@ STATE_ATTRS = [
         'p_icu_death', 'p_hospital_death', 'p_hospital_death_no_beds',
         'p_icu_death_no_beds', 'p_detected_anyway',
     ],
+    funcs=[get_physical_contacts_for_country]
 )
 def simulate_individuals(variables, step_callback=None):
     pc = PerfCounter()
@@ -53,26 +73,13 @@ def simulate_individuals(variables, step_callback=None):
     for age, count in zip(ages, counts):
         age_counts[age] = count
 
-    pop = simc.Population(age_counts, list(avg_contacts_per_day.items()))
-    hc = simc.HealthcareSystem(
+    pop = model.Population(age_counts, list(avg_contacts_per_day.items()))
+    hc = model.HealthcareSystem(
         beds=hc_cap[0], icu_units=hc_cap[1],
         p_detected_anyway=variables['p_detected_anyway'] / 100
     )
-
-    sevvar = variables['p_severe']
-    sev_arr = [(age, sev / 100) for age, sev in sevvar]
-
-    disease = simc.Disease(
-        p_infection=variables['p_infection'] / 100,
-        p_asymptomatic=variables['p_asymptomatic'] / 100,
-        p_severe=sev_arr,
-        p_critical=variables['p_critical'] / 100,
-        p_hospital_death=variables['p_hospital_death'] / 100,
-        p_icu_death=variables['p_icu_death'] / 100,
-        p_hospital_death_no_beds=variables['p_hospital_death_no_beds'] / 100,
-        p_icu_death_no_beds=variables['p_icu_death_no_beds'] / 100,
-    )
-    context = simc.Context(pop, age_counts, hc, disease, start_date=variables['start_date'])
+    disease = create_disease(variables)
+    context = model.Context(pop, hc, disease, start_date=variables['start_date'])
     start_date = date.fromisoformat(variables['start_date'])
 
     for iv in variables['interventions']:
@@ -91,19 +98,6 @@ def simulate_individuals(variables, step_callback=None):
         columns=POP_ATTRS + STATE_ATTRS,
         index=pd.date_range(start_date, periods=days)
     )
-
-    if False:
-        import matplotlib.pyplot as plt
-        sample = context.sample(0)
-        s = pd.Series(sample)
-        fig = plt.figure()
-        print(s.mean())
-        c = s.value_counts().sort_index()
-        for a, b in c.iteritems():
-            print('    (%d, %.2f),' % (a, b))
-        plt.plot(c)
-        plt.show()
-        exit()
 
     for day in range(days):
         state = context.generate_state()
@@ -132,7 +126,47 @@ def simulate_individuals(variables, step_callback=None):
     return df
 
 
+@calcfunc(
+    variables=[
+        'p_infection', 'p_asymptomatic', 'p_critical', 'p_severe',
+        'p_icu_death', 'p_hospital_death', 'p_hospital_death_no_beds',
+        'p_icu_death_no_beds', 'p_detected_anyway',
+    ],
+    funcs=[get_physical_contacts_for_country]
+)
+def sample_model_parameters(what, age, variables):
+    avg_contacts_per_day = get_physical_contacts_for_country()
+    age_counts = [1]
+    pop = model.Population(age_counts, list(avg_contacts_per_day.items()))
+    hc = model.HealthcareSystem(
+        beds=0, icu_units=0,
+        p_detected_anyway=variables['p_detected_anyway'] / 100
+    )
+    disease = create_disease(variables)
+    context = model.Context(pop, hc, disease, start_date='2020-01-01')
+
+    samples = context.sample(what, age)
+
+    s = pd.Series(samples)
+    c = s.value_counts().sort_index()
+    if what == 'symptom_severity':
+        c.index = c.index.map(model.SEVERITY_TO_STR)
+
+    return c
+    """
+    for a, b in c.iteritems():
+        print('    (%d, %.2f),' % (a, b))
+    import matplotlib.pyplot as plt
+    fig = plt.figure()
+    print(s.mean())
+    plt.plot(c)
+    plt.show()
+    """
+
 if __name__ == '__main__':
+    sample_model_parameters('contacts_per_day', 60)
+    exit()
+
     header = '%-12s' % 'day'
     for attr in POP_ATTRS + STATE_ATTRS:
         header += '%15s' % attr

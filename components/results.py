@@ -6,7 +6,6 @@ import dash_table
 from dash.dependencies import Input, Output, State
 from flask_babel import lazy_gettext as _
 
-
 from components.cards import GraphCard
 from components.graphs import make_layout
 from calc.datasets import get_detected_cases

@@ -45,7 +45,7 @@ VARIABLE_DEFAULTS = {
 
     # Ratio of all infected people that require hospitalization
     # (more than mild symptoms) by age group
-    # https://www.medrxiv.org/content/10.1101/2020.03.09.20033357v1.full.pdf
+    # Source: https://www.medrxiv.org/content/10.1101/2020.03.09.20033357v1.full.pdf
     'p_severe': [
         [0, 0.0],
         [10, 0.04],
@@ -57,7 +57,19 @@ VARIABLE_DEFAULTS = {
         [70, 16.6],
         [80, 18.4]
     ],
-
+    # Ratio of hospitalized cases requiring critical (ICU) care
+    # Source: https://www.imperial.ac.uk/media/imperial-college/medicine/sph/ide/gida-fellowships/Imperial-College-COVID19-NPI-modelling-16-03-2020.pdf
+    'p_critical': [
+        [0, 5.0],
+        [10, 5.0],
+        [20, 5.0],
+        [30, 5.0],
+        [40, 6.3],
+        [50, 12.2],
+        [60, 27.4],
+        [70, 43.2],
+        [80, 70.9]
+    ],
     'interventions': [
         ['test-all-with-symptoms', '2020-02-20'],
         ['test-only-severe-symptoms', '2020-03-15'],

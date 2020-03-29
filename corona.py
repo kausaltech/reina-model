@@ -19,6 +19,7 @@ from calc import ExecutionInterrupted
 from common import settings
 from variables import set_variable, get_variable, reset_variable
 from components.results import render_results, register_results_callbacks
+from components.params import render_disease_params, register_params_callbacks
 
 
 os.environ['DASH_PRUNE_ERRORS'] = 'False'
@@ -43,6 +44,7 @@ with server.app_context():
     babel.init_app(server)
     init_locale(babel)
     register_results_callbacks(app)
+    register_params_callbacks(app)
 
 
 markdown_text = '''
@@ -94,74 +96,6 @@ def interventions_to_rows():
         row = dict(date=iv[1], label=i[1], value=val, name=i[0], unit=unit)
         iv_rows.append(row)
     return iv_rows
-
-
-DISEASE_PARAMS = (
-    ('p_asymptomatic', _('Ratio of all infected people who remain asymptomatic'), '%',),
-    ('p_infection', _('Probability of becoming infected after being exposed'), '%',),
-    ('p_critical', _('Probability of requiring ICU care after having severe symptoms'), '%',),
-    ('p_icu_death', _('Probability of dying during ICU care'), '%'),
-    ('p_hospital_death', _('Probability of dying after regular hospital treatment'), '%'),
-    ('p_hospital_death_no_beds', _('Probability of dying if no hospital beds are available'), '%'),
-    ('p_icu_death_no_beds', _('Probability of dying if no ICU units are available'), '%')
-)
-
-
-def render_disease_params():
-    rows = []
-    for pid, label, unit in DISEASE_PARAMS:
-        val = get_variable(pid)
-        rows.append(dict(id=pid, label=label, value=val, unit=unit))
-
-    value_fmt = {
-        'locale': dict(decimal=',')
-    }
-
-    dp_table = dash_table.DataTable(
-        id='disease-params-table',
-        data=rows,
-        columns=[
-            {'name': _('Description'), 'id': 'label', 'editable': False},
-            {
-                'name': _('Value'),
-                'id': 'value',
-                'editable': True,
-                'format': value_fmt,
-                'type': 'numeric',
-                'validation': dict(allow_null=False),
-            },
-            {'name': '', 'id': 'unit', 'editable': False},
-        ],
-        style_cell={'textAlign': 'left'},
-        style_cell_conditional=[
-            {
-                'if': {'column_id': 'value'},
-                'textAlign': 'right'
-            }
-        ],
-        style_as_list_view=True,
-        editable=True,
-    )
-
-    card = dbc.Card([
-        dbc.CardHeader([
-            html.H2(dbc.Button(
-                _('Disease parameters'), className="float-left mt-2",
-                id="disease-collapse-button",
-            )),
-        ]),
-        dbc.Collapse([
-            dbc.CardBody([
-                dp_table,
-                html.Div(dbc.Button(
-                    _('Restore defaults'), id='disease-params-reset-defaults', color='secondary',
-                    size='sm', className='mt-3'
-                ), className='text-right'),
-            ], className="px-5"),
-        ], is_open=False, id='disease-collapse'),
-    ], className='mb-4')
-
-    return card
 
 
 def render_iv_card():
@@ -298,7 +232,6 @@ def generate_layout():
 app.layout = generate_layout
 
 
-
 @app.callback(
     Output("interventions-collapse", "is_open"),
     [Input("interventions-collapse-button", "n_clicks")],
@@ -311,53 +244,12 @@ def toggle_iv_collapse(n, is_open):
 
 
 @app.callback(
-    Output("disease-collapse", "is_open"),
-    [Input("disease-collapse-button", "n_clicks")],
-    [State("disease-collapse", "is_open")],
-)
-def toggle_disease_collapse(n, is_open):
-    if n:
-        return not is_open
-    return is_open
-
-
-@app.callback(
     Output('day-details-container', 'children'),
     [Input('population-graph', 'clickData')]
 )
 def show_day_details(data):
     print(data)
     return html.Div()
-
-
-@app.callback(
-    Output('disease-params-table', 'data'),
-    [
-        Input('disease-params-table', 'data_timestamp'),
-        Input('disease-params-reset-defaults', 'n_clicks'),
-    ], [
-        State('disease-params-table', 'data'),
-    ]
-)
-def disease_params_data_callback(ts, reset_clicks, rows):
-    ctx = dash.callback_context
-    if ctx.triggered:
-        c_id = ctx.triggered[0]['prop_id'].split('.')[0]
-        if reset_clicks is not None and c_id == 'disease-params-reset-defaults':
-            for row in rows:
-                reset_variable(row['id'])
-                row['value'] = get_variable(row['id'])
-
-    for row in rows:
-        if not isinstance(row['value'], (int, float)):
-            row['value'] = get_variable(row['id'])
-        if row['value'] < 0:
-            row['value'] = 0
-        elif row['value'] > 100:
-            row['value'] = 100
-        set_variable(row['id'], float(row['value']))
-
-    return rows
 
 
 @app.callback(

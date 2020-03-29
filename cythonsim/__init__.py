@@ -17,4 +17,4 @@ pyximport.install(setup_args={
 pyximport.install()
 
 from . import simrandom
-from . import main as simc
+from . import main as model
