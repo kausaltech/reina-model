@@ -578,7 +578,7 @@ def update_simulation_results(n_intervals):
     else:
         print('thread not finished, updating')
         disabled = False
-    out = render_results(df)
+    out = render_result_graphs(df)
     return [out, disabled, 500]
 
 
