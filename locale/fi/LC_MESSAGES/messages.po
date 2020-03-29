@@ -7,7 +7,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: PROJECT VERSION\n"
 "Report-Msgid-Bugs-To: EMAIL@ADDRESS\n"
-"POT-Creation-Date: 2020-03-29 17:33+0300\n"
+"POT-Creation-Date: 2020-03-29 21:05+0300\n"
 "PO-Revision-Date: 2020-03-29 16:35+0300\n"
 "Last-Translator: FULL NAME <EMAIL@ADDRESS>\n"
 "Language: fi\n"
@@ -18,146 +18,194 @@ msgstr ""
 "Content-Transfer-Encoding: 8bit\n"
 "Generated-By: Babel 2.8.0\n"
 
-#: corona.py:100
-msgid "Ratio of all infected people who remain asymptomatic"
-msgstr "Osuus tartunnan saaneista, jotka jäävät oireettomiksi"
-
-#: corona.py:101
-msgid "Probability of becoming infected after being exposed"
-msgstr "Todennäköisyys, että taudille altistunut saa tartunnan"
-
-#: corona.py:102
-msgid "Probability of requiring ICU care after having severe symptoms"
-msgstr "Osuus vakavasti oirehtivista, jotka tarvitsevat tehohoitoa"
-
-#: corona.py:103
-msgid "Probability of dying during ICU care"
-msgstr "Tehohoitoa tarvitsevien osuus, joka kuolee tehohoitojakson päätteeksi"
-
-#: corona.py:104
-msgid "Probability of dying after regular hospital treatment"
-msgstr "Sairaalahoitoa tarvitsevista osuus, joka kuolee sairaalahoidon päätteeksi"
-
-#: corona.py:105
-msgid "Probability of dying if no hospital beds are available"
-msgstr "Sairaalahoitoa tarvitsevien osuus, joka kuolee jos sairaalapaikkaa ei ole vapaana"
-
-#: corona.py:106
-msgid "Probability of dying if no ICU units are available"
-msgstr "Tehohoitoa tarvitsevien osuus, joka kuolee jos tehohoitopaikkaa ei ole vapaana"
-
-#: corona.py:148
-msgid "Disease parameters"
-msgstr "Taudin parametrit"
-
-#: corona.py:156
-msgid "Restore defaults"
-msgstr "Palauta oletukset"
-
-#: corona.py:172
+#: corona.py:107
 msgid "Date"
 msgstr "Päivämäärä"
 
-#: corona.py:173
+#: corona.py:108
 msgid "Event"
 msgstr "Tapahtuma"
 
-#: corona.py:174
+#: components/params.py:108 corona.py:109
 msgid "Value"
 msgstr "Arvo"
 
-#: corona.py:191
+#: corona.py:126
 #, python-format
 msgid "Events (%(num)s)"
 msgstr "Tapahtumat (%(num)s)"
 
-#: corona.py:199
+#: corona.py:134
 msgid "Restore default events"
 msgstr "Palauta oletustapahtumat"
 
-#: corona.py:204
+#: corona.py:139
 msgid "Add a new event"
 msgstr "Lisää uusi tapahtuma"
 
-#: corona.py:233
+#: corona.py:168
 msgid "Corona epidemic simulator"
 msgstr "Koronaepidemiasimulaattori"
 
-#: corona.py:241
+#: corona.py:176
 #, python-format
 msgid "Forecast of the COVID-19 epidemic: %(name)s"
 msgstr "COVID-19-epidemian kehittyminen: %(name)s"
 
-#: corona.py:242
+#: corona.py:177
 msgid "Exploration of the effects of interventions to the progression of the epidemic."
 msgstr "Tutkitaan kuinka erilaiset interventiot vaikuttavat koronavirusepidemian etenemiseen."
 
-#: corona.py:262
+#: corona.py:197
 #, python-format
 msgid "%(days)d days"
 msgstr "%(days)d päivää"
 
-#: corona.py:268
+#: corona.py:203
 msgid "Run simulation"
 msgstr "Suorita simulaatio"
 
-#: components/results.py:19
+#: components/params.py:19
+msgid "Incubation period"
+msgstr "Itämisaika"
+
+#: components/params.py:24
+msgid "days"
+msgstr "päivää"
+
+#: components/params.py:38
+msgid "Asymptomatic"
+msgstr "Oireeton"
+
+#: components/params.py:39
+msgid "Mild"
+msgstr "Lievä"
+
+#: components/params.py:40
+msgid "Severe"
+msgstr "Vakava"
+
+#: components/params.py:41
+msgid "Critical"
+msgstr "Kriittinen"
+
+#: components/params.py:45
+msgid "Symptom severity"
+msgstr "Oireiden vakavuus"
+
+#: components/params.py:59
+msgid "Contacts per day"
+msgstr "Lähikontaktia päivässä"
+
+#: components/params.py:65
+msgid "number of contacts"
+msgstr "kontaktien lukumäärä"
+
+#: components/params.py:76
+#, python-format
+msgid "Distributions for a %(age)d-year-old person"
+msgstr "Jakaumat %(age)d-vuotiaalle henkilölle"
+
+#: components/params.py:82
+msgid "Ratio of all infected people who remain asymptomatic"
+msgstr "Osuus tartunnan saaneista, jotka jäävät oireettomiksi"
+
+#: components/params.py:83
+msgid "Probability of becoming infected after being exposed"
+msgstr "Todennäköisyys, että taudille altistunut saa tartunnan"
+
+#: components/params.py:85
+msgid "Probability of dying during ICU care"
+msgstr "Tehohoitoa tarvitsevien osuus, joka kuolee tehohoitojakson päätteeksi"
+
+#: components/params.py:86
+msgid "Probability of dying after regular hospital treatment"
+msgstr "Sairaalahoitoa tarvitsevista osuus, joka kuolee sairaalahoidon päätteeksi"
+
+#: components/params.py:87
+msgid "Probability of dying if no hospital beds are available"
+msgstr "Sairaalahoitoa tarvitsevien osuus, joka kuolee jos sairaalapaikkaa ei ole vapaana"
+
+#: components/params.py:88
+msgid "Probability of dying if no ICU units are available"
+msgstr "Tehohoitoa tarvitsevien osuus, joka kuolee jos tehohoitopaikkaa ei ole vapaana"
+
+#: components/params.py:106
+msgid "Description"
+msgstr "Kuvaus"
+
+#: components/params.py:131
+msgid "Disease parameters"
+msgstr "Taudin parametrit"
+
+#: components/params.py:139
+msgid "Restore defaults"
+msgstr "Palauta oletukset"
+
+#: components/params.py:170
+msgid "Age of person"
+msgstr "Henkilön ikä"
+
+#: components/results.py:18
 msgid "Susceptible"
 msgstr "Alttiit"
 
-#: components/results.py:20
+#: components/results.py:19
 msgid "Active infections"
 msgstr "Aktiiviset tartunnat"
 
-#: components/results.py:21
+#: components/results.py:20
 msgid "Detected cases (sim.)"
 msgstr "Havaitut tapaukset (sim.)"
 
-#: components/results.py:22
+#: components/results.py:21
 msgid "Hospitalized"
 msgstr "Sairaalassa"
 
-#: components/results.py:23
+#: components/results.py:22
 msgid "Dead"
 msgstr "Kuolleet"
 
-#: components/results.py:24
+#: components/results.py:23
 msgid "Recovered"
 msgstr "Toipuneet"
 
-#: components/results.py:42
+#: components/results.py:41
 msgid "Detected cases (real)"
 msgstr "Havaitut tapaukset (tod.)"
 
-#: components/results.py:60
+#: components/results.py:59
 msgid "Hospital beds"
 msgstr "Vuodepaikat"
 
-#: components/results.py:61
+#: components/results.py:60
 msgid "ICU units"
 msgstr "Tehohoitopaikat"
 
-#: components/results.py:70
+#: components/results.py:69
 msgid "Free capacity in the healthcare system"
 msgstr "Sairaanhoitojärjestelmän vapaa kapasiteetti"
 
-#: components/results.py:81
+#: components/results.py:80
 msgid "Reproductive number (R)"
 msgstr "R-luku"
 
-#: components/results.py:82
+#: components/results.py:81
 msgid "Infection fatality ratio (IFR, %"
 msgstr "Infektiokuolleisuus (IFR, %)"
 
-#: components/results.py:83
+#: components/results.py:82
 msgid "Case fatality ratio (CFR, %"
 msgstr "Tapauskuolleisuus (CFR, %)"
 
-#: components/results.py:91
+#: components/results.py:90
 msgid "Epidemic parameters"
 msgstr "Epidemian parametrit"
 
-#: components/results.py:129
+#: components/results.py:128
 msgid "Simulation result data"
 msgstr "Simulaatioajon tulosdata"
+
+#~ msgid "Probability of requiring ICU care after having severe symptoms"
+#~ msgstr "Osuus vakavasti oirehtivista, jotka tarvitsevat tehohoitoa"
 

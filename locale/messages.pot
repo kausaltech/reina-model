@@ -8,7 +8,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: PROJECT VERSION\n"
 "Report-Msgid-Bugs-To: EMAIL@ADDRESS\n"
-"POT-Creation-Date: 2020-03-29 17:33+0300\n"
+"POT-Creation-Date: 2020-03-29 21:05+0300\n"
 "PO-Revision-Date: YEAR-MO-DA HO:MI+ZONE\n"
 "Last-Translator: FULL NAME <EMAIL@ADDRESS>\n"
 "Language-Team: LANGUAGE <LL@li.org>\n"
@@ -17,146 +17,191 @@ msgstr ""
 "Content-Transfer-Encoding: 8bit\n"
 "Generated-By: Babel 2.8.0\n"
 
-#: corona.py:100
-msgid "Ratio of all infected people who remain asymptomatic"
-msgstr ""
-
-#: corona.py:101
-msgid "Probability of becoming infected after being exposed"
-msgstr ""
-
-#: corona.py:102
-msgid "Probability of requiring ICU care after having severe symptoms"
-msgstr ""
-
-#: corona.py:103
-msgid "Probability of dying during ICU care"
-msgstr ""
-
-#: corona.py:104
-msgid "Probability of dying after regular hospital treatment"
-msgstr ""
-
-#: corona.py:105
-msgid "Probability of dying if no hospital beds are available"
-msgstr ""
-
-#: corona.py:106
-msgid "Probability of dying if no ICU units are available"
-msgstr ""
-
-#: corona.py:148
-msgid "Disease parameters"
-msgstr ""
-
-#: corona.py:156
-msgid "Restore defaults"
-msgstr ""
-
-#: corona.py:172
+#: corona.py:107
 msgid "Date"
 msgstr ""
 
-#: corona.py:173
+#: corona.py:108
 msgid "Event"
 msgstr ""
 
-#: corona.py:174
+#: components/params.py:108 corona.py:109
 msgid "Value"
 msgstr ""
 
-#: corona.py:191
+#: corona.py:126
 #, python-format
 msgid "Events (%(num)s)"
 msgstr ""
 
-#: corona.py:199
+#: corona.py:134
 msgid "Restore default events"
 msgstr ""
 
-#: corona.py:204
+#: corona.py:139
 msgid "Add a new event"
 msgstr ""
 
-#: corona.py:233
+#: corona.py:168
 msgid "Corona epidemic simulator"
 msgstr ""
 
-#: corona.py:241
+#: corona.py:176
 #, python-format
 msgid "Forecast of the COVID-19 epidemic: %(name)s"
 msgstr ""
 
-#: corona.py:242
+#: corona.py:177
 msgid "Exploration of the effects of interventions to the progression of the epidemic."
 msgstr ""
 
-#: corona.py:262
+#: corona.py:197
 #, python-format
 msgid "%(days)d days"
 msgstr ""
 
-#: corona.py:268
+#: corona.py:203
 msgid "Run simulation"
 msgstr ""
 
-#: components/results.py:19
+#: components/params.py:19
+msgid "Incubation period"
+msgstr ""
+
+#: components/params.py:24
+msgid "days"
+msgstr ""
+
+#: components/params.py:38
+msgid "Asymptomatic"
+msgstr ""
+
+#: components/params.py:39
+msgid "Mild"
+msgstr ""
+
+#: components/params.py:40
+msgid "Severe"
+msgstr ""
+
+#: components/params.py:41
+msgid "Critical"
+msgstr ""
+
+#: components/params.py:45
+msgid "Symptom severity"
+msgstr ""
+
+#: components/params.py:59
+msgid "Contacts per day"
+msgstr ""
+
+#: components/params.py:65
+msgid "number of contacts"
+msgstr ""
+
+#: components/params.py:76
+#, python-format
+msgid "Distributions for a %(age)d-year-old person"
+msgstr ""
+
+#: components/params.py:82
+msgid "Ratio of all infected people who remain asymptomatic"
+msgstr ""
+
+#: components/params.py:83
+msgid "Probability of becoming infected after being exposed"
+msgstr ""
+
+#: components/params.py:85
+msgid "Probability of dying during ICU care"
+msgstr ""
+
+#: components/params.py:86
+msgid "Probability of dying after regular hospital treatment"
+msgstr ""
+
+#: components/params.py:87
+msgid "Probability of dying if no hospital beds are available"
+msgstr ""
+
+#: components/params.py:88
+msgid "Probability of dying if no ICU units are available"
+msgstr ""
+
+#: components/params.py:106
+msgid "Description"
+msgstr ""
+
+#: components/params.py:131
+msgid "Disease parameters"
+msgstr ""
+
+#: components/params.py:139
+msgid "Restore defaults"
+msgstr ""
+
+#: components/params.py:170
+msgid "Age of person"
+msgstr ""
+
+#: components/results.py:18
 msgid "Susceptible"
 msgstr ""
 
-#: components/results.py:20
+#: components/results.py:19
 msgid "Active infections"
 msgstr ""
 
-#: components/results.py:21
+#: components/results.py:20
 msgid "Detected cases (sim.)"
 msgstr ""
 
-#: components/results.py:22
+#: components/results.py:21
 msgid "Hospitalized"
 msgstr ""
 
-#: components/results.py:23
+#: components/results.py:22
 msgid "Dead"
 msgstr ""
 
-#: components/results.py:24
+#: components/results.py:23
 msgid "Recovered"
 msgstr ""
 
-#: components/results.py:42
+#: components/results.py:41
 msgid "Detected cases (real)"
 msgstr ""
 
-#: components/results.py:60
+#: components/results.py:59
 msgid "Hospital beds"
 msgstr ""
 
-#: components/results.py:61
+#: components/results.py:60
 msgid "ICU units"
 msgstr ""
 
-#: components/results.py:70
+#: components/results.py:69
 msgid "Free capacity in the healthcare system"
 msgstr ""
 
-#: components/results.py:81
+#: components/results.py:80
 msgid "Reproductive number (R)"
 msgstr ""
 
-#: components/results.py:82
+#: components/results.py:81
 msgid "Infection fatality ratio (IFR, %"
 msgstr ""
 
-#: components/results.py:83
+#: components/results.py:82
 msgid "Case fatality ratio (CFR, %"
 msgstr ""
 
-#: components/results.py:91
+#: components/results.py:90
 msgid "Epidemic parameters"
 msgstr ""
 
-#: components/results.py:129
+#: components/results.py:128
 msgid "Simulation result data"
 msgstr ""
 
