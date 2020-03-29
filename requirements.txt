@@ -21,7 +21,6 @@ dash-html-components==1.0.2  # via -r requirements.in, dash
 dash-table==4.6.1         # via -r requirements.in, dash
 dash==1.9.1               # via -r requirements.in, dash-bootstrap-components, dash-daq
 dash_renderer==1.2.4      # via dash
-enum34==1.1.10            # via llvmlite, numba, pyarrow, quilt
 fastparquet==0.3.3        # via -r requirements.in
 flask-babel==1.0.0        # via -r requirements.in
 flask-caching==1.8.0      # via -r requirements.in
@@ -40,6 +39,7 @@ llvmlite==0.31.0          # via numba
 markupsafe==1.1.1         # via jinja2
 matplotlib==2.2.5         # via -r requirements.in
 numba==0.47.0             # via -r requirements.in, fastparquet
+-e git+https://github.com/numpy/numpy.git@078ac01a85c4db46e7f148829c2e0d0e0f30c36f#egg=numpy
 numpy==1.16.6             # via fastparquet, matplotlib, numba, pandas, pyarrow, quilt, scipy
 packaging==20.3           # via quilt
 pandas==0.24.2            # via -r requirements.in, fastparquet, quilt
