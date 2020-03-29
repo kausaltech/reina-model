@@ -5,13 +5,12 @@ from flask_session import Session
 from common import cache
 import uuid
 import os
-import pandas as pd
 import numpy as np
 import dash_table
+from dash_table.Format import Format, Scheme
 import dash_core_components as dcc
 import dash_html_components as html
 import dash_bootstrap_components as dbc
-import plotly.graph_objs as go
 from dash.dependencies import Input, Output, State
 from utils.colors import THEME_COLORS
 from threading import Thread
@@ -250,15 +249,30 @@ def generate_layout():
 
     rows.append(dbc.Row([
         dbc.Col([
-            dbc.Button('Suorita simulaatio', id='run-simulation', color='primary'),
-        ],
-        className='text-center mt-3')
+        ], width=dict(size=6, offset=3))
     ]))
+
+    rows.append(dbc.Row([
+        dbc.Col([
+            html.Div(id='simulation-days-placeholder', style=dict(display='none')),
+            dcc.Dropdown(
+                id='simulation-days-dropdown',
+                options=[dict(label='%d päivää' % x, value=x) for x in (45, 90, 180, 360)],
+                value=get_variable('simulation_days'),
+                searchable=False, clearable=False,
+            ),
+        ], width=dict(size=2, offset=0)),
+        dbc.Col([
+            dbc.Button('Suorita simulaatio', id='run-simulation', color='primary'),
+        ], width=dict(offset=3), className='text-center')
+    ], className='mt-3'))
+
     rows.append(dbc.Row([
         dbc.Col([
             html.Div(id="simulation-results-container")
         ]),
     ], className='mt-4'))
+
     rows.append(dbc.Row([
         dbc.Col([
             html.Div(id='day-details-container')
@@ -351,7 +365,6 @@ def interventions_callback(ts, reset_clicks, add_intervention_clicks, rows, new_
         c_id = ctx.triggered[0]['prop_id'].split('.')[0]
         if reset_clicks is not None and c_id == 'interventions-reset-defaults':
             reset_variable('interventions')
-            reset_variable('simulation_days')
             is_reset = True
         if add_intervention_clicks is not None and c_id == 'new-intervention-add':
             d = date.fromisoformat(new_date)
@@ -382,7 +395,7 @@ def interventions_callback(ts, reset_clicks, add_intervention_clicks, rows, new_
     return rows
 
 
-def render_results(df):
+def render_result_graphs(df):
     traces = generate_population_traces(df)
     card = GraphCard('population', graph=dict(config=dict(responsive=False)))
     layout = make_layout(
@@ -435,6 +448,33 @@ def render_results(df):
     return dbc.Row([dbc.Col(c1, md=12), dbc.Col(c2, md=12), dbc.Col(c3, md=12)])
 
 
+def render_result_table(df):
+    df = df.rename(columns=dict(tests_run_per_day='positive_tests_per_day'))
+    df = df.drop(columns='sim_time_ms')
+    df.index = df.index.date
+
+    cols = [{'name': 'date', 'id': 'date', 'type': 'datetime'}]
+    for col_name in df.columns:
+        d = dict(name=col_name, id=col_name)
+        if col_name in ('cfr', 'ifr', 'r'):
+            d['type'] = 'numeric'
+            d['format'] = Format(precision=2, scheme=Scheme.fixed)
+        cols.append(d)
+
+    rows = df.to_dict('records')
+    for idx, row in zip(df.index, rows):
+        row['date'] = idx
+
+    dp_table = dash_table.DataTable(
+        id='simulation-results-table',
+        data=rows,
+        columns=cols,
+        style_table={'overflowX': 'scroll'},
+        export_format='xlsx',
+    )
+    return dbc.Row([dbc.Col(dp_table)])
+
+
 def generate_population_traces(df):
     det = get_detected_cases()
     pop_cols = (
@@ -455,10 +495,12 @@ def generate_population_traces(df):
             name=name, x=df.index, y=df[col], mode='lines',
             hoverformat='%d',
         )
+        if col in ('susceptible', 'recovered'):
+            t['visible'] = 'legendonly'
         traces.append(t)
 
     traces.append(dict(
-        type='scatter', marker=dict(color=THEME_COLORS['teal']),
+        type='scatter', marker=dict(color='gray'),
         name='Havaitut tapaukset (tod.)', x=det.index, y=det['confirmed'], mode='markers'
     ))
 
@@ -470,6 +512,7 @@ process_pool = {}
 
 class SimulationThread(Thread):
     def __init__(self, *args, **kwargs):
+        self.variables = kwargs.pop('variables')
         super().__init__(*args, **kwargs)
         self.uuid = str(uuid.uuid4())
 
@@ -485,11 +528,11 @@ class SimulationThread(Thread):
         self.last_results = None
         print('%s: run process' % self.uuid)
 
-        def step_callback(df):
+        def step_callback(df, force=False):
             now = time.time()
-            if self.last_results is None or now - self.last_results > 2:
+            if force or self.last_results is None or now - self.last_results > 0.5:
                 cache.set('thread-%s-results' % self.uuid, df, timeout=30)
-                print('setting results')
+                print('%s: step callback' % self.uuid)
                 self.last_results = now
 
             if cache.get('thread-%s-kill' % self.uuid):
@@ -497,19 +540,25 @@ class SimulationThread(Thread):
             return True
 
         try:
-            df = simulate_individuals(step_callback=step_callback)
+            df = simulate_individuals(step_callback=step_callback, variable_store=self.variables)
         except ExecutionInterrupted:
             print('%s: process cancelled' % self.uuid)
         else:
-            step_callback(df)
+            print('%s: computation finished' % self.uuid)
+            step_callback(df, force=True)
+
+        cache.set('thread-%s-finished' % self.uuid, True)
         print('%s: process finished' % self.uuid)
 
         del process_pool[self.ident]
 
 
 @app.callback(
-    Output('simulation-output-results', 'children'),
-    [Input('simulation-output-interval', 'n_intervals')]
+    [
+        Output('simulation-output-results', 'children'),
+        Output('simulation-output-interval', 'disabled'),
+        Output('simulation-output-interval', 'interval'),
+    ], [Input('simulation-output-interval', 'n_intervals')]
 )
 def update_simulation_results(n_intervals):
     from flask import session
@@ -522,32 +571,46 @@ def update_simulation_results(n_intervals):
     if df is None:
         raise dash.exceptions.PreventUpdate()
 
+    if cache.get('thread-%s-finished' % thread_id):
+        # When the computation thread is finished, stop polling.
+        print('thread finished, disabling')
+        disabled = True
+    else:
+        print('thread not finished, updating')
+        disabled = False
     out = render_results(df)
-    return out
+    return [out, disabled, 500]
 
 
 @app.callback(
     Output('simulation-results-container', 'children'),
-    [Input('run-simulation', 'n_clicks')],
+    [
+        Input('run-simulation', 'n_clicks'),
+        Input('simulation-days-dropdown', 'value')
+    ],
 )
-def run_simulation_callback(n_clicks):
+def run_simulation_callback(n_clicks, simulation_days):
     from flask import session
     from common import cache
+    from utils.perf import PerfCounter
+
+    print('run simulation (days %d)' % simulation_days)
+    set_variable('simulation_days', simulation_days)
 
     df = simulate_individuals(only_if_in_cache=True)
     if df is not None:
-        return render_results(df)
+        return [render_result_graphs(df), render_result_table(df)]
 
     existing_thread_id = session.get('thread_id', None)
     if existing_thread_id:
         cache.set('thread-%s-kill' % existing_thread_id, True)
 
-    process = SimulationThread()
+    process = SimulationThread(variables=session.copy())
     session['thread_id'] = process.uuid
     process.start()
 
     return [
-        dcc.Interval(id='simulation-output-interval', interval=1000),
+        dcc.Interval(id='simulation-output-interval', interval=100, max_intervals=60),
         html.Div(id='simulation-output-results'),
     ]
 

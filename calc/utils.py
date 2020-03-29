@@ -2,6 +2,7 @@ import importlib
 import hashlib
 import os
 import json
+import inspect
 from functools import wraps
 
 from variables import get_variable
@@ -51,14 +52,14 @@ def _get_func_hash_data(func, seen_funcs):
 def _hash_funcs(funcs):
     m = hashlib.md5()
     for f in funcs:
-        m.update(f.__code__.co_code)
+        m.update(f.source_hash)
     return m.hexdigest()
 
 
-def _calculate_cache_key(func, hash_data):
+def _calculate_cache_key(func, hash_data, var_store):
     funcs = hash_data['funcs']
     variables = hash_data['variables']
-    var_data = json.dumps({x: get_variable(x) for x in variables}, sort_keys=True)
+    var_data = json.dumps({x: get_variable(x, var_store=var_store) for x in variables}, sort_keys=True)
 
     func_hash = _hash_funcs(funcs)
     func_name = '.'.join((func.__module__, func.__name__))
@@ -89,6 +90,7 @@ def calcfunc(variables=None, datasets=None, funcs=None):
         func.variables = variables
         func.datasets = datasets
         func.calcfuncs = funcs
+        func.source_hash = hashlib.md5(inspect.getsource(func).encode('utf8')).digest()
 
         @wraps(func)
         def wrap_calc_func(*args, **kwargs):
@@ -96,13 +98,14 @@ def calcfunc(variables=None, datasets=None, funcs=None):
 
             only_if_in_cache = kwargs.pop('only_if_in_cache', False)
             skip_cache = kwargs.pop('skip_cache', False)
+            var_store = kwargs.pop('variable_store', None)
 
             if should_profile:
                 pc = PerfCounter('%s.%s' % (func.__module__, func.__name__))
                 pc.display('enter')
 
             hash_data = _get_func_hash_data(func, None)
-            cache_key = _calculate_cache_key(func, hash_data)
+            cache_key = _calculate_cache_key(func, hash_data, var_store=var_store)
 
             assert 'variables' not in kwargs
             assert 'datasets' not in kwargs
@@ -117,13 +120,14 @@ def calcfunc(variables=None, datasets=None, funcs=None):
                 ret = cache.get(cache_key)
                 if ret is not None:  # calcfuncs must not return None
                     if should_profile:
-                        pc.display('cache hit')
+                        pc.display('cache hit (%s)' % cache_key)
                     return ret
                 if only_if_in_cache:
+                    pc.display('cache miss so leaving as requested (%s)' % cache_key)
                     return None
 
             if variables is not None:
-                kwargs['variables'] = {x: get_variable(y) for x, y in variables.items()}
+                kwargs['variables'] = {x: get_variable(y, var_store=var_store) for x, y in variables.items()}
 
             if datasets is not None:
                 datasets_to_load = set(list(datasets.values())) - set(_dataset_cache.keys())
@@ -149,7 +153,7 @@ def calcfunc(variables=None, datasets=None, funcs=None):
                 pc.display('func ret')
             if should_cache_func:
                 assert ret is not None
-                cache.set(cache_key, ret, timeout=24 * 3600)
+                cache.set(cache_key, ret, timeout=3600)
 
             return ret
 

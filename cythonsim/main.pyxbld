@@ -10,6 +10,7 @@ def make_ext(modname, pyxfilename):
         sources=[pyxfilename],
         extra_compile_args=['-fopenmp'],
         extra_link_args=['-fopenmp'],
+        define_macros=[("NPY_NO_DEPRECATED_API", None)]
     )
 
 

@@ -50,7 +50,7 @@ cdef struct Contact:
 cdef struct Person:
     int32 idx, infector
     uint8 age, has_immunity, is_infected, was_detected, queued_for_testing, \
-        symptom_severity, days_left, day_of_illness, state
+        symptom_severity, days_left, day_of_illness, day_of_infection, state
     int16 other_people_infected, other_people_exposed_today
     uint8 nr_infectees
 
@@ -65,6 +65,7 @@ cdef void person_init(Person *self, int32 idx, uint8 age) nogil:
     self.has_immunity = 0
     self.days_left = 0
     self.day_of_illness = 0
+    self.day_of_infection = 0
     self.queued_for_testing = 0
     self.other_people_infected = 0
     self.symptom_severity = SymptomSeverity.ASYMPTOMATIC
@@ -74,8 +75,33 @@ cdef void person_init(Person *self, int32 idx, uint8 age) nogil:
     openmp.omp_init_lock(&self.lock)
 
 
+STATE_TO_STR = {
+    PersonState.SUSCEPTIBLE: 'SUSCEPTIBLE',
+    PersonState.INCUBATION: 'INCUBATION',
+    PersonState.ILLNESS: 'ILLNESS',
+    PersonState.HOSPITALIZED: 'HOSPITALIZED',
+    PersonState.IN_ICU: 'IN_ICU',
+    PersonState.RECOVERED: 'RECOVERED',
+    PersonState.DEAD: 'DEAD',
+}
+SEVERITY_TO_STR = {
+    SymptomSeverity.ASYMPTOMATIC: 'ASYMPTOMATIC',
+    SymptomSeverity.MILD: 'MILD',
+    SymptomSeverity.SEVERE: 'SEVERE',
+    SymptomSeverity.CRITICAL: 'CRITICAL',
+}
+
+
+cdef void person_print(Person *self):
+    print('Person %d: %d years, infection day %d, %s, %s' % (
+        self.idx, self.age, self.day_of_illness, STATE_TO_STR[self.state],
+        SEVERITY_TO_STR[self.symptom_severity]
+    ))
+
+
 cdef void person_infect(Person *self, Context context, Person *source=NULL) nogil:
     self.state = PersonState.INCUBATION
+    self.symptom_severity = context.disease.get_symptom_severity(self, context)
     self.days_left = context.disease.get_incubation_days(self, context)
     self.is_infected = 1
     if source is not NULL:
@@ -111,7 +137,6 @@ cdef void person_expose_others(Person *self, Context context, int nr_contacts) n
 
 cdef void person_become_ill(Person *self, Context context) nogil:
     self.state = PersonState.ILLNESS
-    self.symptom_severity = context.disease.get_symptom_severity(self, context)
     self.days_left = context.disease.get_illness_days(self, context)
     if self.symptom_severity != SymptomSeverity.ASYMPTOMATIC:
         # People with symptoms seek testing (but might not get it)
@@ -210,6 +235,8 @@ cdef void person_advance(Person *self, Context context) nogil:
         if self.days_left == 0:
             person_release_from_hospital(self, context)
 
+    self.day_of_infection += 1
+
 
 cdef enum TestingMode:
     NO_TESTING
@@ -221,11 +248,12 @@ cdef enum TestingMode:
 cdef class HealthcareSystem:
     cdef int32 beds, icu_units, available_beds, available_icu_units
     cdef int32 tests_run_per_day
+    cdef float p_detected_anyway
     cdef TestingMode testing_mode
     cdef list testing_queue
     cdef openmp.omp_lock_t lock
 
-    def __init__(self, beds, icu_units):
+    def __init__(self, beds, icu_units, p_detected_anyway):
         self.beds = beds
         self.icu_units = icu_units
         self.available_beds = beds
@@ -233,6 +261,7 @@ cdef class HealthcareSystem:
         self.testing_mode = TestingMode.NO_TESTING
         self.testing_queue = []
         self.tests_run_per_day = 0
+        self.p_detected_anyway = p_detected_anyway
         openmp.omp_init_lock(&self.lock)
 
     cdef bint queue_for_testing(self, int person_idx, Context context) nogil:
@@ -305,9 +334,13 @@ cdef class HealthcareSystem:
         elif self.testing_mode == TestingMode.ONLY_SEVERE_SYMPTOMS:
             if person.symptom_severity in (SymptomSeverity.SEVERE, SymptomSeverity.CRITICAL):
                 queue_for_testing = True
-            elif context.random.chance(.02):
+            elif context.random.chance(self.p_detected_anyway):
                 # Some people get tests anyway (healthcare workers etc.)
                 queue_for_testing = True
+
+                # with gil:
+                #    print('Day %d. Seek testing and got it' % context.day)
+                #    person_print(person)
 
         if queue_for_testing:
             self.queue_for_testing(person.idx, context)
@@ -708,7 +741,7 @@ cdef class Context:
 
         for intervention in self.interventions:
             if intervention.day == self.day:
-                print(intervention.name)
+                # print(intervention.name)
                 self.apply_intervention(intervention)
 
         self.total_infectors = 0

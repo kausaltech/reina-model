@@ -8,7 +8,7 @@ from flask import session
 VARIABLE_DEFAULTS = {
     'area_name': 'HUS',
     'country': 'Finland',
-    'simulation_days': 270,
+    'simulation_days': 180,
     'start_date': '2020-02-18',
     'hospital_beds': 2600,
     'icu_units': 300,
@@ -39,6 +39,10 @@ VARIABLE_DEFAULTS = {
     # Chance to die if no ICU care units are available
     'p_icu_death_no_beds': 100.0,  # %
 
+    # Chance to be detected if showing mild symptoms but testing
+    # is only for severe cases (might apply to e.g. healthcare workers)
+    'p_detected_anyway': 10.0,  # %
+
     # Ratio of all infected people that require hospitalization
     # (more than mild symptoms) by age group
     # https://www.medrxiv.org/content/10.1101/2020.03.09.20033357v1.full.pdf
@@ -68,13 +72,13 @@ VARIABLE_DEFAULTS = {
         ['build-new-icu-units', '2020-04-30', 150],
         ['build-new-icu-units', '2020-05-30', 150],
 
-        ['import-infections', '2020-02-20', 20],
+        ['import-infections', '2020-02-22', 5],
         ['import-infections', '2020-03-05', 30],
-        ['import-infections', '2020-03-07', 30],
-        ['import-infections', '2020-03-09', 30],
-        ['import-infections', '2020-03-11', 30],
-        ['import-infections', '2020-03-13', 10],
-        ['import-infections', '2020-03-15', 10],
+        ['import-infections', '2020-03-07', 40],
+        ['import-infections', '2020-03-09', 120],
+        ['import-infections', '2020-03-11', 120],
+        ['import-infections', '2020-03-13', 80],
+        ['import-infections', '2020-03-15', 40],
     ]
 }
 
@@ -99,13 +103,17 @@ def set_variable(var_name, value):
     session[var_name] = value
 
 
-def get_variable(var_name):
+def get_variable(var_name, var_store=None):
     out = None
-    if flask.has_request_context():
+
+    if var_store is not None:
+        out = var_store.get(var_name)
+    elif flask.has_request_context():
         if session.get('default_variable_hash', '') != DEFAULT_VARIABLE_HASH:
             reset_variables()
         if var_name in session:
             out = session[var_name]
+
     if out is None:
         out = VARIABLE_DEFAULTS[var_name]
     if isinstance(out, list):
@@ -120,7 +128,6 @@ def reset_variable(var_name):
 
 
 def reset_variables():
-    print('reset to defaults')
     session['default_variable_hash'] = DEFAULT_VARIABLE_HASH
     for var_name in VARIABLE_DEFAULTS.keys():
         if var_name not in session:

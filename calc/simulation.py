@@ -36,7 +36,7 @@ STATE_ATTRS = [
         'hospital_beds', 'icu_units',
         'p_infection', 'p_asymptomatic', 'p_critical', 'p_severe',
         'p_icu_death', 'p_hospital_death', 'p_hospital_death_no_beds',
-        'p_icu_death_no_beds',
+        'p_icu_death_no_beds', 'p_detected_anyway',
     ],
 )
 def simulate_individuals(variables, step_callback=None):
@@ -54,7 +54,10 @@ def simulate_individuals(variables, step_callback=None):
         age_counts[age] = count
 
     pop = simc.Population(age_counts, list(avg_contacts_per_day.items()))
-    hc = simc.HealthcareSystem(hc_cap[0], hc_cap[1])
+    hc = simc.HealthcareSystem(
+        beds=hc_cap[0], icu_units=hc_cap[1],
+        p_detected_anyway=variables['p_detected_anyway'] / 100
+    )
 
     sevvar = variables['p_severe']
     sev_arr = [(age, sev / 100) for age, sev in sevvar]
