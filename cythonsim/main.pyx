@@ -1,5 +1,4 @@
 # cython: language_level=3
-# zzcython: profile=True
 # cython: boundscheck=False
 # cython: wraparound=False
 
@@ -8,8 +7,11 @@ import numpy as np
 from collections import namedtuple
 from datetime import date
 from cpython.mem cimport PyMem_Malloc, PyMem_Free
-from simrandom cimport RandomPool
+from cython.parallel import prange
+from cythonsim.simrandom cimport RandomPool
+
 cimport cython
+cimport openmp
 
 
 cdef enum SymptomSeverity:
@@ -34,11 +36,25 @@ ctypedef unsigned char uint8
 ctypedef unsigned int int16
 
 
+cdef enum SimulationProblem:
+    NO_PROBLEMOS
+    TOO_MANY_INFECTEES
+    HOSPITAL_ACCOUNTING_FAILURE
+
+
+DEF MAX_CONTACTS = 128
+
+cdef struct Contact:
+    int32 person
+
 cdef struct Person:
     int32 idx, infector
     uint8 age, has_immunity, is_infected, was_detected, queued_for_testing, \
         symptom_severity, days_left, day_of_illness, state
     int16 other_people_infected, other_people_exposed_today
+    uint8 nr_infectees
+
+    openmp.omp_lock_t lock
 
 
 cdef void person_init(Person *self, int32 idx, uint8 age) nogil:
@@ -53,7 +69,9 @@ cdef void person_init(Person *self, int32 idx, uint8 age) nogil:
     self.other_people_infected = 0
     self.symptom_severity = SymptomSeverity.ASYMPTOMATIC
     self.state = PersonState.SUSCEPTIBLE
+    self.nr_infectees = 0
     self.infector = -1
+    openmp.omp_init_lock(&self.lock)
 
 
 cdef void person_infect(Person *self, Context context, Person *source=NULL) nogil:
@@ -98,8 +116,7 @@ cdef void person_become_ill(Person *self, Context context) nogil:
     if self.symptom_severity != SymptomSeverity.ASYMPTOMATIC:
         # People with symptoms seek testing (but might not get it)
         if not self.was_detected:
-            # FIXME context.hc.seek_testing(self, context)
-            pass
+            context.hc.seek_testing(self, context)
 
 
 cdef void person_detect(Person *self, Context context) nogil:
@@ -206,6 +223,7 @@ cdef class HealthcareSystem:
     cdef int32 tests_run_per_day
     cdef TestingMode testing_mode
     cdef list testing_queue
+    cdef openmp.omp_lock_t lock
 
     def __init__(self, beds, icu_units):
         self.beds = beds
@@ -215,14 +233,15 @@ cdef class HealthcareSystem:
         self.testing_mode = TestingMode.NO_TESTING
         self.testing_queue = []
         self.tests_run_per_day = 0
+        openmp.omp_init_lock(&self.lock)
 
     cdef bint queue_for_testing(self, int person_idx, Context context) nogil:
         cdef Person *p = context.people + person_idx
         if p.state == PersonState.DEAD or p.was_detected or p.queued_for_testing:
             return False
         p.queued_for_testing = 1
-        # FIXME
-        # self.testing_queue.append(person_idx)
+        with gil:
+            self.testing_queue.append(person_idx)
         return True
 
     cdef void perform_contact_tracing(self, Person *person, Context context):
@@ -571,6 +590,7 @@ cdef class Context:
     cdef public HealthcareSystem hc
     cdef public Disease disease
     cdef public RandomPool random
+    cdef SimulationProblem problem
     cdef int day
     cdef Person *people
     cdef int total_people
@@ -578,9 +598,11 @@ cdef class Context:
     cdef str start_date
     cdef int total_infections, total_infectors, exposed_per_day
 
+
     def __init__(self, pop, age_counts, hc, disease, start_date):
         self.create_population(age_counts)
 
+        self.problem = SimulationProblem.NO_PROBLEMOS
         self.pop = pop
         self.hc = hc
         self.disease = disease
@@ -594,7 +616,10 @@ cdef class Context:
         self.total_infections = 0
         self.exposed_per_day = 0
 
+
     def add_intervention(self, day, name, value):
+        if value is None:
+            value = 0
         self.interventions.append(Intervention(day, name, value))
 
     def __dealloc__(self):
@@ -692,21 +717,23 @@ cdef class Context:
 
         self.hc.iterate(self)
 
-        with nogil:
-            for idx in range(self.total_people):
-                person = self.people + idx
-                if not person.is_infected:
-                    continue
+        for idx in prange(self.total_people, nogil=True, num_threads=1, schedule='dynamic', chunksize=10000):
+            person = self.people + idx
+            if not person.is_infected:
+                continue
 
-                person_advance(person, self)
+            person_advance(person, self)
 
-                self.exposed_per_day += person.other_people_exposed_today
+            self.exposed_per_day += person.other_people_exposed_today
 
-                if person.state != PersonState.ILLNESS:
-                    continue
+            if person.state != PersonState.ILLNESS:
+                continue
 
-                self.total_infectors += 1
-                self.total_infections += person.other_people_infected
+            self.total_infectors += 1
+            self.total_infections += person.other_people_infected
+
+        if self.problem != SimulationProblem.NO_PROBLEMOS:
+            raise Exception('Simulation failed with %d' % self.problem)
 
         self.day += 1
 

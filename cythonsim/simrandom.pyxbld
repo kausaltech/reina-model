@@ -1,0 +1,21 @@
+import numpy as np
+import os
+
+inc_path = np.get_include()
+# not so nice. We need the random/lib library from numpy
+lib_path = os.path.join(np.get_include(), '..', '..', 'random', 'lib')
+
+
+def make_ext(modname, pyxfilename):
+    from distutils.extension import Extension
+    return Extension(
+        name=modname,
+        sources=[pyxfilename],
+        include_dirs=[inc_path],
+        libraries=['npyrandom'],
+        library_dirs=[lib_path],
+    )
+
+
+def make_setup_args():
+    return dict()

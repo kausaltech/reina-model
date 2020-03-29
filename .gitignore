@@ -7,6 +7,7 @@ __pycache__/
 /assets/
 /flask-session/
 /flask_session/
+/cythonsim/*.html
 
 # Environment
 .DS_Store

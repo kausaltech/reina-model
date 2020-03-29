@@ -14,7 +14,7 @@ import dash_bootstrap_components as dbc
 import plotly.graph_objs as go
 from dash.dependencies import Input, Output, State
 from utils.colors import THEME_COLORS
-from multiprocessing import Process
+from threading import Thread
 
 from calc.simulation import simulate_individuals, INTERVENTIONS
 from calc.datasets import get_detected_cases
@@ -468,7 +468,7 @@ def generate_population_traces(df):
 process_pool = {}
 
 
-class SimulationProcess(Process):
+class SimulationThread(Thread):
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
         self.uuid = str(uuid.uuid4())
@@ -489,6 +489,7 @@ class SimulationProcess(Process):
             now = time.time()
             if self.last_results is None or now - self.last_results > 2:
                 cache.set('thread-%s-results' % self.uuid, df, timeout=30)
+                print('setting results')
                 self.last_results = now
 
             if cache.get('thread-%s-kill' % self.uuid):
@@ -496,10 +497,11 @@ class SimulationProcess(Process):
             return True
 
         try:
-            simulate_individuals(step_callback=step_callback)
+            df = simulate_individuals(step_callback=step_callback)
         except ExecutionInterrupted:
             print('%s: process cancelled' % self.uuid)
-
+        else:
+            step_callback(df)
         print('%s: process finished' % self.uuid)
 
         del process_pool[self.ident]
@@ -540,7 +542,7 @@ def run_simulation_callback(n_clicks):
     if existing_thread_id:
         cache.set('thread-%s-kill' % existing_thread_id, True)
 
-    process = SimulationProcess()
+    process = SimulationThread()
     session['thread_id'] = process.uuid
     process.start()
 
