@@ -23,6 +23,11 @@ Install a Python venv with Python 3.7 or 3.8. Install the requirements:
 pip install -r requirements.txt
 ```
 
+Compile translations:
+
+```
+pybabel compile -d locale
+```
 
 ## Usage
 
@@ -36,4 +41,20 @@ Or visualize using Dash:
 
 ```
 python -m corona
+```
+
+## Development
+
+### Localisation
+
+Extract new translation strings to the template:
+
+```
+pybabel extract -w 120 -F babel.cfg -o locale/messages.pot .
+```
+
+Merge new strings to language-specific translation files:
+
+```
+pybabel update -w 120 -i locale/messages.pot -d locale
 ```

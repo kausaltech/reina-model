@@ -1,0 +1,158 @@
+# Finnish translations for PROJECT.
+# Copyright (C) 2020 ORGANIZATION
+# This file is distributed under the same license as the PROJECT project.
+# FIRST AUTHOR <EMAIL@ADDRESS>, 2020.
+#
+msgid ""
+msgstr ""
+"Project-Id-Version: PROJECT VERSION\n"
+"Report-Msgid-Bugs-To: EMAIL@ADDRESS\n"
+"POT-Creation-Date: 2020-03-29 17:22+0300\n"
+"PO-Revision-Date: 2020-03-29 16:35+0300\n"
+"Last-Translator: FULL NAME <EMAIL@ADDRESS>\n"
+"Language: fi\n"
+"Language-Team: fi <LL@li.org>\n"
+"Plural-Forms: nplurals=2; plural=(n != 1)\n"
+"MIME-Version: 1.0\n"
+"Content-Type: text/plain; charset=utf-8\n"
+"Content-Transfer-Encoding: 8bit\n"
+"Generated-By: Babel 2.8.0\n"
+
+#: corona.py:100
+msgid "Ratio of all infected people who remain asymptomatic"
+msgstr "Osuus tartunnan saaneista, jotka jäävät oireettomiksi"
+
+#: corona.py:101
+msgid "Probability of becoming infected after being exposed"
+msgstr "Todennäköisyys, että taudille altistunut saa tartunnan"
+
+#: corona.py:102
+msgid "Probability of requiring ICU care after having severe symptoms"
+msgstr "Osuus vakavasti oirehtivista, jotka tarvitsevat tehohoitoa"
+
+#: corona.py:103
+msgid "Probability of dying during ICU care"
+msgstr "Tehohoitoa tarvitsevien osuus, joka kuolee tehohoitojakson päätteeksi"
+
+#: corona.py:104
+msgid "Probability of dying after regular hospital treatment"
+msgstr "Sairaalahoitoa tarvitsevista osuus, joka kuolee sairaalahoidon päätteeksi"
+
+#: corona.py:105
+msgid "Probability of dying if no hospital beds are available"
+msgstr "Sairaalahoitoa tarvitsevien osuus, joka kuolee jos sairaalapaikkaa ei ole vapaana"
+
+#: corona.py:106
+msgid "Probability of dying if no ICU units are available"
+msgstr "Tehohoitoa tarvitsevien osuus, joka kuolee jos tehohoitopaikkaa ei ole vapaana"
+
+#: corona.py:148
+msgid "Disease parameters"
+msgstr "Taudin parametrit"
+
+#: components/results.py:137 corona.py:156
+msgid "Restore defaults"
+msgstr "Palauta oletukset"
+
+#: corona.py:172
+msgid "Date"
+msgstr "Päivämäärä"
+
+#: corona.py:173
+msgid "Event"
+msgstr "Tapahtuma"
+
+#: corona.py:174
+msgid "Value"
+msgstr "Arvo"
+
+#: corona.py:191
+#, python-format
+msgid "Events (%(num)s)"
+msgstr "Tapahtumat (%(num)s)"
+
+#: corona.py:199
+msgid "Restore default events"
+msgstr "Palauta oletustapahtumat"
+
+#: corona.py:204
+msgid "Add a new event"
+msgstr "Lisää uusi tapahtuma"
+
+#: corona.py:233
+msgid "Corona epidemic simulator"
+msgstr "Koronaepidemiasimulaattori"
+
+#: corona.py:241
+#, python-format
+msgid "Forecast of the COVID-19 epidemic: %(name)s"
+msgstr "COVID-19-epidemian kehittyminen: %(name)s"
+
+#: corona.py:242
+msgid "Exploration of the effects of interventions to the progression of the epidemic."
+msgstr "Tutkitaan kuinka erilaiset interventiot vaikuttavat koronavirusepidemian etenemiseen."
+
+#: corona.py:262
+#, python-format
+msgid "%(days)d days"
+msgstr "%(days)d päivää"
+
+#: components/results.py:19
+msgid "Susceptible"
+msgstr "Alttiit"
+
+#: components/results.py:20
+msgid "Active infections"
+msgstr "Aktiiviset tartunnat"
+
+#: components/results.py:21
+msgid "Detected cases (sim.)"
+msgstr "Havaitut tapaukset (sim.)"
+
+#: components/results.py:22
+msgid "Hospitalized"
+msgstr "Sairaalassa"
+
+#: components/results.py:23
+msgid "Dead"
+msgstr "Kuolleet"
+
+#: components/results.py:24
+msgid "Recovered"
+msgstr "Toipuneet"
+
+#: components/results.py:42
+msgid "Detected cases (real)"
+msgstr "Havaitut tapaukset (tod.)"
+
+#: components/results.py:60
+msgid "Hospital beds"
+msgstr "Vuodepaikat"
+
+#: components/results.py:61
+msgid "ICU units"
+msgstr "Tehohoitopaikat"
+
+#: components/results.py:70
+msgid "Free capacity in the healthcare system"
+msgstr "Sairaanhoitojärjestelmän vapaa kapasiteetti"
+
+#: components/results.py:81
+msgid "Reproductive number (R)"
+msgstr "R-luku"
+
+#: components/results.py:82
+msgid "Infection fatality ratio (IFR, %"
+msgstr "Infektiokuolleisuus (IFR, %)"
+
+#: components/results.py:83
+msgid "Case fatality ratio (CFR, %"
+msgstr "Tapauskuolleisuus (CFR, %)"
+
+#: components/results.py:91
+msgid "Epidemic parameters"
+msgstr "Epidemian parametrit"
+
+#: components/results.py:129
+msgid "Simulation result data"
+msgstr "Simulaatioajon tulosdata"

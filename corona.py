@@ -2,26 +2,23 @@ import dash
 import time
 from datetime import date, timedelta
 from flask_session import Session
+from flask_babel import Babel, lazy_gettext as _
 from common import cache
+from common.locale import init_locale
 import uuid
 import os
-import numpy as np
 import dash_table
-from dash_table.Format import Format, Scheme
 import dash_core_components as dcc
 import dash_html_components as html
 import dash_bootstrap_components as dbc
 from dash.dependencies import Input, Output, State
-from utils.colors import THEME_COLORS
 from threading import Thread
 
 from calc.simulation import simulate_individuals, INTERVENTIONS
-from calc.datasets import get_detected_cases
 from calc import ExecutionInterrupted
 from common import settings
-from components.cards import GraphCard
-from components.graphs import make_layout
 from variables import set_variable, get_variable, reset_variable
+from components.results import render_results, register_results_callbacks
 
 
 os.environ['DASH_PRUNE_ERRORS'] = 'False'
@@ -37,10 +34,16 @@ app.scripts.config.serve_locally = True
 server = app.server
 with server.app_context():
     server.config.from_object('common.settings')
+    server.config['BABEL_TRANSLATION_DIRECTORIES'] = 'locale'
 
     cache.init_app(server)
     sess = Session()
     sess.init_app(server)
+    babel = Babel(default_locale='fi')
+    babel.init_app(server)
+    init_locale(babel)
+    register_results_callbacks(app)
+
 
 markdown_text = '''
 ### Kuinka simulaatio toimii?
@@ -94,14 +97,13 @@ def interventions_to_rows():
 
 
 DISEASE_PARAMS = (
-    ('p_asymptomatic', 'Osuus tartunnan saaneista, jotka jäävät oireettomiksi', '%',),
-    ('p_infection', 'Todennäköisyys, että taudille altistunut saa tartunnan', '%',),
-    ('p_critical', 'Osuus vakavasti oirehtivista, jotka tarvitsevat tehohoitoa', '%',),
-    ('p_icu_death', 'Tehohoitoa tarvitsevien osuus, joka kuolee tehohoitojakson päätteeksi', '%'),
-    ('p_hospital_death', 'Sairaalahoitoa tarvitsevista osuus, joka kuolee sairaalahoidon päätteeksi', '%'),
-    ('p_hospital_death_no_beds', 'Sairaalahoitoa tarvitsevien osuus, joka kuolee jos sairaalapaikkaa ei ole vapaana', '%'),
-    ('p_icu_death_no_beds', 'Tehohoitoa tarvitsevien osuus, joka kuolee jos tehohoitopaikkaa ei ole vapaana', '%'),
-    # ('p_severe', 'Sairaalahoitoa tarvitsevien osuus kaikista tartunnan saaneista ikäryhmittäin', '%'),
+    ('p_asymptomatic', _('Ratio of all infected people who remain asymptomatic'), '%',),
+    ('p_infection', _('Probability of becoming infected after being exposed'), '%',),
+    ('p_critical', _('Probability of requiring ICU care after having severe symptoms'), '%',),
+    ('p_icu_death', _('Probability of dying during ICU care'), '%'),
+    ('p_hospital_death', _('Probability of dying after regular hospital treatment'), '%'),
+    ('p_hospital_death_no_beds', _('Probability of dying if no hospital beds are available'), '%'),
+    ('p_icu_death_no_beds', _('Probability of dying if no ICU units are available'), '%')
 )
 
 
@@ -143,7 +145,7 @@ def render_disease_params():
     card = dbc.Card([
         dbc.CardHeader([
             html.H2(dbc.Button(
-                "Taudin oletukset", className="float-left mt-2",
+                _('Disease parameters'), className="float-left mt-2",
                 id="disease-collapse-button",
             )),
         ]),
@@ -151,7 +153,7 @@ def render_disease_params():
             dbc.CardBody([
                 dp_table,
                 html.Div(dbc.Button(
-                    'Palauta oletusarvot', id='disease-params-reset-defaults', color='secondary',
+                    _('Restore defaults'), id='disease-params-reset-defaults', color='secondary',
                     size='sm', className='mt-3'
                 ), className='text-right'),
             ], className="px-5"),
@@ -167,9 +169,9 @@ def render_iv_card():
         id='interventions-table',
         data=ivs,
         columns=[
-            {'name': 'Päivämäärä', 'id': 'date'},
-            {'name': 'Tapahtuma', 'id': 'label'},
-            {'name': 'Arvo', 'id': 'value'},
+            {'name': _('Date'), 'id': 'date'},
+            {'name': _('Event'), 'id': 'label'},
+            {'name': _('Value'), 'id': 'value'},
             {'name': '', 'id': 'unit'},
         ],
         style_cell={'textAlign': 'left'},
@@ -186,7 +188,7 @@ def render_iv_card():
     iv_card = dbc.Card([
         dbc.CardHeader([
             html.H2(dbc.Button(
-                "Tapahtumat (%d)" % len(ivs), className="float-left mt-2",
+                _("Events (%(num)s)", num=len(ivs)), className="float-left mt-2",
                 id="interventions-collapse-button",
             )),
         ]),
@@ -194,12 +196,12 @@ def render_iv_card():
             dbc.CardBody([
                 iv_table,
                 html.Div(dbc.Button(
-                    'Palauta oletustapahtumat', id='interventions-reset-defaults', color='secondary',
+                    _('Restore default events'), id='interventions-reset-defaults', color='secondary',
                     size='sm', className='mt-3'
                 ), className='text-right'),
             ], className="px-5"),
             dbc.CardFooter([
-                html.H6('Lisää uusi tapahtuma'),
+                html.H6(_('Add a new event')),
                 dbc.Row([
                     dbc.Col(dcc.DatePickerSingle(
                         id='new-intervention-date', display_format='YYYY-MM-DD',
@@ -228,7 +230,7 @@ def generate_layout():
         children=[
             dbc.Badge("v0.1", pill=True, color="primary", className="mr-1"),
         ],
-        brand="Koronaepidemiasimulaatio",
+        brand=_("Corona epidemic simulator"),
         brand_href="#",
         color="primary",
         dark=True,
@@ -236,8 +238,8 @@ def generate_layout():
     rows = []
     rows.append(dbc.Row([
         dbc.Col([
-            html.H3('COVID-19-epidemian kehittyminen: %s' % get_variable('area_name')),
-            html.P('Tutkitaan kuinka erilaiset interventiot vaikuttavat koronavirusepidemian etenemiseen.', className="lead"),
+            html.H3(_('Forecast of the COVID-19 epidemic: %(name)s', name=get_variable('area_name'))),
+            html.P(_('Exploration of the effects of interventions to the progression of the epidemic.', className="lead")),
         ], className='mb-4'),
     ], className='mt-4'))
 
@@ -257,7 +259,7 @@ def generate_layout():
             html.Div(id='simulation-days-placeholder', style=dict(display='none')),
             dcc.Dropdown(
                 id='simulation-days-dropdown',
-                options=[dict(label='%d päivää' % x, value=x) for x in (45, 90, 180, 360)],
+                options=[dict(label=_('%(days)d days', days=x), value=x) for x in (45, 90, 180, 360)],
                 value=get_variable('simulation_days'),
                 searchable=False, clearable=False,
             ),
@@ -395,118 +397,6 @@ def interventions_callback(ts, reset_clicks, add_intervention_clicks, rows, new_
     return rows
 
 
-def render_result_graphs(df):
-    traces = generate_population_traces(df)
-    card = GraphCard('population', graph=dict(config=dict(responsive=False)))
-    layout = make_layout(
-        title='Väestö', height=250, showlegend=True,
-        margin=dict(r=250)
-    )
-    fig = dict(data=traces, layout=layout)
-    card.set_figure(fig)
-    c1 = card.render()
-
-    hc_cols = (
-        ('hospital_beds', 'Vuodepaikat'),
-        ('icu_units', 'Tehohoitopaikat')
-    )
-    traces = []
-    for col, name in hc_cols:
-        t = dict(type='scatter', name=name, x=df.index, y=df[col], mode='lines')
-        traces.append(t)
-
-    card = GraphCard('healthcare', graph=dict(config=dict(responsive=False)))
-    layout = make_layout(
-        title='Sairaanhoitojärjestelmän vapaa kapasiteetti', height=250, showlegend=True,
-        margin=dict(r=250)
-    )
-    fig = dict(data=traces, layout=layout)
-    card.set_figure(fig)
-    c2 = card.render()
-
-    df['ifr'] = df.dead.divide((df.infected + df.recovered).replace(0, np.inf)) * 100
-    df['cfr'] = df.dead.divide(df.all_detected.replace(0, np.inf)) * 100
-
-    param_cols = (
-        ('r', 'R-luku'),
-        ('ifr', 'Infektiokuolleisuus (IFR, %)'),
-        ('cfr', 'Tapauskuolleisuus (CFR, %)'),
-    )
-    card = GraphCard('params', graph=dict(config=dict(responsive=False)))
-    traces = []
-    for col, name in param_cols:
-        t = dict(type='scatter', name=name, x=df.index, y=df[col], mode='lines')
-        traces.append(t)
-    layout = make_layout(
-        title='Epidemian parametrit', height=250, showlegend=True,
-        margin=dict(r=250)
-    )
-    fig = dict(data=traces, layout=layout)
-    card.set_figure(fig)
-    c3 = card.render()
-
-    return dbc.Row([dbc.Col(c1, md=12), dbc.Col(c2, md=12), dbc.Col(c3, md=12)])
-
-
-def render_result_table(df):
-    df = df.rename(columns=dict(tests_run_per_day='positive_tests_per_day'))
-    df = df.drop(columns='sim_time_ms')
-    df.index = df.index.date
-
-    cols = [{'name': 'date', 'id': 'date', 'type': 'datetime'}]
-    for col_name in df.columns:
-        d = dict(name=col_name, id=col_name)
-        if col_name in ('cfr', 'ifr', 'r'):
-            d['type'] = 'numeric'
-            d['format'] = Format(precision=2, scheme=Scheme.fixed)
-        cols.append(d)
-
-    rows = df.to_dict('records')
-    for idx, row in zip(df.index, rows):
-        row['date'] = idx
-
-    dp_table = dash_table.DataTable(
-        id='simulation-results-table',
-        data=rows,
-        columns=cols,
-        style_table={'overflowX': 'scroll'},
-        export_format='xlsx',
-    )
-    return dbc.Row([dbc.Col(dp_table)])
-
-
-def generate_population_traces(df):
-    det = get_detected_cases()
-    pop_cols = (
-        ('susceptible', 'yellow', 'Alttiit'),
-        ('infected', 'orange', 'Aktiiviset tartunnat'),
-        ('all_detected', 'teal', 'Havaitut tapaukset (sim.)'),
-        ('hospitalized', 'red', 'Sairaalassa'),
-        ('dead', 'indigo', 'Kuolleet'),
-        ('recovered', 'green', 'Toipuneet'),
-    )
-
-    traces = []
-    for col, color, name in pop_cols:
-        # if col in ('susceptible', 'recovered'):
-        #    continue
-        t = dict(
-            type='scatter', line=dict(color=THEME_COLORS[color]),
-            name=name, x=df.index, y=df[col], mode='lines',
-            hoverformat='%d',
-        )
-        if col in ('susceptible', 'recovered'):
-            t['visible'] = 'legendonly'
-        traces.append(t)
-
-    traces.append(dict(
-        type='scatter', marker=dict(color='gray'),
-        name='Havaitut tapaukset (tod.)', x=det.index, y=det['confirmed'], mode='markers'
-    ))
-
-    return traces
-
-
 process_pool = {}
 
 
@@ -578,7 +468,7 @@ def update_simulation_results(n_intervals):
     else:
         print('thread not finished, updating')
         disabled = False
-    out = render_result_graphs(df)
+    out = render_results(df)
     return [out, disabled, 500]
 
 
@@ -592,14 +482,13 @@ def update_simulation_results(n_intervals):
 def run_simulation_callback(n_clicks, simulation_days):
     from flask import session
     from common import cache
-    from utils.perf import PerfCounter
 
     print('run simulation (days %d)' % simulation_days)
     set_variable('simulation_days', simulation_days)
 
     df = simulate_individuals(only_if_in_cache=True)
     if df is not None:
-        return [render_result_graphs(df), render_result_table(df)]
+        return render_results(df)
 
     existing_thread_id = session.get('thread_id', None)
     if existing_thread_id:

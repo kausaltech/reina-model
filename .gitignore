@@ -9,6 +9,7 @@ __pycache__/
 /flask_session/
 /cythonsim/*.html
 /cache.sqlite
+/locale/**/*.mo
 
 # Environment
 .DS_Store
