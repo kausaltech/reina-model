@@ -265,7 +265,7 @@ def generate_layout():
             ),
         ], width=dict(size=2, offset=0)),
         dbc.Col([
-            dbc.Button('Suorita simulaatio', id='run-simulation', color='primary'),
+            dbc.Button(_('Run simulation'), id='run-simulation', color='primary'),
         ], width=dict(offset=3), className='text-center')
     ], className='mt-3'))
 

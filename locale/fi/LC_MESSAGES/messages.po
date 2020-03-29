@@ -7,7 +7,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: PROJECT VERSION\n"
 "Report-Msgid-Bugs-To: EMAIL@ADDRESS\n"
-"POT-Creation-Date: 2020-03-29 17:22+0300\n"
+"POT-Creation-Date: 2020-03-29 17:33+0300\n"
 "PO-Revision-Date: 2020-03-29 16:35+0300\n"
 "Last-Translator: FULL NAME <EMAIL@ADDRESS>\n"
 "Language: fi\n"
@@ -50,7 +50,7 @@ msgstr "Tehohoitoa tarvitsevien osuus, joka kuolee jos tehohoitopaikkaa ei ole v
 msgid "Disease parameters"
 msgstr "Taudin parametrit"
 
-#: components/results.py:137 corona.py:156
+#: corona.py:156
 msgid "Restore defaults"
 msgstr "Palauta oletukset"
 
@@ -96,6 +96,10 @@ msgstr "Tutkitaan kuinka erilaiset interventiot vaikuttavat koronavirusepidemian
 #, python-format
 msgid "%(days)d days"
 msgstr "%(days)d päivää"
+
+#: corona.py:268
+msgid "Run simulation"
+msgstr "Suorita simulaatio"
 
 #: components/results.py:19
 msgid "Susceptible"
@@ -156,3 +160,4 @@ msgstr "Epidemian parametrit"
 #: components/results.py:129
 msgid "Simulation result data"
 msgstr "Simulaatioajon tulosdata"
+
