@@ -121,16 +121,16 @@ def render_disease_params():
         id='disease-params-table',
         data=rows,
         columns=[
-            {'name': 'Kuvaus', 'id': 'label'},
+            {'name': _('Description'), 'id': 'label', 'editable': False},
             {
-                'name': 'Arvo',
+                'name': _('Value'),
                 'id': 'value',
                 'editable': True,
                 'format': value_fmt,
                 'type': 'numeric',
                 'validation': dict(allow_null=False),
             },
-            {'name': '', 'id': 'unit'},
+            {'name': '', 'id': 'unit', 'editable': False},
         ],
         style_cell={'textAlign': 'left'},
         style_cell_conditional=[
@@ -140,6 +140,7 @@ def render_disease_params():
             }
         ],
         style_as_list_view=True,
+        editable=True,
     )
 
     card = dbc.Card([
@@ -333,17 +334,29 @@ def show_day_details(data):
     Output('disease-params-table', 'data'),
     [
         Input('disease-params-table', 'data_timestamp'),
-        Input('disease-reset-defaults', 'n_clicks'),
+        Input('disease-params-reset-defaults', 'n_clicks'),
     ], [
         State('disease-params-table', 'data'),
     ]
 )
-def disease_params_data_callback(ts, rows):
+def disease_params_data_callback(ts, reset_clicks, rows):
+    ctx = dash.callback_context
+    if ctx.triggered:
+        c_id = ctx.triggered[0]['prop_id'].split('.')[0]
+        if reset_clicks is not None and c_id == 'disease-params-reset-defaults':
+            for row in rows:
+                reset_variable(row['id'])
+                row['value'] = get_variable(row['id'])
+
     for row in rows:
+        if not isinstance(row['value'], (int, float)):
+            row['value'] = get_variable(row['id'])
         if row['value'] < 0:
             row['value'] = 0
         elif row['value'] > 100:
             row['value'] = 100
+        set_variable(row['id'], float(row['value']))
+
     return rows
 
 
