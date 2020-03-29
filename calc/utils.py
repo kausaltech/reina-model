@@ -123,7 +123,8 @@ def calcfunc(variables=None, datasets=None, funcs=None):
                         pc.display('cache hit (%s)' % cache_key)
                     return ret
                 if only_if_in_cache:
-                    pc.display('cache miss so leaving as requested (%s)' % cache_key)
+                    if should_profile:
+                        pc.display('cache miss so leaving as requested (%s)' % cache_key)
                     return None
 
             if variables is not None:
