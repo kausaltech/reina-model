@@ -47,16 +47,13 @@ with server.app_context():
     register_params_callbacks(app)
 
 
-markdown_text = '''
+'''
 ### Kuinka simulaatio toimii?
 Simulaatiossa mallinnetaan kuinka COVID-19 epidemia etenee sairaanhoitokapasiteetista,
 testauskäytännöistä ja ihmiset liikkuvuutta rajoittavista toimenpiteistä riippuen.
 
 Simulaation taustalla on agenttipohjainen malli, jossa käydään läpi jokainen sairastunut
 koko infektio- ja sairauspolun aikana.
-
-#### Oletusarvot
-**HUS alueen väestö:** 1 645 000
 
 #### Tapahtumat
 Tapahtumalistasta voi simulaation lisätä tai poistaa tapahtumia tai toimenpiteitä.
@@ -70,7 +67,8 @@ Tämä on työkalun keskeneräinen kehitysversio. Voit tutustua työkalun lähde
 
 
 def generate_static_content():
-    return dcc.Markdown(children=markdown_text)
+    f = open(os.path.join(os.path.dirname(__file__), 'Docs', 'description.en.md'))
+    return dcc.Markdown(children=f.read())
 
 
 def interventions_to_rows():

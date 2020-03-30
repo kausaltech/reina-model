@@ -1,6 +1,7 @@
 from calc import calcfunc, ExecutionInterrupted
 import numpy as np
 import pandas as pd
+from flask_babel import lazy_gettext as _
 
 from cythonsim import model
 from utils.perf import PerfCounter
@@ -9,15 +10,15 @@ from datetime import date, timedelta
 
 
 INTERVENTIONS = [
-    ('test-all-with-symptoms', 'Testataan kaikki oirehtivat'),
-    ('test-only-severe-symptoms', 'Testataan ainoastaan vakavasti oirehtivat'),
-    ('test-with-contact-tracing', 'Testataan kaikki oirehtivat sekä määritetään tartuntaketjut'),
-    ('limit-mobility', 'Rajoitetaan väestön liikkuvuutta', '%'),
-    ('limit-mass-gatherings', 'Rajoitetaan kokoontumisia', 'kontaktia (max.)'),
-    ('import-infections', 'Alueelle tulee infektioita', 'kpl'),
-    ('import-infections-per-day', 'Alueelle tulee päivittäin uusia infektioita', 'kpl/pv'),
-    ('build-new-hospital-beds', 'Rakennetaan uusia sairaansijoja', 'kpl'),
-    ('build-new-icu-units', 'Rakennetaan uusia tehohoitopaikkoja', 'kpl'),
+    ('test-all-with-symptoms', _('Test all with symptoms')),
+    ('test-only-severe-symptoms', _('Test people only with severe symptoms')),
+    ('test-with-contact-tracing', _('Test all with symptoms and perform contact tracing')),
+    ('limit-mobility', _('Limit population mobility'), '%'),
+    ('limit-mass-gatherings', _('Limit mass gatherings'), _('max. contacts')),
+    ('import-infections', _('Import infections'), _('infections')),
+    ('import-infections-per-day', _('Import new infections daily'), _('infections/day')),
+    ('build-new-hospital-beds', _('Build new hospital beds'), _('beds')),
+    ('build-new-icu-units', _('Build new ICU units'), _('units')),
 ]
 
 
@@ -164,9 +165,6 @@ def sample_model_parameters(what, age, variables):
     """
 
 if __name__ == '__main__':
-    sample_model_parameters('contacts_per_day', 60)
-    exit()
-
     header = '%-12s' % 'day'
     for attr in POP_ATTRS + STATE_ATTRS:
         header += '%15s' % attr

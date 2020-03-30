@@ -7,7 +7,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: PROJECT VERSION\n"
 "Report-Msgid-Bugs-To: EMAIL@ADDRESS\n"
-"POT-Creation-Date: 2020-03-29 21:05+0300\n"
+"POT-Creation-Date: 2020-03-30 13:26+0300\n"
 "PO-Revision-Date: 2020-03-29 16:35+0300\n"
 "Last-Translator: FULL NAME <EMAIL@ADDRESS>\n"
 "Language: fi\n"
@@ -64,6 +64,62 @@ msgstr "%(days)d päivää"
 #: corona.py:203
 msgid "Run simulation"
 msgstr "Suorita simulaatio"
+
+#: calc/simulation.py:13
+msgid "Test all with symptoms"
+msgstr "Testataan kaikki oirehtivat"
+
+#: calc/simulation.py:14
+msgid "Test people only with severe symptoms"
+msgstr "Testataan ainoastaan vakavasti oirehtivat"
+
+#: calc/simulation.py:15
+msgid "Test all with symptoms and perform contact tracing"
+msgstr "Testataan kaikki oirehtivat sekä määritetään tartuntaketjut"
+
+#: calc/simulation.py:16
+msgid "Limit population mobility"
+msgstr "Rajoitetaan väestön liikkuvuutta"
+
+#: calc/simulation.py:17
+msgid "Limit mass gatherings"
+msgstr "Rajoitetaan kokoontumisia"
+
+#: calc/simulation.py:17
+msgid "max. contacts"
+msgstr "kontaktia (max.)"
+
+#: calc/simulation.py:18
+msgid "Import infections"
+msgstr "Alueelle tulee infektioita"
+
+#: calc/simulation.py:18
+msgid "infections"
+msgstr "infektiota"
+
+#: calc/simulation.py:19
+msgid "Import new infections daily"
+msgstr "Alueelle tulee päivittäin uusia infektioita"
+
+#: calc/simulation.py:19
+msgid "infections/day"
+msgstr "infektiota/pv"
+
+#: calc/simulation.py:20
+msgid "Build new hospital beds"
+msgstr "Rakennetaan uusia sairaansijoja"
+
+#: calc/simulation.py:20
+msgid "beds"
+msgstr "kpl"
+
+#: calc/simulation.py:21
+msgid "Build new ICU units"
+msgstr "Rakennetaan uusia tehohoitopaikkoja"
+
+#: calc/simulation.py:21
+msgid "units"
+msgstr "kpl"
 
 #: components/params.py:19
 msgid "Incubation period"
