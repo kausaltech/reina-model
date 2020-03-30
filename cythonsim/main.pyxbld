@@ -2,12 +2,15 @@ import numpy as np
 import os
 
 
+inc_path = np.get_include()
+
 
 def make_ext(modname, pyxfilename):
     from distutils.extension import Extension
     return Extension(
         name=modname,
         sources=[pyxfilename],
+        include_dirs=[inc_path],
         extra_compile_args=['-fopenmp'],
         extra_link_args=['-fopenmp'],
         define_macros=[("NPY_NO_DEPRECATED_API", None)]
