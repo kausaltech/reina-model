@@ -330,30 +330,20 @@ cdef class HealthcareSystem:
             self.testing_queue.append(person_idx)
         return True
 
-    cdef void perform_contact_tracing(self, Person *person, Context context):
-        contacts = []
+    cdef void perform_contact_tracing(self, int person_idx, Context context, int level) nogil:
+        cdef Person *p = context.people + person_idx
+        cdef int infectee_idx
+        if level > 1:
+            return
 
-        contacts.append(person.infector)
-        """
-        # FIXME
-        for idx in person.infectees:
-            contacts.append(idx)
-
-        for i in range(3):
-            next_contacts = []
-            for idx in contacts:
-                if idx < 0:
-                    continue
-                if not self.queue_for_testing(idx, context):
-                    continue
-
-                p = context.people[idx]
-                next_contacts.append(p.infector)
-                for pi in p.infectees:
-                    next_contacts.append(pi)
-
-            contacts = next_contacts
-        """
+        if p.infector >= 0:
+            if self.queue_for_testing(p.infector, context):
+                self.perform_contact_tracing(p.infector, context, level + 1)
+        if p.infectees != NULL:
+            for i in range(p.nr_infectees):
+                infectee_idx = p.infectees[i]
+                if self.queue_for_testing(infectee_idx, context):
+                    self.perform_contact_tracing(infectee_idx, context, level + 1)
 
     cdef iterate(self, Context context):
         cdef Person *person
@@ -382,7 +372,7 @@ cdef class HealthcareSystem:
                 # With contact tracing we queue the infector and the
                 # infectees for testing.
                 # FIXME: Simulate non-perfect contact tracing?
-                self.perform_contact_tracing(person, context)
+                self.perform_contact_tracing(idx, context, 0)
 
     cdef void seek_testing(self, Person *person, Context context) nogil:
         queue_for_testing = False
