@@ -13,25 +13,33 @@ from variables import set_variable, get_variable, reset_variable
 
 
 def render_model_param_graphs(age):
-    sample = sample_model_parameters('incubation_period', age)
-    card = GraphCard('incubation-period', graph=dict(config=dict(responsive=False)))
-    layout = make_layout(
-        title=_('Incubation period'), height=250, showlegend=False,
-        yaxis=dict(
-            title='%'
-        ),
-        xaxis=dict(
-            title=_('days')
-        ),
+    PERIOD_PARAMS = (
+        ('incubation_period', _('Incubation period')),
+        ('hospitalization_period', _('Duration of hospital treatment')),
+        ('icu_period', _('Duration of ICU treatment')),
     )
-    sample = sample * 100 / sum(sample)
-    trace = dict(
-        type='bar', x=sample.index, y=sample.values,
-        hovertemplate='%{y} %', name='',
-    )
-    fig = dict(layout=layout, data=[trace])
-    card.set_figure(fig)
-    c1 = card.render()
+
+    period_cards = []
+    for param, label in PERIOD_PARAMS:
+        sample = sample_model_parameters(param, age)
+        card = GraphCard(param, graph=dict(config=dict(responsive=False)))
+        layout = make_layout(
+            title=label, height=250, showlegend=False,
+            yaxis=dict(
+                title='%'
+            ),
+            xaxis=dict(
+                title=_('days')
+            ),
+        )
+        sample = sample * 100 / sum(sample)
+        trace = dict(
+            type='bar', x=sample.index, y=sample.values,
+            hovertemplate='%{y} %', name='',
+        )
+        fig = dict(layout=layout, data=[trace])
+        card.set_figure(fig)
+        period_cards.append(card.render())
 
     sample = sample_model_parameters('symptom_severity', age)
     sample.index = sample.index.map({
@@ -72,9 +80,33 @@ def render_model_param_graphs(age):
     card.set_figure(fig)
     c3 = card.render()
 
+    sample = sample_model_parameters('infectiousness', age)
+    sample *= 100
+    card = GraphCard('infectiousness', graph=dict(config=dict(responsive=False)))
+    layout = make_layout(
+        title=_('Infectiousness over time'), height=250, showlegend=False,
+        yaxis=dict(
+            title='%',
+        ),
+        xaxis=dict(
+            title=_('Day of illness'),
+            range=[-2, 14],
+        ),
+    )
+    trace = dict(
+        type='lines', x=sample.index, y=sample.values,
+        line=dict(shape='spline', smoothing=0.3),
+    )
+    fig = dict(layout=layout, data=[trace])
+    card.set_figure(fig)
+    c4 = card.render()
+
     return html.Div([
         dbc.Row([dbc.Col(html.H5(_('Distributions for a %(age)d-year-old person', age=age)))]),
-        dbc.Row([dbc.Col(c1, md=6), dbc.Col(c2, md=6), dbc.Col(c3, md=6)], className='mt-4')
+        dbc.Row([
+            dbc.Col(c2, md=6), dbc.Col(c3, md=6), dbc.Col(c4, md=6),
+            *[dbc.Col(c, md=6) for c in period_cards]
+        ], className='mt-4')
     ])
 
 
@@ -85,7 +117,10 @@ DISEASE_PARAMS = (
     ('p_icu_death', _('Probability of dying during ICU care'), '%'),
     ('p_hospital_death', _('Probability of dying after regular hospital treatment'), '%'),
     ('p_hospital_death_no_beds', _('Probability of dying if no hospital beds are available'), '%'),
-    ('p_icu_death_no_beds', _('Probability of dying if no ICU units are available'), '%')
+    ('p_icu_death_no_beds', _('Probability of dying if no ICU units are available'), '%'),
+    ('mean_illness_duration', _('Mean number of days of being ill'), _('days')),
+    ('mean_hospitalization_duration', _('Mean number of days of being hospitalized'), _('days')),
+    ('mean_icu_duration', _('Mean number of days of being in ICU care'), _('days')),
 )
 
 

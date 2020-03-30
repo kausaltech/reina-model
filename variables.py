@@ -39,6 +39,13 @@ VARIABLE_DEFAULTS = {
     # Chance to die if no ICU care units are available
     'p_icu_death_no_beds': 100.0,  # %
 
+    # Mean number of days of being ill
+    'mean_illness_duration': 7.0,
+    # Average number of days of being hospitalized
+    'mean_hospitalization_duration': 14.0,
+    # Average number of ICU care days
+    'mean_icu_duration': 21.0,
+
     # Chance to be detected if showing mild symptoms but testing
     # is only for severe cases (might apply to e.g. healthcare workers)
     'p_detected_anyway': 10.0,  # %

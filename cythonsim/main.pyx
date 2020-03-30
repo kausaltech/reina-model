@@ -6,12 +6,15 @@
 import numpy as np
 from collections import namedtuple
 from datetime import date
-from cpython.mem cimport PyMem_Malloc, PyMem_Free
 from cython.parallel import prange
-from cythonsim.simrandom cimport RandomPool
 
 cimport cython
 cimport openmp
+from cpython.mem cimport PyMem_Malloc, PyMem_Free
+from libc.stdlib cimport malloc, free
+cimport numpy as cnp
+
+from cythonsim.simrandom cimport RandomPool
 
 
 cdef enum SymptomSeverity:
@@ -31,7 +34,7 @@ cdef enum PersonState:
     DEAD
 
 
-ctypedef unsigned int int32
+ctypedef int int32
 ctypedef unsigned char uint8
 ctypedef unsigned int int16
 
@@ -40,19 +43,21 @@ cdef enum SimulationProblem:
     NO_PROBLEMOS
     TOO_MANY_INFECTEES
     HOSPITAL_ACCOUNTING_FAILURE
+    MALLOC_FAILURE
+    OTHER_FAILURE
 
 
-DEF MAX_CONTACTS = 128
+DEF MAX_INFECTEES = 64
 
-cdef struct Contact:
-    int32 person
 
 cdef struct Person:
     int32 idx, infector
     uint8 age, has_immunity, is_infected, was_detected, queued_for_testing, \
-        symptom_severity, days_left, day_of_illness, day_of_infection, state
+        symptom_severity, days_left, day_of_illness, day_of_infection, state, \
+        included_in_totals
     int16 other_people_infected, other_people_exposed_today
     uint8 nr_infectees
+    int32 *infectees
 
     openmp.omp_lock_t lock
 
@@ -68,10 +73,12 @@ cdef void person_init(Person *self, int32 idx, uint8 age) nogil:
     self.day_of_infection = 0
     self.queued_for_testing = 0
     self.other_people_infected = 0
+    self.included_in_totals = 0
     self.symptom_severity = SymptomSeverity.ASYMPTOMATIC
     self.state = PersonState.SUSCEPTIBLE
     self.nr_infectees = 0
     self.infector = -1
+
     openmp.omp_init_lock(&self.lock)
 
 
@@ -93,9 +100,9 @@ SEVERITY_TO_STR = {
 
 
 cdef void person_print(Person *self):
-    print('Person %d: %d years, infection day %d, %s, %s' % (
+    print('Person %d: %d years, infection day %d, %s, %s (others infected %d)' % (
         self.idx, self.age, self.day_of_illness, STATE_TO_STR[self.state],
-        SEVERITY_TO_STR[self.symptom_severity]
+        SEVERITY_TO_STR[self.symptom_severity], self.other_people_infected
     ))
 
 
@@ -104,9 +111,17 @@ cdef void person_infect(Person *self, Context context, Person *source=NULL) nogi
     self.symptom_severity = context.disease.get_symptom_severity(self, context)
     self.days_left = context.disease.get_incubation_days(self, context)
     self.is_infected = 1
+
     if source is not NULL:
         self.infector = source.idx
-        # FIXME source.infectees.append(self.idx)
+
+    if context.hc.testing_mode == TestingMode.ALL_WITH_SYMPTOMS_CT:
+        if self.infectees != NULL:
+            context.problem = SimulationProblem.OTHER_FAILURE
+        else:
+            self.infectees = <int32 *> malloc(sizeof(int32) * MAX_INFECTEES)
+            if self.infectees == NULL:
+                context.problem = SimulationProblem.MALLOC_FAILURE
 
     context.pop.infect(self)
 
@@ -120,18 +135,48 @@ cdef bint person_expose(Person *self, Context context, Person *source) nogil:
     return False
 
 
+"""
+cdef inline DailyContacts * _get_daily_contacts(Person *self) nogil:
+    cdef DailyContacts *dc
+    cdef int min_idx, i
+
+    min_idx = 0
+    for i in range(DAILY_CONTACTS_DAYS):
+        dc = self.daily_contacts[i]
+        if dc == NULL:
+            min_idx = i
+            break
+        if self.daily_contacts[min_idx].day < dc.day:
+            min_idx = i
+
+    dc = self.daily_contacts[min_idx]
+    if dc == NULL:
+        dc = <DailyContacts *> malloc(sizeof(DailyContacts))
+        if dc == NULL:
+            return NULL
+        self.daily_contacts[min_idx] = dc
+
+    return dc
+"""
+
 @cython.cdivision(True)
 cdef void person_expose_others(Person *self, Context context, int nr_contacts) nogil:
     cdef Person *people = context.people
-    cdef int exposee_idx, total
+    cdef int32 *infectees = self.infectees
+    cdef int exposee_idx, total, i, infected_idx
     cdef Person *target
 
     self.other_people_exposed_today = nr_contacts
+    infected_idx = 0
     for i in range(nr_contacts):
         exposee_idx = context.random.getint() % context.total_people
         target = &people[exposee_idx]
         if person_expose(target, context, self):
-            # FIXME: self.infectees.append(exposee_idx)
+            if infectees != NULL:
+                if self.other_people_infected >= MAX_INFECTEES:
+                    context.problem = SimulationProblem.TOO_MANY_INFECTEES
+                    break
+                infectees[self.other_people_infected] = exposee_idx
             self.other_people_infected += 1
 
 
@@ -149,10 +194,23 @@ cdef void person_detect(Person *self, Context context) nogil:
     context.pop.detect(self)
 
 
-cdef void person_recover(Person *self, Context context) nogil:
-    self.state = PersonState.RECOVERED
+cdef void person_become_removed(Person *self, Context context) nogil:
     self.is_infected = 0
     self.has_immunity = 1
+
+    if self.infectees != NULL:
+        free(self.infectees)
+        self.infectees = NULL
+
+
+cdef void person_dealloc(Person *self) nogil:
+    if self.infectees != NULL:
+        free(self.infectees)
+
+
+cdef void person_recover(Person *self, Context context) nogil:
+    self.state = PersonState.RECOVERED
+    person_become_removed(self, context)
     context.pop.recover(self)
 
 
@@ -177,7 +235,7 @@ cdef void person_hospitalize(Person *self, Context context) nogil:
             return
 
         self.state = PersonState.HOSPITALIZED
-        self.days_left = context.disease.get_hospitalisation_days(self, context)
+        self.days_left = context.disease.get_hospitalization_days(self, context)
 
     context.pop.hospitalize(self)
 
@@ -197,11 +255,10 @@ cdef void person_release_from_hospital(Person *self, Context context) nogil:
         person_recover(self, context)
 
 cdef void person_die(Person *self, Context context) nogil:
-    self.is_infected = 0
     # This is a way to get long-lasting immunity.
-    self.has_immunity = 1
     self.state = PersonState.DEAD
     context.pop.die(self)
+    person_become_removed(self, context)
 
 
 cdef void person_advance(Person *self, Context context) nogil:
@@ -406,6 +463,7 @@ cdef class ClassedValues:
 
     cdef float get(self, int kls, float default) nogil:
         cdef int idx;
+
         for idx in range(len(self.classes)):
             if self.classes[idx] == kls:
                 return self.values[idx]
@@ -422,16 +480,24 @@ cdef class ClassedValues:
         return self.values[idx]
 
 
+DISEASE_PARAMS = (
+    'p_infection', 'p_asymptomatic', 'p_severe', 'p_critical', 'p_hospital_death',
+    'p_icu_death', 'p_hospital_death_no_beds', 'p_icu_death_no_beds',
+    'mean_illness_duration', 'mean_hospitalization_duration', 'mean_icu_duration'
+)
+
 cdef class Disease:
     cdef float p_infection, p_asymptomatic, p_hospital_death, p_icu_death
     cdef float p_icu_death_no_beds, p_hospital_death_no_beds
+    cdef float mean_illness_duration, mean_hospitalization_duration, mean_icu_duration
     cdef ClassedValues p_severe
     cdef ClassedValues p_critical
-    cdef ClassedValues infectiousness_over_time 
+    cdef ClassedValues infectiousness_over_time
 
-    def __init__(
-        self, p_infection, p_asymptomatic, p_severe, p_critical, p_hospital_death,
-        p_icu_death, p_hospital_death_no_beds, p_icu_death_no_beds
+    def __init__(self,
+        p_infection, p_asymptomatic, p_severe, p_critical, p_hospital_death,
+        p_icu_death, p_hospital_death_no_beds, p_icu_death_no_beds,
+        mean_illness_duration, mean_hospitalization_duration, mean_icu_duration
     ):
         self.p_infection = p_infection
         self.p_asymptomatic = p_asymptomatic
@@ -441,9 +507,23 @@ cdef class Disease:
         self.p_hospital_death_no_beds = p_hospital_death_no_beds
         self.p_icu_death_no_beds = p_icu_death_no_beds
 
+        self.mean_illness_duration = mean_illness_duration
+        self.mean_hospitalization_duration = mean_hospitalization_duration
+        self.mean_icu_duration = mean_icu_duration
+
         self.p_severe = ClassedValues(p_severe)
         self.p_critical = ClassedValues(p_critical)
         self.infectiousness_over_time = ClassedValues(INFECTIOUSNESS_OVER_TIME)
+
+    @classmethod
+    def from_variables(cls, variables):
+        args = []
+        for name in DISEASE_PARAMS:
+            args.append(variables[name])
+        return cls(*args)
+
+    cdef float get_infectiousness_over_time(self, int day) nogil:
+        return self.infectiousness_over_time.get(day, 0) * self.p_infection
 
     cdef float get_source_infectiousness(self, Person *source) nogil:
         cdef int day
@@ -454,9 +534,7 @@ cdef class Disease:
             day = source.day_of_illness
         else:
             return 0
-
         return self.infectiousness_over_time.get(day, 0) * self.p_infection
-
 
     cdef bint did_infect(self, Person *person, Context context, Person *source) nogil:
         cdef float chance = self.get_source_infectiousness(source)
@@ -508,13 +586,28 @@ cdef class Disease:
         return days
 
     cdef int get_illness_days(self, Person *person, Context context) nogil:
-        return 7
+        cdef float f = context.random.lognormal(0, 0.6)
+        f *= self.mean_illness_duration
+        cdef int days = 1 + <int> f
+        if days > 40:
+            days = 40
+        return days
 
-    cdef int get_hospitalisation_days(self, Person *person, Context context) nogil:
-        return 14
+    cdef int get_hospitalization_days(self, Person *person, Context context) nogil:
+        cdef float f = context.random.lognormal(0, 0.5)
+        f *= self.mean_hospitalization_duration
+        cdef int days = 1 + <int> f
+        if days > 50:
+            days = 50
+        return days
 
     cdef int get_icu_days(self, Person *person, Context context) nogil:
-        return 21
+        cdef float f = context.random.lognormal(0, 0.3)
+        f *= self.mean_icu_duration
+        cdef int days = 1 + <int> f
+        if days > 50:
+            days = 50
+        return days
 
     cdef SymptomSeverity get_symptom_severity(self, Person *person, Context context) nogil:
         cdef int i
@@ -659,7 +752,15 @@ cdef class Context:
             value = 0
         self.interventions.append(Intervention(day, name, value))
 
+    cdef void _free_people(self) nogil:
+        cdef Person *p
+
+        for i in range(self.total_people):
+            p = &self.people[i]
+            person_dealloc(p)
+
     def __dealloc__(self):
+        self._free_people()
         PyMem_Free(self.people)
 
     cdef Person *get_people(self):
@@ -689,7 +790,7 @@ cdef class Context:
     def generate_state(self):
         p = self.pop
         hc = self.hc
-        r = self.total_infections / self.total_infectors if self.total_infectors else 0
+        r = self.total_infections / self.total_infectors if self.total_infectors > 5 else 0
         s = ModelState(
             infected=p.infected, susceptible=p.susceptible,
             all_infected=p.all_infected,
@@ -757,18 +858,17 @@ cdef class Context:
 
         for idx in prange(self.total_people, nogil=True, num_threads=1, schedule='dynamic', chunksize=10000):
             person = self.people + idx
+            if person.state in (PersonState.RECOVERED, PersonState.DEAD) and not person.included_in_totals:
+                self.total_infectors += 1
+                self.total_infections += person.other_people_infected
+                person.included_in_totals = 1
+
             if not person.is_infected:
                 continue
 
             person_advance(person, self)
 
             self.exposed_per_day += person.other_people_exposed_today
-
-            if person.state != PersonState.ILLNESS:
-                continue
-
-            self.total_infectors += 1
-            self.total_infections += person.other_people_infected
 
         if self.problem != SimulationProblem.NO_PROBLEMOS:
             raise Exception('Simulation failed with %d' % self.problem)
@@ -781,23 +881,39 @@ cdef class Context:
     cpdef sample(self, str what, int age):
         cdef int sample_size = 10000
         cdef Person p = self.people[0]
+        cdef cnp.ndarray[int] out
         cdef int i
 
         p.age = age
-        if what == 'contacts_per_day':
-            out = np.empty(sample_size, dtype='i')
-            for i in range(out.size):
-                out[i] = self.pop.contacts_per_day(&p, self)
-        elif what == 'symptom_severity':
-            out = np.empty(sample_size, dtype='i')
-            for i in range(out.size):
-                out[i] = self.disease.get_symptom_severity(&p, self)
-        elif what == 'incubation_period':
-            out = np.empty(sample_size, dtype='i')
-            for i in range(out.size):
-                out[i] = self.disease.get_incubation_days(&p, self)
-        else:
-            raise Exception('unknown sample type')
+        if what == 'infectiousness':
+            days = list(range(-100, 100))
+            vals = [self.disease.get_infectiousness_over_time(day) for day in days]
+            ret = np.rec.fromarrays((days, vals), names=('day', 'val'))
+            return ret
+
+        out = np.empty(sample_size, dtype='i')
+        with nogil:
+            if what == 'contacts_per_day':
+                for i in range(sample_size):
+                    out[i] = self.pop.contacts_per_day(&p, self)
+            elif what == 'symptom_severity':
+                for i in range(sample_size):
+                    out[i] = self.disease.get_symptom_severity(&p, self)
+            elif what == 'incubation_period':
+                for i in range(sample_size):
+                    out[i] = self.disease.get_incubation_days(&p, self)
+            elif what == 'illness_period':
+                for i in range(sample_size):
+                    out[i] = self.disease.get_illness_days(&p, self)
+            elif what == 'hospitalization_period':
+                for i in range(sample_size):
+                    out[i] = self.disease.get_hospitalization_days(&p, self)
+            elif what == 'icu_period':
+                for i in range(sample_size):
+                    out[i] = self.disease.get_icu_days(&p, self)
+            else:
+                with gil:
+                    raise Exception('unknown sample type')
 
         return out
 

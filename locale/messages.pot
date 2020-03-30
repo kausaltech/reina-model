@@ -8,7 +8,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: PROJECT VERSION\n"
 "Report-Msgid-Bugs-To: EMAIL@ADDRESS\n"
-"POT-Creation-Date: 2020-03-30 13:26+0300\n"
+"POT-Creation-Date: 2020-03-30 18:15+0300\n"
 "PO-Revision-Date: YEAR-MO-DA HO:MI+ZONE\n"
 "Last-Translator: FULL NAME <EMAIL@ADDRESS>\n"
 "Language-Team: LANGUAGE <LL@li.org>\n"
@@ -17,50 +17,50 @@ msgstr ""
 "Content-Transfer-Encoding: 8bit\n"
 "Generated-By: Babel 2.8.0\n"
 
-#: corona.py:107
+#: corona.py:105
 msgid "Date"
 msgstr ""
 
-#: corona.py:108
+#: corona.py:106
 msgid "Event"
 msgstr ""
 
-#: components/params.py:108 corona.py:109
+#: components/params.py:143 corona.py:107
 msgid "Value"
 msgstr ""
 
-#: corona.py:126
+#: corona.py:124
 #, python-format
 msgid "Events (%(num)s)"
 msgstr ""
 
-#: corona.py:134
+#: corona.py:132
 msgid "Restore default events"
 msgstr ""
 
-#: corona.py:139
+#: corona.py:137
 msgid "Add a new event"
 msgstr ""
 
-#: corona.py:168
+#: corona.py:166
 msgid "Corona epidemic simulator"
 msgstr ""
 
-#: corona.py:176
+#: corona.py:174
 #, python-format
 msgid "Forecast of the COVID-19 epidemic: %(name)s"
 msgstr ""
 
-#: corona.py:177
+#: corona.py:175
 msgid "Exploration of the effects of interventions to the progression of the epidemic."
 msgstr ""
 
-#: corona.py:197
+#: corona.py:195
 #, python-format
 msgid "%(days)d days"
 msgstr ""
 
-#: corona.py:203
+#: corona.py:201
 msgid "Run simulation"
 msgstr ""
 
@@ -120,84 +120,112 @@ msgstr ""
 msgid "units"
 msgstr ""
 
-#: components/params.py:19
+#: components/params.py:17
 msgid "Incubation period"
 msgstr ""
 
-#: components/params.py:24
+#: components/params.py:18
+msgid "Duration of hospital treatment"
+msgstr ""
+
+#: components/params.py:19
+msgid "Duration of ICU treatment"
+msgstr ""
+
+#: components/params.py:32 components/params.py:121 components/params.py:122 components/params.py:123
 msgid "days"
 msgstr ""
 
-#: components/params.py:38
+#: components/params.py:46
 msgid "Asymptomatic"
 msgstr ""
 
-#: components/params.py:39
+#: components/params.py:47
 msgid "Mild"
 msgstr ""
 
-#: components/params.py:40
+#: components/params.py:48
 msgid "Severe"
 msgstr ""
 
-#: components/params.py:41
+#: components/params.py:49
 msgid "Critical"
 msgstr ""
 
-#: components/params.py:45
+#: components/params.py:53
 msgid "Symptom severity"
 msgstr ""
 
-#: components/params.py:59
+#: components/params.py:67
 msgid "Contacts per day"
 msgstr ""
 
-#: components/params.py:65
+#: components/params.py:73
 msgid "number of contacts"
 msgstr ""
 
-#: components/params.py:76
+#: components/params.py:87
+msgid "Infectiousness over time"
+msgstr ""
+
+#: components/params.py:92
+msgid "Day of illness"
+msgstr ""
+
+#: components/params.py:105
 #, python-format
 msgid "Distributions for a %(age)d-year-old person"
 msgstr ""
 
-#: components/params.py:82
+#: components/params.py:114
 msgid "Ratio of all infected people who remain asymptomatic"
 msgstr ""
 
-#: components/params.py:83
+#: components/params.py:115
 msgid "Probability of becoming infected after being exposed"
 msgstr ""
 
-#: components/params.py:85
+#: components/params.py:117
 msgid "Probability of dying during ICU care"
 msgstr ""
 
-#: components/params.py:86
+#: components/params.py:118
 msgid "Probability of dying after regular hospital treatment"
 msgstr ""
 
-#: components/params.py:87
+#: components/params.py:119
 msgid "Probability of dying if no hospital beds are available"
 msgstr ""
 
-#: components/params.py:88
+#: components/params.py:120
 msgid "Probability of dying if no ICU units are available"
 msgstr ""
 
-#: components/params.py:106
+#: components/params.py:121
+msgid "Mean number of days of being ill"
+msgstr ""
+
+#: components/params.py:122
+msgid "Mean number of days of being hospitalized"
+msgstr ""
+
+#: components/params.py:123
+msgid "Mean number of days of being in ICU care"
+msgstr ""
+
+#: components/params.py:141
 msgid "Description"
 msgstr ""
 
-#: components/params.py:131
+#: components/params.py:166
 msgid "Disease parameters"
 msgstr ""
 
-#: components/params.py:139
+#: components/params.py:174
 msgid "Restore defaults"
 msgstr ""
 
-#: components/params.py:170
+#: components/params.py:205
 msgid "Age of person"
 msgstr ""
 

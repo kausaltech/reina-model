@@ -32,31 +32,23 @@ STATE_ATTRS = [
 
 
 def create_disease(variables):
-    sevvar = variables['p_severe']
-    sev_arr = [(age, sev / 100) for age, sev in sevvar]
-    critvar = variables['p_critical']
-    crit_arr = [(age, sev / 100) for age, sev in critvar]
+    kwargs = {}
+    for key in model.DISEASE_PARAMS:
+        val = variables[key]
+        if key in ('p_severe', 'p_critical'):
+            val = [(age, sev / 100) for age, sev in val]
+        elif key.startswith('p_'):
+            val = val / 100
+        kwargs[key] = val
 
-    disease = model.Disease(
-        p_infection=variables['p_infection'] / 100,
-        p_asymptomatic=variables['p_asymptomatic'] / 100,
-        p_severe=sev_arr,
-        p_critical=crit_arr,
-        p_hospital_death=variables['p_hospital_death'] / 100,
-        p_icu_death=variables['p_icu_death'] / 100,
-        p_hospital_death_no_beds=variables['p_hospital_death_no_beds'] / 100,
-        p_icu_death_no_beds=variables['p_icu_death_no_beds'] / 100,
-    )
+    disease = model.Disease.from_variables(kwargs)
     return disease
 
 
 @calcfunc(
-    variables=[
+    variables=list(model.DISEASE_PARAMS) + [
         'simulation_days', 'interventions', 'start_date',
-        'hospital_beds', 'icu_units',
-        'p_infection', 'p_asymptomatic', 'p_critical', 'p_severe',
-        'p_icu_death', 'p_hospital_death', 'p_hospital_death_no_beds',
-        'p_icu_death_no_beds', 'p_detected_anyway',
+        'hospital_beds', 'icu_units', 'p_detected_anyway',
     ],
     funcs=[get_physical_contacts_for_country]
 )
@@ -128,10 +120,8 @@ def simulate_individuals(variables, step_callback=None):
 
 
 @calcfunc(
-    variables=[
-        'p_infection', 'p_asymptomatic', 'p_critical', 'p_severe',
-        'p_icu_death', 'p_hospital_death', 'p_hospital_death_no_beds',
-        'p_icu_death_no_beds', 'p_detected_anyway',
+    variables=list(model.DISEASE_PARAMS) + [
+        'p_detected_anyway',
     ],
     funcs=[get_physical_contacts_for_country]
 )
@@ -148,23 +138,32 @@ def sample_model_parameters(what, age, variables):
 
     samples = context.sample(what, age)
 
+    if what == 'infectiousness':
+        s = pd.Series(index=samples['day'], data=samples['val'])
+        s = s[s != 0].sort_index()
+        return s
+
     s = pd.Series(samples)
     c = s.value_counts().sort_index()
     if what == 'symptom_severity':
         c.index = c.index.map(model.SEVERITY_TO_STR)
 
+    if False:
+        for a, b in c.iteritems():
+            print('    (%d, %.2f),' % (a, b))
+        import matplotlib.pyplot as plt
+        fig = plt.figure()
+        print(s.mean())
+        plt.plot(c)
+        plt.show()
+
     return c
-    """
-    for a, b in c.iteritems():
-        print('    (%d, %.2f),' % (a, b))
-    import matplotlib.pyplot as plt
-    fig = plt.figure()
-    print(s.mean())
-    plt.plot(c)
-    plt.show()
-    """
+
 
 if __name__ == '__main__':
+    #sample_model_parameters('icu_period', 50)
+    #exit()
+
     header = '%-12s' % 'day'
     for attr in POP_ATTRS + STATE_ATTRS:
         header += '%15s' % attr
