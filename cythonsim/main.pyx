@@ -99,11 +99,16 @@ SEVERITY_TO_STR = {
 }
 
 
-cdef void person_print(Person *self):
-    print('Person %d: %d years, infection day %d, %s, %s (others infected %d)' % (
+cdef str person_print(Person *self):
+    if self.infectees != NULL:
+        infectees = '[%s]' % ', '.join(['%d' % self.infectees[i] for i in range(self.nr_infectees)])
+    else:
+        infectees = ''
+    return 'Person %d: %d years, infection day %d, %s, %s, detected %d (others infected %d%s)' % (
         self.idx, self.age, self.day_of_illness, STATE_TO_STR[self.state],
-        SEVERITY_TO_STR[self.symptom_severity], self.other_people_infected
-    ))
+        SEVERITY_TO_STR[self.symptom_severity], self.was_detected, self.other_people_infected,
+        infectees
+    )
 
 
 cdef void person_infect(Person *self, Context context, Person *source=NULL) nogil:
@@ -114,6 +119,12 @@ cdef void person_infect(Person *self, Context context, Person *source=NULL) nogi
 
     if source is not NULL:
         self.infector = source.idx
+        if source.infectees != NULL:
+            if source.nr_infectees >= MAX_INFECTEES:
+                context.problem = SimulationProblem.TOO_MANY_INFECTEES
+                return
+            source.infectees[source.nr_infectees] = self.idx
+            source.nr_infectees += 1
 
     if context.hc.testing_mode == TestingMode.ALL_WITH_SYMPTOMS_CT:
         if self.infectees != NULL:
@@ -302,6 +313,9 @@ cdef enum TestingMode:
     ONLY_SEVERE_SYMPTOMS
 
 
+DEF TESTING_TRACE = False
+
+
 cdef class HealthcareSystem:
     cdef int32 beds, icu_units, available_beds, available_icu_units
     cdef int32 tests_run_per_day
@@ -328,6 +342,8 @@ cdef class HealthcareSystem:
         p.queued_for_testing = 1
         with gil:
             self.testing_queue.append(person_idx)
+            IF TESTING_TRACE == True:
+                print('Person %d to test queue' % person_idx)
         return True
 
     cdef void perform_contact_tracing(self, int person_idx, Context context, int level) nogil:
@@ -335,6 +351,10 @@ cdef class HealthcareSystem:
         cdef int infectee_idx
         if level > 1:
             return
+
+        IF TESTING_TRACE == True:
+            with gil:
+                print('%sContact tracing person: %s' % (level * '  ', person_print(p)))
 
         if p.infector >= 0:
             if self.queue_for_testing(p.infector, context):
@@ -367,6 +387,8 @@ cdef class HealthcareSystem:
                 continue
 
             # Infection is detected
+            IF TESTING_TRACE == True:
+                print('Person %d detected' % idx)
             person_detect(person, context)
             if self.testing_mode == TestingMode.ALL_WITH_SYMPTOMS_CT:
                 # With contact tracing we queue the infector and the
@@ -375,6 +397,9 @@ cdef class HealthcareSystem:
                 self.perform_contact_tracing(idx, context, 0)
 
     cdef void seek_testing(self, Person *person, Context context) nogil:
+        IF TESTING_TRACE == True:
+            with gil:
+                print('Person %d seeks testing' % person.idx)
         queue_for_testing = False
         if self.testing_mode in (TestingMode.ALL_WITH_SYMPTOMS, TestingMode.ALL_WITH_SYMPTOMS_CT):
             queue_for_testing = True
