@@ -7,7 +7,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: PROJECT VERSION\n"
 "Report-Msgid-Bugs-To: EMAIL@ADDRESS\n"
-"POT-Creation-Date: 2020-03-31 11:15+0300\n"
+"POT-Creation-Date: 2020-03-31 11:21+0300\n"
 "PO-Revision-Date: 2020-03-29 16:35+0300\n"
 "Last-Translator: FULL NAME <EMAIL@ADDRESS>\n"
 "Language: fi\n"
@@ -275,8 +275,8 @@ msgid "Free capacity in the healthcare system"
 msgstr "Sairaanhoitojärjestelmän vapaa kapasiteetti"
 
 #: components/results.py:81
-msgid "Reproductive number (R)"
-msgstr "R-luku"
+msgid "Reproductive number (Rₜ)"
+msgstr "Rₜ-luku"
 
 #: components/results.py:82
 msgid "Infection fatality ratio (IFR, %"
@@ -299,4 +299,7 @@ msgstr "Simulaatioajon tulosdata"
 
 #~ msgid "Väestö"
 #~ msgstr ""
+
+#~ msgid "Reproductive number (R)"
+#~ msgstr "R-luku"
 
