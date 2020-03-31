@@ -25,14 +25,10 @@ VARIABLE_DEFAULTS = {
     # depends on the day of the illness.
     'p_infection': 25.0,  # %
 
-    # For people having at least severe symptoms, chance to
-    # have critical symptoms (and requiring ICU care).
-    'p_critical': 25.0,  # %
-
     # Chance to die after regular hospital care
-    'p_hospital_death': 10.0,  # %
+    'p_hospital_death': 20.0,  # %
     # Chance to die after ICU care
-    'p_icu_death': 20.0,  # %
+    'p_icu_death': 30.0,  # %
     # Chance to die if no hospital beds are available (but not
     # needing ICU care)
     'p_hospital_death_no_beds': 20.0,  # %
@@ -48,7 +44,7 @@ VARIABLE_DEFAULTS = {
 
     # Chance to be detected if showing mild symptoms but testing
     # is only for severe cases (might apply to e.g. healthcare workers)
-    'p_detected_anyway': 10.0,  # %
+    'p_detected_anyway': 25.0,  # %
 
     # Ratio of all infected people that require hospitalization
     # (more than mild symptoms) by age group
@@ -84,9 +80,10 @@ VARIABLE_DEFAULTS = {
         ['limit-mobility', '2020-03-12', 10],
         ['limit-mass-gatherings', '2020-03-12', 50],
 
-        ['limit-mobility', '2020-03-15', 20],
+        ['limit-mobility', '2020-03-15', 15],
+        ['limit-mobility', '2020-03-17', 20],
         ['limit-mobility', '2020-03-20', 30],
-        ['limit-mobility', '2020-03-27', 35],
+        ['limit-mobility', '2020-03-22', 35],
 
         ['build-new-icu-units', '2020-04-30', 150],
         ['build-new-icu-units', '2020-05-30', 150],

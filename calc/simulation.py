@@ -23,7 +23,7 @@ INTERVENTIONS = [
 
 
 POP_ATTRS = [
-    'susceptible', 'infected', 'all_detected', 'hospitalized',
+    'susceptible', 'infected', 'all_detected', 'hospitalized', 'in_icu',
     'dead', 'recovered',
 ]
 STATE_ATTRS = [

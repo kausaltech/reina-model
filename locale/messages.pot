@@ -8,7 +8,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: PROJECT VERSION\n"
 "Report-Msgid-Bugs-To: EMAIL@ADDRESS\n"
-"POT-Creation-Date: 2020-03-31 11:21+0300\n"
+"POT-Creation-Date: 2020-03-31 12:10+0300\n"
 "PO-Revision-Date: YEAR-MO-DA HO:MI+ZONE\n"
 "Last-Translator: FULL NAME <EMAIL@ADDRESS>\n"
 "Language-Team: LANGUAGE <LL@li.org>\n"
@@ -229,67 +229,79 @@ msgstr ""
 msgid "Age of person"
 msgstr ""
 
-#: components/results.py:18
+#: components/results.py:24
 msgid "Susceptible"
 msgstr ""
 
-#: components/results.py:19
+#: components/results.py:25
 msgid "Active infections"
 msgstr ""
 
-#: components/results.py:20
-msgid "Detected cases (sim.)"
+#: components/results.py:26
+msgid "Detected cases"
 msgstr ""
 
-#: components/results.py:21
+#: components/results.py:27
 msgid "Hospitalized"
 msgstr ""
 
-#: components/results.py:22
+#: components/results.py:28
+msgid "In ICU"
+msgstr ""
+
+#: components/results.py:29
 msgid "Dead"
 msgstr ""
 
-#: components/results.py:23
+#: components/results.py:30
 msgid "Recovered"
 msgstr ""
 
-#: components/results.py:41
-msgid "Detected cases (real)"
+#: components/results.py:61
+msgid "(simulated)"
 msgstr ""
 
-#: components/results.py:51
+#: components/results.py:71
+msgid "(real)"
+msgstr ""
+
+#: components/results.py:77
+msgid "Validation"
+msgstr ""
+
+#: components/results.py:89
 msgid "Population"
 msgstr ""
 
-#: components/results.py:59
+#: components/results.py:97
 msgid "Hospital beds"
 msgstr ""
 
-#: components/results.py:60
+#: components/results.py:98
 msgid "ICU units"
 msgstr ""
 
-#: components/results.py:69
+#: components/results.py:107
 msgid "Free capacity in the healthcare system"
 msgstr ""
 
-#: components/results.py:81
+#: components/results.py:119
 msgid "Reproductive number (Rₜ)"
 msgstr ""
 
-#: components/results.py:82
+#: components/results.py:120
 msgid "Infection fatality ratio (IFR, %"
 msgstr ""
 
-#: components/results.py:83
+#: components/results.py:121
 msgid "Case fatality ratio (CFR, %"
 msgstr ""
 
-#: components/results.py:91
+#: components/results.py:129
 msgid "Epidemic parameters"
 msgstr ""
 
-#: components/results.py:129
+#: components/results.py:172
 msgid "Simulation result data"
 msgstr ""
 

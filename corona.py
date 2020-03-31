@@ -104,7 +104,7 @@ def render_iv_card():
         columns=[
             {'name': _('Date'), 'id': 'date'},
             {'name': _('Event'), 'id': 'label'},
-            {'name': _('Value'), 'id': 'value'},
+            {'name': _('Value'), 'id': 'value', 'editable': True},
             {'name': '', 'id': 'unit'},
         ],
         style_cell={'textAlign': 'left'},
@@ -293,7 +293,10 @@ def interventions_callback(ts, reset_clicks, add_intervention_clicks, rows, new_
     if not is_reset:
         ivs = []
         for row in sorted(rows, key=lambda x: x['date']):
-            ivs.append([row['name'], row['date'], row['value']])
+            val = row['value']
+            if isinstance(val, str):
+                val = int(val)
+            ivs.append([row['name'], row['date'], val])
         set_variable('interventions', ivs)
 
     rows = interventions_to_rows()

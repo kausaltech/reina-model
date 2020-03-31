@@ -249,12 +249,15 @@ cdef void person_hospitalize(Person *self, Context context) nogil:
         self.days_left = context.disease.get_hospitalization_days(self, context)
 
     context.pop.hospitalize(self)
+    if self.state == PersonState.IN_ICU:
+        context.pop.transfer_to_icu(self)
 
 
 cdef void person_release_from_hospital(Person *self, Context context) nogil:
     context.pop.release_from_hospital(self)
     if self.state == PersonState.IN_ICU:
         death = context.disease.dies_in_hospital(self, context, in_icu=True, care_available=True)
+        context.pop.release_from_icu(self)
         context.hc.release_from_icu()
     else:
         death = context.disease.dies_in_hospital(self, context, in_icu=False, care_available=True)
@@ -264,6 +267,7 @@ cdef void person_release_from_hospital(Person *self, Context context) nogil:
         person_die(self, context)
     else:
         person_recover(self, context)
+
 
 cdef void person_die(Person *self, Context context) nogil:
     # This is a way to get long-lasting immunity.
@@ -644,7 +648,7 @@ cdef class Disease:
 MODEL_STATE_FIELDS = [
     'susceptible', 'infected', 'all_infected',
     'detected', 'all_detected',
-    'hospitalized', 'dead', 'recovered',
+    'hospitalized', 'in_icu', 'dead', 'recovered',
     'available_hospital_beds', 'available_icu_units',
     'r', 'exposed_per_day', 'tests_run_per_day',
 ]
@@ -652,7 +656,8 @@ ModelState = namedtuple('ModelState', MODEL_STATE_FIELDS)
 
 
 cdef class Population:
-    cdef int[::1] infected, detected, all_detected, all_infected, hospitalized, dead, susceptible, recovered
+    cdef int[::1] infected, detected, all_detected, all_infected, hospitalized, \
+        in_icu, dead, susceptible, recovered
     cdef ClassedValues avg_contacts_per_day
     cdef int limit_mass_gatherings
     cdef float population_mobility_factor
@@ -667,6 +672,7 @@ cdef class Population:
         self.all_infected = np.zeros(nr_ages, dtype=np.int32)
         self.recovered = np.zeros(nr_ages, dtype=np.int32)
         self.hospitalized = np.zeros(nr_ages, dtype=np.int32)
+        self.in_icu = np.zeros(nr_ages, dtype=np.int32)
         self.dead = np.zeros(nr_ages, dtype=np.int32)
         self.avg_contacts_per_day = ClassedValues(avg_contacts_per_day)
         self.limit_mass_gatherings = 0
@@ -705,12 +711,16 @@ cdef class Population:
         self.all_detected[age] += 1
 
     cdef void hospitalize(self, Person *person) nogil:
-        cdef int age = person.age
-        self.hospitalized[age] += 1
+        self.hospitalized[person.age] += 1
+
+    cdef void transfer_to_icu(self, Person *person) nogil:
+        self.in_icu[person.age] += 1
+
+    cdef void release_from_icu(self, Person *person) nogil:
+        self.in_icu[person.age] -= 1
 
     cdef void release_from_hospital(self, Person *person) nogil:
-        cdef int age = person.age
-        self.hospitalized[age] -= 1
+        self.hospitalized[person.age] -= 1
 
     cdef void die(self, Person *person) nogil:
         cdef int age = person.age
@@ -810,6 +820,7 @@ cdef class Context:
             infected=p.infected, susceptible=p.susceptible,
             all_infected=p.all_infected,
             recovered=p.recovered, hospitalized=p.hospitalized,
+            in_icu=p.in_icu,
             detected=p.detected, all_detected=p.all_detected,
             dead=p.dead,
             available_icu_units=hc.available_icu_units,

@@ -61,9 +61,24 @@ def get_physical_contacts_for_country(variables):
     return pd.Series(counts, index=ages)
 
 
-def get_detected_cases():
+@calcfunc(variables=['area_name'])
+def get_detected_cases(variables):
+    area_name = variables['area_name']
     f = open(get_root_path() + '/data/cases_fin.csv', 'r')
     df = pd.read_csv(f, header=0).set_index('date')
+
+    cdf = df[['district', 'confirmed']].reset_index().set_index(['date', 'district']).unstack('district')
+    cdf['total'] = cdf.sum(axis=1)
+    ratio = cdf[('confirmed', area_name)] / cdf['total']
+    ratio = ratio.iloc[-1]
+    df = df[df.district == area_name].drop(columns='district')
+
+    f = open(get_root_path() + '/data/hospitalizations_fin.csv', 'r')
+    hdf = pd.read_csv(f, header=0).set_index('date')
+    hdf = (hdf * ratio).dropna().astype(int)
+    df['hospitalized'] = hdf['hospitalized']
+    df['in_icu'] = hdf['in_icu']
+
     return df
 
 

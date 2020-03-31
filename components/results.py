@@ -12,36 +12,76 @@ from calc.datasets import get_detected_cases
 from utils.colors import THEME_COLORS
 
 
-def generate_population_traces(df):
-    det = get_detected_cases()
-    pop_cols = (
-        ('susceptible', 'yellow', _('Susceptible')),
-        ('infected', 'orange', _('Active infections')),
-        ('all_detected', 'teal', _('Detected cases (sim.)')),
-        ('hospitalized', 'red', _('Hospitalized')),
-        ('dead', 'indigo', _('Dead')),
-        ('recovered', 'green', _('Recovered')),
-    )
+COLUMN_COLORS = {
+    'all_detected': THEME_COLORS['teal'],
+    'hospitalized': THEME_COLORS['orange'],
+    'in_icu': THEME_COLORS['cyan'],
+    'dead': THEME_COLORS['indigo'],
+}
 
+
+POP_COLS = (
+    ('susceptible', 'yellow', _('Susceptible')),
+    ('infected', 'purple', _('Active infections')),
+    ('all_detected', 'teal', _('Detected cases')),
+    ('hospitalized', 'orange', _('Hospitalized')),
+    ('in_icu', 'red', _('In ICU')),
+    ('dead', 'indigo', _('Dead')),
+    ('recovered', 'green', _('Recovered')),
+)
+
+
+def generate_population_traces(df):
     traces = []
-    for col, color, name in pop_cols:
+    for col, color, name in POP_COLS:
         # if col in ('susceptible', 'recovered'):
         #    continue
         t = dict(
             type='scatter', line=dict(color=THEME_COLORS[color]),
             name=name, x=df.index, y=df[col], mode='lines',
-            hoverformat='%d',
+            hoverformat='%d', hoverlabel=dict(namelength=-1),
         )
         if col in ('susceptible', 'recovered'):
             t['visible'] = 'legendonly'
         traces.append(t)
 
-    traces.append(dict(
-        type='scatter', marker=dict(color='gray'),
-        name=_('Detected cases (real)'), x=det.index, y=det['confirmed'], mode='markers'
-    ))
-
     return traces
+
+
+def render_validation_card(df):
+    det = get_detected_cases()
+    max_date = det.index.max()
+    df = df[df.index <= max_date]
+
+    traces = []
+    for col_name in ('all_detected', 'hospitalized', 'in_icu', 'dead'):
+        col = [x for x in POP_COLS if x[0] == col_name][0]
+        traces.append(dict(
+            type='scatter', mode='lines', line=dict(color=COLUMN_COLORS[col_name]),
+            name=col[2] + ' ' + _('(simulated)'),
+            x=df.index, y=df[col_name],
+            hoverlabel=dict(namelength=-1),
+        ))
+        col_name_map = {
+            'all_detected': 'confirmed',
+            'dead': 'deaths',
+        }
+        det_col_name = col_name_map.get(col_name, col_name)
+        traces.append(dict(
+            type='scatter', mode='markers', line=dict(color=COLUMN_COLORS[col_name]),
+            name=col[2] + ' ' + _('(real)'),
+            x=det.index, y=det[det_col_name],
+            hoverlabel=dict(namelength=-1),
+        ))
+
+    card = GraphCard('validation', graph=dict(config=dict(responsive=False)))
+    layout = make_layout(
+        title=_('Validation'), height=250, showlegend=True,
+        margin=dict(r=250)
+    )
+    fig = dict(data=traces, layout=layout)
+    card.set_figure(fig)
+    return card.render()
 
 
 def render_result_graphs(df):
@@ -61,7 +101,10 @@ def render_result_graphs(df):
     )
     traces = []
     for col, name in hc_cols:
-        t = dict(type='scatter', name=name, x=df.index, y=df[col], mode='lines')
+        t = dict(
+            type='scatter', name=name, x=df.index, y=df[col], mode='lines',
+            hoverlabel=dict(namelength=-1),
+        )
         traces.append(t)
 
     card = GraphCard('healthcare', graph=dict(config=dict(responsive=False)))
@@ -85,7 +128,10 @@ def render_result_graphs(df):
     card = GraphCard('params', graph=dict(config=dict(responsive=False)))
     traces = []
     for col, name in param_cols:
-        t = dict(type='scatter', name=name, x=df.index, y=df[col], mode='lines')
+        t = dict(
+            type='scatter', name=name, x=df.index, y=df[col], mode='lines',
+            hoverlabel=dict(namelength=-1),
+        )
         traces.append(t)
     layout = make_layout(
         title=_('Epidemic parameters'), height=250, showlegend=True,
@@ -95,7 +141,12 @@ def render_result_graphs(df):
     card.set_figure(fig)
     c3 = card.render()
 
-    return dbc.Row([dbc.Col(c1, md=12), dbc.Col(c2, md=12), dbc.Col(c3, md=12)])
+    return dbc.Row([
+        dbc.Col(c1, md=12),
+        dbc.Col(c2, md=12),
+        dbc.Col(c3, md=12),
+        dbc.Col(render_validation_card(df), md=12),
+    ])
 
 
 def render_result_table(df):
