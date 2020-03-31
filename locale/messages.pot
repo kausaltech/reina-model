@@ -8,7 +8,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: PROJECT VERSION\n"
 "Report-Msgid-Bugs-To: EMAIL@ADDRESS\n"
-"POT-Creation-Date: 2020-03-30 18:15+0300\n"
+"POT-Creation-Date: 2020-03-31 11:15+0300\n"
 "PO-Revision-Date: YEAR-MO-DA HO:MI+ZONE\n"
 "Last-Translator: FULL NAME <EMAIL@ADDRESS>\n"
 "Language-Team: LANGUAGE <LL@li.org>\n"
@@ -257,6 +257,10 @@ msgstr ""
 msgid "Detected cases (real)"
 msgstr ""
 
+#: components/results.py:51
+msgid "Population"
+msgstr ""
+
 #: components/results.py:59
 msgid "Hospital beds"
 msgstr ""
@@ -269,23 +273,23 @@ msgstr ""
 msgid "Free capacity in the healthcare system"
 msgstr ""
 
-#: components/results.py:80
+#: components/results.py:81
 msgid "Reproductive number (R)"
 msgstr ""
 
-#: components/results.py:81
+#: components/results.py:82
 msgid "Infection fatality ratio (IFR, %"
 msgstr ""
 
-#: components/results.py:82
+#: components/results.py:83
 msgid "Case fatality ratio (CFR, %"
 msgstr ""
 
-#: components/results.py:90
+#: components/results.py:91
 msgid "Epidemic parameters"
 msgstr ""
 
-#: components/results.py:128
+#: components/results.py:129
 msgid "Simulation result data"
 msgstr ""
 

@@ -48,7 +48,7 @@ def render_result_graphs(df):
     traces = generate_population_traces(df)
     card = GraphCard('population', graph=dict(config=dict(responsive=False)))
     layout = make_layout(
-        title='Väestö', height=250, showlegend=True,
+        title=_('Population'), height=250, showlegend=True,
         margin=dict(r=250)
     )
     fig = dict(data=traces, layout=layout)
