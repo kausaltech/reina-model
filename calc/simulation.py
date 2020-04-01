@@ -32,7 +32,7 @@ INTERVENTIONS = [
 
 POP_ATTRS = [
     'susceptible', 'infected', 'all_detected', 'hospitalized', 'in_icu',
-    'dead', 'recovered',
+    'dead', 'recovered', 'all_infected',
 ]
 STATE_ATTRS = [
     'exposed_per_day', 'hospital_beds', 'icu_units', 'tests_run_per_day', 'r', 'sim_time_ms',

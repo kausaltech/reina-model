@@ -246,7 +246,7 @@ def render_result_graphs(df):
     card.set_figure(fig)
     c2 = card.render()
 
-    df['ifr'] = df.dead.divide((df.infected + df.recovered).replace(0, np.inf)) * 100
+    df['ifr'] = df.dead.divide(df.all_infected.replace(0, np.inf)) * 100
     df['cfr'] = df.dead.divide(df.all_detected.replace(0, np.inf)) * 100
     df['r'] = df['r'].rolling(window=7).mean()
 
