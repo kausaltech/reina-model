@@ -78,6 +78,7 @@ cdef void person_init(Person *self, int32 idx, uint8 age) nogil:
     self.state = PersonState.SUSCEPTIBLE
     self.nr_infectees = 0
     self.infector = -1
+    self.infectees = NULL
 
     openmp.omp_init_lock(&self.lock)
 
