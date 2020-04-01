@@ -13,6 +13,7 @@ import dash_html_components as html
 import dash_bootstrap_components as dbc
 from dash.dependencies import Input, Output, State
 from threading import Thread
+import multiprocessing
 
 from calc.simulation import simulate_individuals, INTERVENTIONS
 from calc import ExecutionInterrupted
@@ -302,7 +303,7 @@ def interventions_callback(ts, reset_clicks, add_intervention_clicks, rows, new_
 process_pool = {}
 
 
-class SimulationThread(Thread):
+class SimulationThread(multiprocessing.Process):
     def __init__(self, *args, **kwargs):
         self.variables = kwargs.pop('variables')
         super().__init__(*args, **kwargs)
@@ -367,11 +368,13 @@ def update_simulation_results(n_intervals):
         # When the computation thread is finished, stop polling.
         print('thread finished, disabling')
         disabled = True
+        interval = 5000
     else:
         print('thread not finished, updating')
         disabled = False
+        interval = 500
     out = render_results(df)
-    return [out, disabled, 500]
+    return [out, disabled, interval]
 
 
 @app.callback(
@@ -401,7 +404,7 @@ def run_simulation_callback(n_clicks, simulation_days):
     process.start()
 
     return [
-        dcc.Interval(id='simulation-output-interval', interval=100, max_intervals=60),
+        dcc.Interval(id='simulation-output-interval', interval=500, max_intervals=60),
         html.Div(id='simulation-output-results'),
     ]
 
