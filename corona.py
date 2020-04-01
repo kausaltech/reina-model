@@ -76,7 +76,7 @@ def interventions_to_rows():
     iv_rows = []
     for iv in sorted(ivs, key=lambda x: x[1]):
         for i in INTERVENTIONS:
-            if i[0] == iv[0]:
+            if i.name == iv[0]:
                 break
         else:
             # FIXME
@@ -87,11 +87,7 @@ def interventions_to_rows():
             val = None
         # date=datetime.strptime(iv[1], '%Y-%m-%d').strftime("%d.%m.%y")
         # Should we display formatted date on list? Does it mess with DataTable?
-        if len(i) > 2:
-            unit = i[2]
-        else:
-            unit = None
-        row = dict(date=iv[1], label=i[1], value=val, name=i[0], unit=unit)
+        row = dict(date=iv[1], label=i.label, value=val, name=i.name, unit=i.unit)
         iv_rows.append(row)
     return iv_rows
 
@@ -142,7 +138,7 @@ def render_iv_card():
                     ), md=3),
                     dbc.Col(dcc.Dropdown(
                         id='new-intervention-id',
-                        options=[{'label': i[1], 'value': i[0]} for i in INTERVENTIONS]
+                        options=[{'label': i.label, 'value': i.name} for i in INTERVENTIONS]
                     ), md=5),
                     dbc.Col(dbc.Input(
                         id='new-intervention-value', type='number', size='6'

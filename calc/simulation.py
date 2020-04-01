@@ -1,3 +1,4 @@
+from dataclasses import dataclass
 from calc import calcfunc, ExecutionInterrupted
 import numpy as np
 import pandas as pd
@@ -5,20 +6,27 @@ from flask_babel import lazy_gettext as _
 
 from cythonsim import model
 from utils.perf import PerfCounter
-from calc.datasets import get_population_for_area, get_physical_contacts_for_country
+from calc.datasets import get_population_for_area, get_contacts_for_country
 from datetime import date, timedelta
 
 
+@dataclass
+class Intervention:
+    name: str
+    label: str
+    unit: str = None
+
+
 INTERVENTIONS = [
-    ('test-all-with-symptoms', _('Test all with symptoms')),
-    ('test-only-severe-symptoms', _('Test people only with severe symptoms')),
-    ('test-with-contact-tracing', _('Test all with symptoms and perform contact tracing')),
-    ('limit-mobility', _('Limit population mobility'), '%'),
-    ('limit-mass-gatherings', _('Limit mass gatherings'), _('max. contacts')),
-    ('import-infections', _('Import infections'), _('infections')),
-    ('import-infections-per-day', _('Import new infections daily'), _('infections/day')),
-    ('build-new-hospital-beds', _('Build new hospital beds'), _('beds')),
-    ('build-new-icu-units', _('Build new ICU units'), _('units')),
+    Intervention('test-all-with-symptoms', _('Test all with symptoms')),
+    Intervention('test-only-severe-symptoms', _('Test people only with severe symptoms')),
+    Intervention('test-with-contact-tracing', _('Test all with symptoms and perform contact tracing')),
+    Intervention('limit-mobility', _('Limit population mobility'), '%'),
+    Intervention('limit-mass-gatherings', _('Limit mass gatherings'), _('max. contacts')),
+    Intervention('import-infections', _('Import infections'), _('infections')),
+    Intervention('import-infections-per-day', _('Import new infections daily'), _('infections/day')),
+    Intervention('build-new-hospital-beds', _('Build new hospital beds'), _('beds')),
+    Intervention('build-new-icu-units', _('Build new ICU units'), _('units')),
 ]
 
 
@@ -50,7 +58,7 @@ def create_disease(variables):
         'simulation_days', 'interventions', 'start_date',
         'hospital_beds', 'icu_units', 'p_detected_anyway',
     ],
-    funcs=[get_physical_contacts_for_country]
+    funcs=[get_contacts_for_country]
 )
 def simulate_individuals(variables, step_callback=None):
     pc = PerfCounter()
@@ -58,7 +66,7 @@ def simulate_individuals(variables, step_callback=None):
     df = get_population_for_area().sum(axis=1)
     ages = df.index.values
     counts = df.values
-    avg_contacts_per_day = get_physical_contacts_for_country()
+    avg_contacts_per_day = get_contacts_for_country()
     hc_cap = (variables['hospital_beds'], variables['icu_units'])
 
     max_age = max(ages)
@@ -123,10 +131,10 @@ def simulate_individuals(variables, step_callback=None):
     variables=list(model.DISEASE_PARAMS) + [
         'p_detected_anyway',
     ],
-    funcs=[get_physical_contacts_for_country]
+    funcs=[get_contacts_for_country]
 )
 def sample_model_parameters(what, age, variables):
-    avg_contacts_per_day = get_physical_contacts_for_country()
+    avg_contacts_per_day = get_contacts_for_country()
     age_counts = [1]
     pop = model.Population(age_counts, list(avg_contacts_per_day.items()))
     hc = model.HealthcareSystem(

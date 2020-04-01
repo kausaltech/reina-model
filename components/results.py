@@ -1,4 +1,7 @@
+from itertools import groupby
+from dataclasses import dataclass
 import numpy as np
+from datetime import timedelta, date
 from dash_table.Format import Format, Scheme
 import dash_bootstrap_components as dbc
 import dash_html_components as html
@@ -9,7 +12,9 @@ from flask_babel import lazy_gettext as _
 from components.cards import GraphCard
 from components.graphs import make_layout
 from calc.datasets import get_detected_cases
+from calc.simulation import INTERVENTIONS
 from utils.colors import THEME_COLORS
+from variables import get_variable
 
 
 COLUMN_COLORS = {
@@ -84,17 +89,142 @@ def render_validation_card(df):
     return card.render()
 
 
-def render_result_graphs(df):
+IV_BACKGROUND_COLOR = '#eceae6'
+IV_Y_HEIGHT = 0.08
+IV_Y_MARGIN = IV_Y_HEIGHT * 3
+IV_BAR_PIXELS = 30
+
+
+@dataclass
+class InterventionRange:
+    start: date
+    strength: float
+
+
+INTERVENTION_TYPES = {
+    'testing-mode': dict(label=_('Testing'), color='blue', order=0),
+    'limit-mass-gatherings': dict(label=_('Limit mass gatherings'), color='orange', order=1),
+    'limit-mobility': dict(label=_('Limit population mobility'), color='red', order=2),
+    'import-infections': dict(label=_('Import infections'), color='red', type='event', order=3)
+}
+
+
+def _draw_one_intervention(index, ranges, name, y_start):
+    iv_type = INTERVENTION_TYPES[name]
+
+    shapes = []
+    shapes.append(dict(
+        type='rect', xref='x', yref='paper',
+        x0=index[0], y0=y_start - IV_Y_HEIGHT, x1=index[-1], y1=y_start,
+        fillcolor=IV_BACKGROUND_COLOR,
+        line=dict(
+            width=0,
+        )
+    ))
+    for idx, r in enumerate(ranges):
+        opacity = r.strength
+        if len(ranges) > idx + 1:
+            end = ranges[idx + 1].start
+        else:
+            end = index[-1]
+
+        d = dict(
+            type='rect', xref='x', yref='paper',
+            x0=r.start, y0=y_start - IV_Y_HEIGHT, x1=end, y1=y_start,
+            fillcolor=iv_type['color'],
+            opacity=opacity,
+            line=dict(
+                width=0,
+            )
+        )
+        if iv_type.get('type') == 'event':
+            d['type'] = 'circle'
+            d['x1'] = d['x0'] + timedelta(days=1)
+        shapes.append(d)
+
+    annotations = dict(
+        xref='paper', yref='paper', x=1.025, y=y_start - IV_Y_HEIGHT, showarrow=False,
+        text=iv_type['label'], xanchor='left', yanchor='bottom', yshift=-4
+    )
+
+    return shapes, [annotations]
+
+
+def make_intervention_shapes(df):
+    Y_START = -0.4
+
+    shapes = []
+    annotations = []
+
+    cur_y = Y_START
+
+    ivs = get_variable('interventions')
+    icu_units = get_variable('icu_units')
+    hospital_beds = get_variable('hospital_beds')
+
+    out = []
+    for iv in ivs:
+        name = iv[0]
+        if name == 'test-all-with-symptoms':
+            name = 'testing-mode'
+            strength = 0.5
+        elif name == 'test-only-severe-symptoms':
+            name = 'testing-mode'
+            strength = 0.2
+        elif name == 'test-with-contact-tracing':
+            name = 'testing-mode'
+            strength = 0.8
+        elif name == 'limit-mobility':
+            strength = iv[2] / 100
+        elif name == 'limit-mass-gatherings':
+            if iv[2] >= 500:
+                strength = 0.1
+            elif iv[2] >= 100:
+                strength = 0.3
+            elif iv[2] >= 50:
+                strength = 0.5
+            elif iv[2] >= 10:
+                strength = 0.8
+            elif iv[2] >= 2:
+                strength = 1.0
+        elif name == 'import-infections':
+            strength = 0.5
+        else:
+            continue
+
+        out.append((name, iv[1], strength))
+
+    ivs = sorted(out, key=lambda x: (INTERVENTION_TYPES[x[0]]['order'], x[0], x[1]))
+    bar_count = 0
+    for name, group in groupby(ivs, lambda x: x[0]):
+        ranges = [InterventionRange(date.fromisoformat(x[1]), x[2]) for x in group]
+
+        s, a = _draw_one_intervention(df.index, ranges, name, cur_y)
+        shapes += s
+        annotations += a
+        cur_y -= IV_Y_MARGIN
+        bar_count += 1
+
+    return shapes, annotations, bar_count
+
+
+def render_population_card(df):
     traces = generate_population_traces(df)
     card = GraphCard('population', graph=dict(config=dict(responsive=False)))
+    shapes, annotations, bar_count = make_intervention_shapes(df)
+
     layout = make_layout(
-        title=_('Population'), height=250, showlegend=True,
-        margin=dict(r=250)
+        title=_('Population'), height=250 + bar_count * IV_BAR_PIXELS, showlegend=True,
+        margin=dict(r=250, b=100 + bar_count * IV_BAR_PIXELS),
+        shapes=shapes,
+        annotations=annotations
     )
     fig = dict(data=traces, layout=layout)
     card.set_figure(fig)
-    c1 = card.render()
+    return card.render()
 
+
+def render_result_graphs(df):
     hc_cols = (
         ('hospital_beds', _('Hospital beds')),
         ('icu_units', _('ICU units')),
@@ -142,7 +272,7 @@ def render_result_graphs(df):
     c3 = card.render()
 
     return dbc.Row([
-        dbc.Col(c1, md=12),
+        dbc.Col(render_population_card(df), md=12),
         dbc.Col(c2, md=12),
         dbc.Col(c3, md=12),
         dbc.Col(render_validation_card(df), md=12),

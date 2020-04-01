@@ -38,20 +38,25 @@ def get_population_for_area(variables):
     return df
 
 
-@calcfunc(variables=['country'])
-def get_physical_contacts_for_country(variables):
-    f = open(get_root_path() + '/data/contacts_fin.csv', 'r')
-    df = pd.read_csv(f, skiprows=1, index_col=1)
-    df = df.drop(columns='age of contact')
-    df.index.name = 'age of contact'
+@calcfunc(variables=['country', 'max_age'])
+def get_contacts_for_country(variables):
+    f = open(get_root_path() + '/data/contact_matrix.csv', 'r')
+    max_age = variables['max_age']
+
+    df = pd.read_csv(f, header=0)
+    df = df[df.country == variables['country']].drop(columns='country')
+    df = df[df.type == 'all'].drop(columns='type')
+
+    df = df.set_index(['age of contact'])
     df.columns.name = 'age group of participant'
 
     df = df.sum(axis=0)
+
     ages = []
     counts = []
     for age_group, count in df.items():
         if age_group == '70+':
-            start, end = 70, 100
+            start, end = 70, variables['max_age']
         else:
             start, end = map(int, age_group.split('-'))
         for age in range(start, end + 1):
@@ -83,6 +88,6 @@ def get_detected_cases(variables):
 
 
 if __name__ == '__main__':
-    df = get_detected_cases()
+    df = get_contacts_for_country()
     print(df)
     # print(df.sum(axis=0))

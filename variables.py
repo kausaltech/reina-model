@@ -8,6 +8,7 @@ from flask import session
 VARIABLE_DEFAULTS = {
     'area_name': 'HUS',
     'country': 'Finland',
+    'max_age': 100,
     'simulation_days': 180,
     'start_date': '2020-02-18',
     'hospital_beds': 2600,
