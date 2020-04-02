@@ -38,10 +38,16 @@ VARIABLE_DEFAULTS = {
 
     # Mean number of days of being ill
     'mean_illness_duration': 7.0,
-    # Average number of days of being hospitalized
+    # Average number of days of being hospitalized for people with
+    # only severe symptoms
     'mean_hospitalization_duration': 14.0,
+
+    # Average number of days in regular hospital bed before being
+    # transferred to ICU for patients with critical symptoms.
+    'mean_hospitalization_duration_before_icu': 3.0,
     # Average number of ICU care days
     'mean_icu_duration': 21.0,
+
 
     # Chance to be detected if showing mild symptoms but testing
     # is only for severe cases (might apply to e.g. healthcare workers)
@@ -52,11 +58,11 @@ VARIABLE_DEFAULTS = {
     # Source: https://www.medrxiv.org/content/10.1101/2020.03.09.20033357v1.full.pdf
     'p_severe': [
         [0, 0.0],
-        [10, 0.04],
-        [20, 1.1],
-        [30, 3.4],
-        [40, 4.3],
-        [50, 8.2],
+        [10, 0.0408],
+        [20, 1.04],
+        [30, 3.43],
+        [40, 4.25],
+        [50, 8.16],
         [60, 11.8],
         [70, 16.6],
         [80, 18.4]

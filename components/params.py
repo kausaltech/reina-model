@@ -121,6 +121,7 @@ DISEASE_PARAMS = (
     ('mean_illness_duration', _('Mean number of days of being ill'), _('days')),
     ('mean_hospitalization_duration', _('Mean number of days of being hospitalized'), _('days')),
     ('mean_icu_duration', _('Mean number of days of being in ICU care'), _('days')),
+    ('mean_hospitalization_duration_before_icu', _('Mean number of days in regular hospital care before ICU'), _('days')),
 )
 
 

@@ -228,40 +228,47 @@ cdef void person_recover(Person *self, Context context) nogil:
 
 cdef void person_hospitalize(Person *self, Context context) nogil:
     if not self.was_detected:
+        # People seeking hospital treatment are always detected
+        # FIXME: Might not be the case
         person_detect(self, context)
 
-    if self.symptom_severity == SymptomSeverity.CRITICAL:
-        if not context.hc.to_icu():
-            # If no ICU units are available, ...
+    if not context.hc.hospitalize(self):
+        # If no beds are available, there's a chance to die.
+        if context.disease.dies_in_hospital(self, context, care_available=False):
             person_die(self, context)
-            return
-        self.state = PersonState.IN_ICU
-        self.days_left = context.disease.get_icu_days(self, context)
-    else:
-        if not context.hc.hospitalize(self):
-            # If no beds are available, there's a chance to die.
-            if context.disease.dies_in_hospital(self, context, in_icu=False, care_available=False):
-                person_die(self, context)
-            else:
-                person_recover(self, context)
-            return
+        else:
+            person_recover(self, context)
+        return
 
-        self.state = PersonState.HOSPITALIZED
-        self.days_left = context.disease.get_hospitalization_days(self, context)
+    self.days_left = context.disease.get_hospitalization_days(self, context)
+    self.state = PersonState.HOSPITALIZED
 
     context.pop.hospitalize(self)
-    if self.state == PersonState.IN_ICU:
-        context.pop.transfer_to_icu(self)
+
+
+cdef void person_transfer_to_icu(Person *self, Context context) nogil:
+    if not context.hc.to_icu():
+        # If no ICU units are available, there's a chance to die.
+        if context.disease.dies_in_hospital(self, context, care_available=False):
+            context.pop.release_from_hospital(self)
+            person_die(self, context)
+            return
+
+    self.days_left = context.disease.get_icu_days(self, context)
+    self.state = PersonState.IN_ICU
+
+    context.pop.transfer_to_icu(self)
 
 
 cdef void person_release_from_hospital(Person *self, Context context) nogil:
     context.pop.release_from_hospital(self)
+
     if self.state == PersonState.IN_ICU:
-        death = context.disease.dies_in_hospital(self, context, in_icu=True, care_available=True)
+        death = context.disease.dies_in_hospital(self, context, care_available=True)
         context.pop.release_from_icu(self)
         context.hc.release_from_icu()
     else:
-        death = context.disease.dies_in_hospital(self, context, in_icu=False, care_available=True)
+        death = context.disease.dies_in_hospital(self, context, care_available=True)
         context.hc.release()
 
     if death:
@@ -303,7 +310,16 @@ cdef void person_advance(Person *self, Context context) nogil:
                 person_hospitalize(self, context)
             else:
                 person_recover(self, context)
-    elif self.state in (PersonState.HOSPITALIZED, PersonState.IN_ICU):
+    elif self.state == PersonState.HOSPITALIZED:
+        self.days_left -= 1
+        if self.days_left == 0:
+            # People with critical symptoms will be transferred to ICU care
+            # after a period in a non-iCU hospital care.
+            if self.symptom_severity == SymptomSeverity.CRITICAL:
+                person_transfer_to_icu(self, context)
+            else:
+                person_release_from_hospital(self, context)
+    elif self.state == PersonState.IN_ICU:
         self.days_left -= 1
         if self.days_left == 0:
             person_release_from_hospital(self, context)
@@ -445,6 +461,7 @@ cdef class HealthcareSystem:
         self.available_beds += 1
 
     cdef bint to_icu(self) nogil:
+        self.available_beds += 1
         if self.available_icu_units == 0:
             return False
         self.available_icu_units -= 1
@@ -503,13 +520,15 @@ cdef class ClassedValues:
 DISEASE_PARAMS = (
     'p_infection', 'p_asymptomatic', 'p_severe', 'p_critical', 'p_hospital_death',
     'p_icu_death', 'p_hospital_death_no_beds', 'p_icu_death_no_beds',
-    'mean_illness_duration', 'mean_hospitalization_duration', 'mean_icu_duration'
+    'mean_illness_duration', 'mean_hospitalization_duration', 'mean_icu_duration',
+    'mean_hospitalization_duration_before_icu'
 )
 
 cdef class Disease:
     cdef float p_infection, p_asymptomatic, p_hospital_death, p_icu_death
     cdef float p_icu_death_no_beds, p_hospital_death_no_beds
     cdef float mean_illness_duration, mean_hospitalization_duration, mean_icu_duration
+    cdef float mean_hospitalization_duration_before_icu
     cdef ClassedValues p_severe
     cdef ClassedValues p_critical
     cdef ClassedValues infectiousness_over_time
@@ -517,7 +536,8 @@ cdef class Disease:
     def __init__(self,
         p_infection, p_asymptomatic, p_severe, p_critical, p_hospital_death,
         p_icu_death, p_hospital_death_no_beds, p_icu_death_no_beds,
-        mean_illness_duration, mean_hospitalization_duration, mean_icu_duration
+        mean_illness_duration, mean_hospitalization_duration, mean_icu_duration,
+        mean_hospitalization_duration_before_icu
     ):
         self.p_infection = p_infection
         self.p_asymptomatic = p_asymptomatic
@@ -529,6 +549,7 @@ cdef class Disease:
 
         self.mean_illness_duration = mean_illness_duration
         self.mean_hospitalization_duration = mean_hospitalization_duration
+        self.mean_hospitalization_duration_before_icu = mean_hospitalization_duration_before_icu
         self.mean_icu_duration = mean_icu_duration
 
         self.p_severe = ClassedValues(p_severe)
@@ -582,8 +603,8 @@ cdef class Disease:
 
         return 0
 
-    cdef bint dies_in_hospital(self, Person *person, Context context, bint in_icu, bint care_available) nogil:
-        if in_icu:
+    cdef bint dies_in_hospital(self, Person *person, Context context, bint care_available) nogil:
+        if person.symptom_severity == SymptomSeverity.CRITICAL:
             if care_available:
                 chance = self.p_icu_death
             else:
@@ -614,6 +635,9 @@ cdef class Disease:
         return days
 
     cdef int get_hospitalization_days(self, Person *person, Context context) nogil:
+        if person.symptom_severity == SymptomSeverity.CRITICAL:
+            return <int> self.mean_hospitalization_duration_before_icu
+
         cdef float f = context.random.lognormal(0, 0.5)
         f *= self.mean_hospitalization_duration
         cdef int days = 1 + <int> f
