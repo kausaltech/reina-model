@@ -43,7 +43,7 @@ def create_disease(variables):
     kwargs = {}
     for key in model.DISEASE_PARAMS:
         val = variables[key]
-        if key in ('p_severe', 'p_critical'):
+        if key in ('p_severe', 'p_critical', 'p_icu_death'):
             val = [(age, sev / 100) for age, sev in val]
         elif key.startswith('p_'):
             val = val / 100
@@ -110,6 +110,22 @@ def simulate_individuals(variables, step_callback=None):
         rec['exposed_per_day'] = state.exposed_per_day
         rec['tests_run_per_day'] = state.tests_run_per_day
         rec['sim_time_ms'] = pc.measure()
+
+        """
+        dead = context.get_population_stats('dead')
+        all_infected = context.get_population_stats('all_infected')
+        age_groups = pd.interval_range(0, 100, freq=10, closed='left')
+        s = pd.Series(dead)
+        dead_by_age = s.groupby(pd.cut(s.index, age_groups)).sum()
+        dead_by_age.name = 'dead'
+        s = pd.Series(all_infected)
+        infected_by_age = s.groupby(pd.cut(s.index, age_groups)).sum()
+
+        zdf = pd.DataFrame(dead_by_age)
+        zdf['infected'] = infected_by_age
+        zdf['ifr'] = zdf.dead.divide(zdf.infected.replace(0, np.inf)) * 100
+        print(zdf)
+        """
 
         d = start_date + timedelta(days=day)
         df.loc[d] = rec

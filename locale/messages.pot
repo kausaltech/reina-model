@@ -8,7 +8,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: PROJECT VERSION\n"
 "Report-Msgid-Bugs-To: EMAIL@ADDRESS\n"
-"POT-Creation-Date: 2020-04-02 14:07+0300\n"
+"POT-Creation-Date: 2020-04-02 15:02+0300\n"
 "PO-Revision-Date: YEAR-MO-DA HO:MI+ZONE\n"
 "Last-Translator: FULL NAME <EMAIL@ADDRESS>\n"
 "Language-Team: LANGUAGE <LL@li.org>\n"
@@ -175,7 +175,7 @@ msgstr ""
 
 #: components/params.py:105
 #, python-format
-msgid "Distributions for a %(age)d-year-old person"
+msgid "Distributions based on model parameters for a %(age)d-year-old person"
 msgstr ""
 
 #: components/params.py:114
@@ -184,10 +184,6 @@ msgstr ""
 
 #: components/params.py:115
 msgid "Probability of becoming infected after being exposed"
-msgstr ""
-
-#: components/params.py:117
-msgid "Probability of dying during ICU care"
 msgstr ""
 
 #: components/params.py:118

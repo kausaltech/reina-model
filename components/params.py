@@ -102,7 +102,7 @@ def render_model_param_graphs(age):
     c4 = card.render()
 
     return html.Div([
-        dbc.Row([dbc.Col(html.H5(_('Distributions for a %(age)d-year-old person', age=age)))]),
+        dbc.Row([dbc.Col(html.H5(_('Distributions based on model parameters for a %(age)d-year-old person', age=age)))]),
         dbc.Row([
             dbc.Col(c2, md=6), dbc.Col(c3, md=6), dbc.Col(c4, md=6),
             *[dbc.Col(c, md=6) for c in period_cards]
@@ -114,7 +114,7 @@ DISEASE_PARAMS = (
     ('p_asymptomatic', _('Ratio of all infected people who remain asymptomatic'), '%',),
     ('p_infection', _('Probability of becoming infected after being exposed'), '%',),
     # ('p_critical', _('Probability of requiring ICU care after having severe symptoms'), '%',),
-    ('p_icu_death', _('Probability of dying during ICU care'), '%'),
+    # ('p_icu_death', _('Probability of dying during ICU care'), '%'),
     ('p_hospital_death', _('Probability of dying after regular hospital treatment'), '%'),
     ('p_hospital_death_no_beds', _('Probability of dying if no hospital beds are available'), '%'),
     ('p_icu_death_no_beds', _('Probability of dying if no ICU units are available'), '%'),

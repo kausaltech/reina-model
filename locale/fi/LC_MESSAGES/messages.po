@@ -7,7 +7,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: PROJECT VERSION\n"
 "Report-Msgid-Bugs-To: EMAIL@ADDRESS\n"
-"POT-Creation-Date: 2020-04-02 14:07+0300\n"
+"POT-Creation-Date: 2020-04-02 15:02+0300\n"
 "PO-Revision-Date: 2020-03-29 16:35+0300\n"
 "Last-Translator: FULL NAME <EMAIL@ADDRESS>\n"
 "Language: fi\n"
@@ -176,8 +176,8 @@ msgstr "Sairauspäivä"
 
 #: components/params.py:105
 #, python-format
-msgid "Distributions for a %(age)d-year-old person"
-msgstr "Jakaumat %(age)d-vuotiaalle henkilölle"
+msgid "Distributions based on model parameters for a %(age)d-year-old person"
+msgstr "Mallin oletusten mukaiset jakaumat %(age)d-vuotiaalle henkilölle"
 
 #: components/params.py:114
 msgid "Ratio of all infected people who remain asymptomatic"
@@ -186,10 +186,6 @@ msgstr "Osuus tartunnan saaneista, jotka jäävät oireettomiksi"
 #: components/params.py:115
 msgid "Probability of becoming infected after being exposed"
 msgstr "Todennäköisyys, että taudille altistunut saa tartunnan"
-
-#: components/params.py:117
-msgid "Probability of dying during ICU care"
-msgstr "Tehohoitoa tarvitsevien osuus, joka kuolee tehohoitojakson päätteeksi"
 
 #: components/params.py:118
 msgid "Probability of dying after regular hospital treatment"
@@ -329,4 +325,10 @@ msgstr "Simulaatioajon tulosdata"
 
 #~ msgid "Detected cases (real)"
 #~ msgstr "Havaitut tapaukset (tod.)"
+
+#~ msgid "Distributions for a %(age)d-year-old person"
+#~ msgstr "Jakaumat %(age)d-vuotiaalle henkilölle"
+
+#~ msgid "Probability of dying during ICU care"
+#~ msgstr "Tehohoitoa tarvitsevien osuus, joka kuolee tehohoitojakson päätteeksi"
 

@@ -29,7 +29,17 @@ VARIABLE_DEFAULTS = {
     # Chance to die after regular hospital care
     'p_hospital_death': 0.0,  # %
     # Chance to die after ICU care
-    'p_icu_death': 30.0,  # %
+    'p_icu_death': [
+        [0, 40.0],
+        [10, 40.0],
+        [20, 50.0],
+        [30, 50.0],
+        [40, 48.591],
+        [50, 48.216],
+        [60, 48.369],
+        [70, 48.583],
+        [80, 48.048]
+    ],
     # Chance to die if no hospital beds are available (but not
     # needing ICU care)
     'p_hospital_death_no_beds': 20.0,  # %

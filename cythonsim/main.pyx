@@ -525,13 +525,14 @@ DISEASE_PARAMS = (
 )
 
 cdef class Disease:
-    cdef float p_infection, p_asymptomatic, p_hospital_death, p_icu_death
+    cdef float p_infection, p_asymptomatic, p_hospital_death
     cdef float p_icu_death_no_beds, p_hospital_death_no_beds
     cdef float mean_illness_duration, mean_hospitalization_duration, mean_icu_duration
     cdef float mean_hospitalization_duration_before_icu
     cdef ClassedValues p_severe
     cdef ClassedValues p_critical
     cdef ClassedValues infectiousness_over_time
+    cdef ClassedValues p_icu_death
 
     def __init__(self,
         p_infection, p_asymptomatic, p_severe, p_critical, p_hospital_death,
@@ -543,7 +544,6 @@ cdef class Disease:
         self.p_asymptomatic = p_asymptomatic
 
         self.p_hospital_death = p_hospital_death
-        self.p_icu_death = p_icu_death
         self.p_hospital_death_no_beds = p_hospital_death_no_beds
         self.p_icu_death_no_beds = p_icu_death_no_beds
 
@@ -555,6 +555,7 @@ cdef class Disease:
         self.p_severe = ClassedValues(p_severe)
         self.p_critical = ClassedValues(p_critical)
         self.infectiousness_over_time = ClassedValues(INFECTIOUSNESS_OVER_TIME)
+        self.p_icu_death = ClassedValues(p_icu_death)
 
     @classmethod
     def from_variables(cls, variables):
@@ -603,10 +604,11 @@ cdef class Disease:
 
         return 0
 
+
     cdef bint dies_in_hospital(self, Person *person, Context context, bint care_available) nogil:
         if person.symptom_severity == SymptomSeverity.CRITICAL:
             if care_available:
-                chance = self.p_icu_death
+                chance = self.p_icu_death.get_greatest_lte(person.age)
             else:
                 chance = self.p_icu_death_no_beds
         else:
@@ -616,6 +618,7 @@ cdef class Disease:
                 chance = self.p_hospital_death_no_beds
 
         return context.random.chance(chance)
+
 
     cdef int get_incubation_days(self, Person *person, Context context) nogil:
         # lognormal distribution, mode on 5 days
@@ -779,14 +782,14 @@ cdef class Context:
     cdef str start_date
     cdef int total_infections, total_infectors, exposed_per_day
 
-    def __init__(self, Population pop, HealthcareSystem hc, Disease disease, str start_date):
+    def __init__(self, Population pop, HealthcareSystem hc, Disease disease, str start_date, int random_seed=4321):
         self.create_population(pop.susceptible)
 
         self.problem = SimulationProblem.NO_PROBLEMOS
         self.pop = pop
         self.hc = hc
         self.disease = disease
-        self.random = RandomPool()
+        self.random = RandomPool(random_seed)
         self.start_date = start_date
         self.day = 0
         self.interventions = []
@@ -855,6 +858,13 @@ cdef class Context:
             tests_run_per_day=self.hc.tests_run_per_day,
         )
         return s
+
+    def get_population_stats(self, what):
+        if what == 'dead':
+            return np.array(self.pop.dead)
+        if what == 'all_infected':
+            return np.array(self.pop.all_infected)
+        raise Exception()
 
     def infect_people(self, count):
         cdef int idx
@@ -957,9 +967,11 @@ cdef class Context:
                 for i in range(sample_size):
                     out[i] = self.disease.get_illness_days(&p, self)
             elif what == 'hospitalization_period':
+                p.symptom_severity = SymptomSeverity.SEVERE
                 for i in range(sample_size):
                     out[i] = self.disease.get_hospitalization_days(&p, self)
             elif what == 'icu_period':
+                p.symptom_severity = SymptomSeverity.CRITICAL
                 for i in range(sample_size):
                     out[i] = self.disease.get_icu_days(&p, self)
             else:

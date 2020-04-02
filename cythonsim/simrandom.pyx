@@ -7,8 +7,8 @@ from numpy.random.c_distributions cimport random_lognormal
 
 
 cdef class RandomPool:
-    def __init__(self):
-        self.gen = PCG64(1234)
+    def __init__(self, seed):
+        self.gen = PCG64(seed)
         capsule = self.gen.capsule
         # Optional check that the capsule if from a BitGenerator
         if not PyCapsule_IsValid(capsule, 'BitGenerator'):
