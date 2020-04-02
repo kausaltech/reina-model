@@ -112,7 +112,10 @@ VARIABLE_DEFAULTS = {
         ['import-infections', '2020-03-11', 120],
         ['import-infections', '2020-03-13', 80],
         ['import-infections', '2020-03-15', 40],
-    ]
+    ],
+
+    # Used for sampling the model
+    'sample_limit_mobility': 0,
 }
 
 

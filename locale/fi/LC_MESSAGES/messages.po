@@ -7,7 +7,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: PROJECT VERSION\n"
 "Report-Msgid-Bugs-To: EMAIL@ADDRESS\n"
-"POT-Creation-Date: 2020-04-02 15:02+0300\n"
+"POT-Creation-Date: 2020-04-02 19:45+0300\n"
 "PO-Revision-Date: 2020-03-29 16:35+0300\n"
 "Last-Translator: FULL NAME <EMAIL@ADDRESS>\n"
 "Language: fi\n"
@@ -26,7 +26,7 @@ msgstr "Päivämäärä"
 msgid "Event"
 msgstr "Tapahtuma"
 
-#: components/params.py:144 corona.py:104
+#: components/params.py:143 corona.py:104
 msgid "Value"
 msgstr "Arvo"
 
@@ -77,7 +77,7 @@ msgstr "Testataan ainoastaan vakavasti oirehtivat"
 msgid "Test all with symptoms and perform contact tracing"
 msgstr "Testataan kaikki oirehtivat sekä määritetään tartuntaketjut"
 
-#: calc/simulation.py:24 components/results.py:107
+#: calc/simulation.py:24 components/params.py:209 components/results.py:107
 msgid "Limit population mobility"
 msgstr "Rajoitetaan väestön liikkuvuutta"
 
@@ -133,8 +133,8 @@ msgstr "Sairaalahoitojakson kesto"
 msgid "Duration of ICU treatment"
 msgstr "Tehohoitojakson kesto"
 
-#: components/params.py:32 components/params.py:121 components/params.py:122 components/params.py:123
-#: components/params.py:124
+#: components/params.py:32 components/params.py:120 components/params.py:121 components/params.py:122
+#: components/params.py:123
 msgid "days"
 msgstr "päivää"
 
@@ -174,60 +174,59 @@ msgstr "Tarttuvuus ajan kuluessa"
 msgid "Day of illness"
 msgstr "Sairauspäivä"
 
-#: components/params.py:105
-#, python-format
-msgid "Distributions based on model parameters for a %(age)d-year-old person"
-msgstr "Mallin oletusten mukaiset jakaumat %(age)d-vuotiaalle henkilölle"
-
-#: components/params.py:114
+#: components/params.py:113
 msgid "Ratio of all infected people who remain asymptomatic"
 msgstr "Osuus tartunnan saaneista, jotka jäävät oireettomiksi"
 
-#: components/params.py:115
+#: components/params.py:114
 msgid "Probability of becoming infected after being exposed"
 msgstr "Todennäköisyys, että taudille altistunut saa tartunnan"
 
-#: components/params.py:118
+#: components/params.py:117
 msgid "Probability of dying after regular hospital treatment"
 msgstr "Sairaalahoitoa tarvitsevista osuus, joka kuolee sairaalahoidon päätteeksi"
 
-#: components/params.py:119
+#: components/params.py:118
 msgid "Probability of dying if no hospital beds are available"
 msgstr "Sairaalahoitoa tarvitsevien osuus, joka kuolee jos sairaalapaikkaa ei ole vapaana"
 
-#: components/params.py:120
+#: components/params.py:119
 msgid "Probability of dying if no ICU units are available"
 msgstr "Tehohoitoa tarvitsevien osuus, joka kuolee jos tehohoitopaikkaa ei ole vapaana"
 
-#: components/params.py:121
+#: components/params.py:120
 msgid "Mean number of days of being ill"
 msgstr "Sairausjakson keskimääräinen kesto päivinä"
 
-#: components/params.py:122
+#: components/params.py:121
 msgid "Mean number of days of being hospitalized"
 msgstr "Sairaalahoitojakson keskimääräinen kesto päivinä"
 
-#: components/params.py:123
+#: components/params.py:122
 msgid "Mean number of days of being in ICU care"
 msgstr "Tehohoitojakson keskimääräinen kesto päivinä"
 
-#: components/params.py:124
+#: components/params.py:123
 msgid "Mean number of days in regular hospital care before ICU"
 msgstr "Sairaalahoitojakson keskimääräinen kesto päivinä ennen tehohoitojaksoa"
 
-#: components/params.py:142
+#: components/params.py:141
 msgid "Description"
 msgstr "Kuvaus"
 
-#: components/params.py:167
+#: components/params.py:166
 msgid "Disease parameters"
 msgstr "Taudin parametrit"
 
-#: components/params.py:175
+#: components/params.py:174
 msgid "Restore defaults"
 msgstr "Palauta oletukset"
 
-#: components/params.py:206
+#: components/params.py:200
+msgid "Distributions based on model parameters"
+msgstr "Mallin oletusten mukaiset jakaumat"
+
+#: components/params.py:202
 msgid "Age of person"
 msgstr "Henkilön ikä"
 
@@ -331,4 +330,7 @@ msgstr "Simulaatioajon tulosdata"
 
 #~ msgid "Probability of dying during ICU care"
 #~ msgstr "Tehohoitoa tarvitsevien osuus, joka kuolee tehohoitojakson päätteeksi"
+
+#~ msgid "Distributions based on model parameters for a %(age)d-year-old person"
+#~ msgstr "Mallin oletusten mukaiset jakaumat %(age)d-vuotiaalle henkilölle"
 

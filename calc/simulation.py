@@ -146,6 +146,7 @@ def simulate_individuals(variables, step_callback=None):
 @calcfunc(
     variables=list(model.DISEASE_PARAMS) + [
         'p_detected_anyway',
+        'sample_limit_mobility',
     ],
     funcs=[get_contacts_for_country]
 )
@@ -159,6 +160,8 @@ def sample_model_parameters(what, age, variables):
     )
     disease = create_disease(variables)
     context = model.Context(pop, hc, disease, start_date='2020-01-01')
+    if variables['sample_limit_mobility'] != 0:
+        context.apply_intervention('limit-mobility', variables['sample_limit_mobility'])
 
     samples = context.sample(what, age)
 

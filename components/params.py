@@ -102,7 +102,6 @@ def render_model_param_graphs(age):
     c4 = card.render()
 
     return html.Div([
-        dbc.Row([dbc.Col(html.H5(_('Distributions based on model parameters for a %(age)d-year-old person', age=age)))]),
         dbc.Row([
             dbc.Col(c2, md=6), dbc.Col(c3, md=6), dbc.Col(c4, md=6),
             *[dbc.Col(c, md=6) for c in period_cards]
@@ -198,12 +197,20 @@ def register_params_callbacks(app):
 
         if is_open:
             out = html.Div([
+                dbc.Row([dbc.Col(html.H5(_('Distributions based on model parameters')))]),
                 dbc.Row([dbc.Col([
+                    html.P(_('Age of person')),
                     dcc.Slider(
                         id='disease-params-age-slider', min=0, max=80, step=1, value=60,
                         marks={x: str(x) for x in range(0, 80 + 1, 10)}
                     ),
-                    html.P(_('Age of person')),
+                ])]),
+                dbc.Row([dbc.Col([
+                    html.P(_('Limit population mobility')),
+                    dcc.Slider(
+                        id='disease-params-limit-mobility-slider', min=0, max=100, step=1, value=0,
+                        marks={x: '%s %%' % x for x in range(0, 100 + 1, 10)}
+                    ),
                 ])]),
                 html.Div(id='disease-params-graphs'),
             ])
@@ -244,7 +251,9 @@ def register_params_callbacks(app):
         Output('disease-params-graphs', 'children'),
         [
             Input('disease-params-age-slider', 'value'),
+            Input('disease-params-limit-mobility-slider', 'value'),
         ]
     )
-    def person_age_callback(value):
-        return render_model_param_graphs(value)
+    def person_age_callback(age, mobility_limit):
+        set_variable('sample_limit_mobility', mobility_limit)
+        return render_model_param_graphs(age)

@@ -875,30 +875,30 @@ cdef class Context:
             person = self.people + idx
             person_infect(person, self)
 
-    def apply_intervention(self, intervention):
-        if intervention.name == 'test-all-with-symptoms':
+    def apply_intervention(self, name, value):
+        if name == 'test-all-with-symptoms':
             # Start testing everyone who shows even mild symptoms
             self.hc.set_testing_mode(TestingMode.ALL_WITH_SYMPTOMS)
-        elif intervention.name == 'test-only-severe-symptoms':
+        elif name == 'test-only-severe-symptoms':
             # Test only those who show severe or critical symptoms
             self.hc.set_testing_mode(TestingMode.ONLY_SEVERE_SYMPTOMS)
-        elif intervention.name == 'test-with-contact-tracing':
+        elif name == 'test-with-contact-tracing':
             # Test only those who show severe or critical symptoms
             self.hc.set_testing_mode(TestingMode.ALL_WITH_SYMPTOMS_CT)
-        elif intervention.name == 'build-new-icu-units':
-            self.hc.icu_units += intervention.value
-            self.hc.available_icu_units += intervention.value
-        elif intervention.name == 'build-new-hospital-beds':
-            self.hc.beds += intervention.value
-            self.hc.available_beds += intervention.value
-        elif intervention.name == 'import-infections':
+        elif name == 'build-new-icu-units':
+            self.hc.icu_units += value
+            self.hc.available_icu_units += value
+        elif name == 'build-new-hospital-beds':
+            self.hc.beds += value
+            self.hc.available_beds += value
+        elif name == 'import-infections':
             # Introduct infections from elsewhere
-            count = intervention.value
+            count = value
             self.infect_people(count)
-        elif intervention.name == 'limit-mass-gatherings':
-            self.pop.limit_mass_gatherings = intervention.value
-        elif intervention.name == 'limit-mobility':
-            self.pop.population_mobility_factor = (100 - intervention.value) / 100.0
+        elif name == 'limit-mass-gatherings':
+            self.pop.limit_mass_gatherings = value
+        elif name == 'limit-mobility':
+            self.pop.population_mobility_factor = (100 - value) / 100.0
         else:
             raise Exception()
 
@@ -909,7 +909,7 @@ cdef class Context:
         for intervention in self.interventions:
             if intervention.day == self.day:
                 # print(intervention.name)
-                self.apply_intervention(intervention)
+                self.apply_intervention(intervention.name, intervention.value)
 
         self.total_infectors = 0
         self.total_infections = 0
