@@ -6,6 +6,8 @@ the spread of the coronavirus (SARS-CoV-2) in a healthcare district.
 It models healthcare capacity (hospital beds and ICU units) and different
 public health simulations.
 
+[More documentation](Docs/description.en.md) is also available in the repository.
+
 
 ## Installation
 
