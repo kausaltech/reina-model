@@ -21,7 +21,9 @@ Those models are good for getting a general understanding on the spread of the
 epidemic, but extending these models with refined rules becomes complex quickly.
 
 Our model is based on simulating interactions on an individual level, so arbitrary
-rules can be evaluated easily.
+rules can be evaluated easily. It also allows examining the features of the pathogen
+(such as contagiousness and lethality) and the features of the population
+(such as the number of close contacts per day) separately.
 
 ## How can I try it out in my geographical area?
 
@@ -44,9 +46,8 @@ of one year, but a grouped dataset (such as 60-69 years) could also be used.
 
 This dataset has the information on how many contacts per day and with what kind
 of people each person has. It is provided as a two-dimensional matrix divided by
-5-year age groups. Our data is based on the 2008 study
-[Social Contacts and Mixing Patterns Relevant to the Spread of Infectious Diseases](https://journals.plos.org/plosmedicine/article?id=10.1371/journal.pmed.0050074). We already have the datasets for these
-countries:
+5-year age groups. We already have [the datasets for these
+countries](https://github.com/kausaltech/corona-agent-simulation/blob/master/data/contact_matrix.csv):
 
 - Belgium
 - Germany
@@ -57,8 +58,10 @@ countries:
 - Netherlands
 - Poland
 
-In the absence of research-based data, you may approximate it in another country by
-applying the contact matrix for one the countries in this list.
+Our data is based on the 2008 study
+[Social Contacts and Mixing Patterns Relevant to the Spread of Infectious Diseases](https://journals.plos.org/plosmedicine/article?id=10.1371/journal.pmed.0050074). In the absence of research-based data,
+you may approximate it in another country by applying the contact matrix for one
+the countries in this list.
 
 #### COVID-19 patients
 
@@ -78,8 +81,8 @@ or removing them in the event list.
 
 ### Disease parameters
 
-Some of the parameters related to the disease are not yet known. You can see
-how tuning the parameters changes the outcome of the simulation.
+Some of the parameters related to the disease are still under discussion. You can
+experiment how tuning the parameters changes the outcome of the simulation.
 
 ## Authors
 
