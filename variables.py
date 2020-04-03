@@ -24,7 +24,7 @@ VARIABLE_DEFAULTS = {
     # Overall chance to become infected after being exposed.
     # This is modified by viral load of the infector, which
     # depends on the day of the illness.
-    'p_infection': 25.0,  # %
+    'p_infection': 28.0,  # %
 
     # Chance to die after regular hospital care
     'p_hospital_death': 0.0,  # %
@@ -94,13 +94,13 @@ VARIABLE_DEFAULTS = {
         ['test-all-with-symptoms', '2020-02-20'],
         ['test-only-severe-symptoms', '2020-03-15'],
 
-        ['limit-mobility', '2020-03-12', 10],
         ['limit-mass-gatherings', '2020-03-12', 50],
 
-        ['limit-mobility', '2020-03-15', 15],
+        ['limit-mobility', '2020-03-12', 10],
         ['limit-mobility', '2020-03-17', 20],
         ['limit-mobility', '2020-03-20', 30],
         ['limit-mobility', '2020-03-22', 35],
+        ['limit-mobility', '2020-03-28', 50],
 
         ['build-new-icu-units', '2020-04-30', 150],
         ['build-new-icu-units', '2020-05-30', 150],
