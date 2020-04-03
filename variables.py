@@ -114,6 +114,8 @@ VARIABLE_DEFAULTS = {
         ['import-infections', '2020-03-15', 40],
     ],
 
+    'preset_scenario': 'default',
+
     # Used for sampling the model
     'sample_limit_mobility': 0,
 }

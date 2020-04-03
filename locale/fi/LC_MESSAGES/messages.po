@@ -7,7 +7,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: PROJECT VERSION\n"
 "Report-Msgid-Bugs-To: EMAIL@ADDRESS\n"
-"POT-Creation-Date: 2020-04-02 19:45+0300\n"
+"POT-Creation-Date: 2020-04-03 23:27+0300\n"
 "PO-Revision-Date: 2020-03-29 16:35+0300\n"
 "Last-Translator: FULL NAME <EMAIL@ADDRESS>\n"
 "Language: fi\n"
@@ -18,43 +18,30 @@ msgstr ""
 "Content-Transfer-Encoding: 8bit\n"
 "Generated-By: Babel 2.8.0\n"
 
-#: corona.py:102
+#: corona.py:103
 msgid "Date"
 msgstr "Päivämäärä"
 
-#: corona.py:103
+#: corona.py:104
 msgid "Event"
 msgstr "Tapahtuma"
 
-#: components/params.py:143 corona.py:104
+#: components/params.py:143 corona.py:105
 msgid "Value"
 msgstr "Arvo"
 
-#: corona.py:121
+#: corona.py:124
 #, python-format
 msgid "Events (%(num)s)"
 msgstr "Tapahtumat (%(num)s)"
 
-#: corona.py:129
+#: corona.py:134
 msgid "Restore default events"
 msgstr "Palauta oletustapahtumat"
 
-#: corona.py:134
+#: corona.py:139
 msgid "Add a new event"
 msgstr "Lisää uusi tapahtuma"
-
-#: corona.py:163
-msgid "Corona epidemic simulator"
-msgstr "Koronaepidemiasimulaattori"
-
-#: corona.py:171
-#, python-format
-msgid "Forecast of the COVID-19 epidemic: %(name)s"
-msgstr "COVID-19-epidemian kehittyminen: %(name)s"
-
-#: corona.py:172
-msgid "Exploration of the effects of interventions to the progression of the epidemic."
-msgstr "Tutkitaan kuinka erilaiset interventiot vaikuttavat koronavirusepidemian etenemiseen."
 
 #: corona.py:192
 #, python-format
@@ -64,6 +51,23 @@ msgstr "%(days)d päivää"
 #: corona.py:198
 msgid "Run simulation"
 msgstr "Suorita simulaatio"
+
+#: corona.py:221
+msgid "Corona epidemic simulator"
+msgstr "Koronaepidemiasimulaattori"
+
+#: corona.py:230
+#, python-format
+msgid "Forecast of the COVID-19 epidemic: %(name)s"
+msgstr "COVID-19-epidemian kehittyminen: %(name)s"
+
+#: corona.py:231
+msgid "Exploration of the effects of interventions to the progression of the epidemic."
+msgstr "Tutkitaan kuinka erilaiset interventiot vaikuttavat koronavirusepidemian etenemiseen."
+
+#: corona.py:238
+msgid "Preset scenario"
+msgstr "Esivalittu skenaario"
 
 #: calc/simulation.py:21
 msgid "Test all with symptoms"

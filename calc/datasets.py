@@ -83,6 +83,7 @@ def get_detected_cases(variables):
     hdf = (hdf * ratio).dropna().astype(int)
     df['hospitalized'] = hdf['hospitalized']
     df['in_icu'] = hdf['in_icu']
+    df = df.dropna()
 
     return df
 

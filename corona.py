@@ -18,7 +18,8 @@ import multiprocessing
 from calc.simulation import simulate_individuals, INTERVENTIONS
 from calc import ExecutionInterrupted
 from common import settings
-from variables import set_variable, get_variable, reset_variable
+from variables import set_variable, get_variable, reset_variable, reset_variables
+from scenarios import SCENARIOS
 from components.results import render_results, register_results_callbacks
 from components.params import render_disease_params, register_params_callbacks
 
@@ -117,10 +118,14 @@ def render_iv_card():
 
     iv_card = dbc.Card([
         dbc.CardHeader([
-            html.H2(dbc.Button(
-                _("Events (%(num)s)", num=len(ivs)), className="float-left mt-2",
-                id="interventions-collapse-button",
-            )),
+            dbc.Row([
+                dbc.Col([
+                    html.H2(dbc.Button(
+                        _("Events (%(num)s)", num=len(ivs)), className="float-left mt-2",
+                        id="interventions-collapse-button",
+                    )),
+                ], width=dict(size=2, order=1)),
+            ]),
         ]),
         dbc.Collapse([
             dbc.CardBody([
@@ -155,23 +160,19 @@ def render_iv_card():
     return iv_card
 
 
-def generate_layout():
-    navbar = dbc.NavbarSimple(
-        children=[
-            dbc.Badge("v0.1", pill=True, color="primary", className="mr-1"),
-        ],
-        brand=_("Corona epidemic simulator"),
-        brand_href="#",
-        color="primary",
-        dark=True,
-    )
+def generate_content_rows():
     rows = []
-    rows.append(dbc.Row([
-        dbc.Col([
-            html.H3(_('Forecast of the COVID-19 epidemic: %(name)s', name=get_variable('area_name'))),
-            html.P(_('Exploration of the effects of interventions to the progression of the epidemic.', className="lead")),
-        ], className='mb-4'),
-    ], className='mt-4'))
+
+    scenario_id = get_variable('preset_scenario')
+    for scenario in SCENARIOS:
+        if scenario.id == scenario_id:
+            break
+    else:
+        scenario = None
+    if scenario is not None:
+        rows.append(dbc.Row([
+            dbc.Col(html.P(scenario.description))
+        ]))
 
     dp_card = render_disease_params()
     rows.append(dbc.Row([dbc.Col(dp_card)]))
@@ -180,8 +181,7 @@ def generate_layout():
     rows.append(dbc.Row([dbc.Col(iv_card)]))
 
     rows.append(dbc.Row([
-        dbc.Col([
-        ], width=dict(size=6, offset=3))
+        dbc.Col(id='scenario-details')
     ]))
 
     rows.append(dbc.Row([
@@ -210,6 +210,42 @@ def generate_layout():
             html.Div(id='day-details-container')
         ])
     ]))
+    return rows
+
+
+def generate_layout():
+    navbar = dbc.NavbarSimple(
+        children=[
+            dbc.Badge("v0.1", pill=True, color="primary", className="mr-1"),
+        ],
+        brand=_("Corona epidemic simulator"),
+        brand_href="#",
+        color="primary",
+        dark=True,
+    )
+
+    rows = []
+    rows.append(dbc.Row([
+        dbc.Col([
+            html.H3(_('Forecast of the COVID-19 epidemic: %(name)s', name=get_variable('area_name'))),
+            html.P(_('Exploration of the effects of interventions to the progression of the epidemic.', className="lead")),
+        ], className='mb-4'),
+    ], className='mt-4'))
+
+    scenario_id = get_variable('preset_scenario')
+    rows.append(dbc.Row([
+        dbc.Col([
+            html.P(_('Preset scenario')),
+        ], md=2),
+        dbc.Col([
+            dcc.Dropdown(
+                id='preset-scenario-selector',
+                options=[{'label': i.name, 'value': i.id} for i in SCENARIOS],
+                value=scenario_id
+            ),
+        ], md=4),
+    ]))
+    rows.append(html.Div(id='main-content-container'))
 
     stc = generate_static_content()
 
@@ -377,11 +413,38 @@ def update_simulation_results(n_intervals):
     return [out, disabled, interval]
 
 
+def apply_scenario(s):
+    reset_variables()
+    ivs = get_variable('interventions')
+    ivs += s.interventions
+    set_variable('interventions', ivs)
+    for key, val in s.variables.items():
+        set_variable(key, val)
+    set_variable('preset_scenario', s.id)
+
+
+@app.callback(
+    Output('main-content-container', 'children'),
+    [
+        Input('preset-scenario-selector', 'value'),
+    ],
+)
+def select_scenario(preset_scenario):
+    ctx = dash.callback_context
+    if ctx.triggered:
+        c_id = ctx.triggered[0]['prop_id'].split('.')[0]
+        if c_id == 'preset-scenario-selector':
+            for s in SCENARIOS:
+                if s.id == preset_scenario:
+                    apply_scenario(s)
+    return generate_content_rows()
+
+
 @app.callback(
     Output('simulation-results-container', 'children'),
     [
         Input('run-simulation', 'n_clicks'),
-        Input('simulation-days-dropdown', 'value')
+        Input('simulation-days-dropdown', 'value'),
     ],
 )
 def run_simulation_callback(n_clicks, simulation_days):
