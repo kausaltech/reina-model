@@ -57,7 +57,7 @@ countries:
 - Netherlands
 - Poland
 
-In the absense of research-based data, you may approximate it in another country by
+In the absence of research-based data, you may approximate it in another country by
 applying the contact matrix for one the countries in this list.
 
 #### COVID-19 patients
