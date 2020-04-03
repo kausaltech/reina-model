@@ -83,12 +83,12 @@ how tuning the parameters changes the outcome of the simulation.
 
 ## Authors
 
-[Jouni T. Tuomisto](jouni.tuomisto@kausal.tech), Finnish Institute for Health and Welfare, Kuopio, Finland
+[Jouni T. Tuomisto](mailto:jouni.tuomisto@kausal.tech), Finnish Institute for Health and Welfare, Kuopio, Finland
 
-[Juha Yrjölä](juha.yrjola@kausal.tech), Kausal Ltd, Helsinki, Finland
+[Juha Yrjölä](mailto:juha.yrjola@kausal.tech), Kausal Ltd, Helsinki, Finland
 
-[Mikko Kolehmainen](mikko.kolehmainen@uef.fi), University of Eastern Finland, Kuopio, Finland
+[Mikko Kolehmainen](mailto:mikko.kolehmainen@uef.fi), University of Eastern Finland, Kuopio, Finland
 
-[Juhani Bonsdorff](juhani.bonsdorff@gmail.com), Stretta Capital Oy, Helsinki, Finland
+[Juhani Bonsdorff](mailto:juhani.bonsdorff@gmail.com), Stretta Capital Oy, Helsinki, Finland
 
-[Tero Tikkanen](tero.tikkanen@kausal.tech), Kausal Ltd, Helsinki, Finland
+[Tero Tikkanen](mailto:tero.tikkanen@kausal.tech), Kausal Ltd, Helsinki, Finland
