@@ -40,7 +40,6 @@ markupsafe==1.1.1         # via jinja2
 matplotlib==2.2.5         # via -r requirements.in
 numba==0.47.0             # via -r requirements.in, fastparquet
 -e git+https://github.com/numpy/numpy.git@078ac01a85c4db46e7f148829c2e0d0e0f30c36f#egg=numpy
-numpy==1.16.6             # via fastparquet, matplotlib, numba, pandas, pyarrow, quilt, scipy
 packaging==20.3           # via quilt
 pandas==0.24.2            # via -r requirements.in, fastparquet, quilt
 pathlib2==2.3.5           # via quilt
