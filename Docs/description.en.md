@@ -23,7 +23,9 @@ epidemic, but extending these models with refined rules becomes complex quickly.
 Our model is based on simulating interactions on an individual level, so arbitrary
 rules can be evaluated easily. It also allows examining the features of the pathogen
 (such as contagiousness and lethality) and the features of the population
-(such as the number of close contacts per day) separately.
+(such as the number of close contacts per day) separately. Consequently, some important
+parameters like the reproduction number R, are emergent properties that yield their
+value during the simulation.
 
 ## How can I try it out in my geographical area?
 
@@ -73,8 +75,6 @@ deaths to validate the model.
 Currently, we only use the number of available hospital beds and ICU units.
 
 ## How to use the simulation?
-
-### Events
 
 You can simulate the effects of different events (or interventions) by adding
 or removing them in the event list.
