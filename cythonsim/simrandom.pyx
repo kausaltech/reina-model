@@ -1,14 +1,17 @@
 # cython: language_level=3
 
 from numpy.random import PCG64
+import numpy as np
+
 from cpython.pycapsule cimport PyCapsule_IsValid, PyCapsule_GetPointer
 from numpy.random cimport bitgen_t
-from numpy.random.c_distributions cimport random_lognormal
+from numpy.random.c_distributions cimport random_lognormal, random_gamma
 
 
 cdef class RandomPool:
     def __init__(self, seed):
-        self.gen = PCG64(seed)
+        np.random.seed(seed)
+        self.gen = np.random.PCG64(seed)
         capsule = self.gen.capsule
         # Optional check that the capsule if from a BitGenerator
         if not PyCapsule_IsValid(capsule, 'BitGenerator'):
@@ -36,4 +39,9 @@ cdef class RandomPool:
     cdef double lognormal(self, double mean, double sigma) nogil:
         cdef bitgen_t *rng = self.rng
         cdef double ret = random_lognormal(rng, mean, sigma)
+        return ret
+
+    cdef double gamma(self, double mean, double sigma) nogil:
+        cdef bitgen_t *rng = self.rng
+        cdef double ret = random_gamma(rng, mean, sigma)
         return ret

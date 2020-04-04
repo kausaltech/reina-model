@@ -619,14 +619,11 @@ cdef class Disease:
 
         return context.random.chance(chance)
 
-
     cdef int get_incubation_days(self, Person *person, Context context) nogil:
-        # lognormal distribution, mode on 5 days
-        # Source: https://www.medrxiv.org/content/10.1101/2020.03.15.20036707v2.full.pdf
-        cdef float f = context.random.lognormal(1.0, 0.4) * 1.5
-        cdef int days = 1 + <int> f
-        if days > 14:
-            days = 14
+        # gamma distribution, mean 5.1 days
+        # Source: https://doi.org/10.25561/77731
+        cdef float f = context.random.gamma(5.1, 0.86)
+        cdef int days = <int> f
         return days
 
     cdef int get_illness_days(self, Person *person, Context context) nogil:
