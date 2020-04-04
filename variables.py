@@ -9,7 +9,7 @@ VARIABLE_DEFAULTS = {
     'area_name': 'HUS',
     'country': 'Finland',
     'max_age': 100,
-    'simulation_days': 180,
+    'simulation_days': 360,
     'start_date': '2020-02-18',
     'hospital_beds': 2600,
     'icu_units': 300,
@@ -34,11 +34,11 @@ VARIABLE_DEFAULTS = {
         [10, 40.0],
         [20, 50.0],
         [30, 50.0],
-        [40, 48.591],
-        [50, 48.216],
-        [60, 48.369],
-        [70, 48.583],
-        [80, 48.048]
+        [40, 50.0],
+        [50, 50.0],
+        [60, 50.0],
+        [70, 50.0],
+        [80, 50.0]
     ],
     # Chance to die if no hospital beds are available (but not
     # needing ICU care)

@@ -2,7 +2,7 @@ import dash
 import time
 from datetime import date, timedelta
 from flask_session import Session
-from flask_babel import Babel, lazy_gettext as _
+from flask_babel import Babel, get_locale, lazy_gettext as _
 from common import cache
 from common.locale import init_locale
 import uuid
@@ -418,7 +418,8 @@ def apply_scenario(s):
     ivs = get_variable('interventions')
     ivs += s.interventions
     set_variable('interventions', ivs)
-    for key, val in s.variables.items():
+    variables = s.variables or {}
+    for key, val in variables.items():
         set_variable(key, val)
     set_variable('preset_scenario', s.id)
 
