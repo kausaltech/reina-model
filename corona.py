@@ -163,7 +163,8 @@ def render_iv_card():
 
 
 def generate_content_rows():
-    rows = []
+    settingRows = []
+    resultRows = []
 
     scenario_id = get_variable('preset_scenario')
     for scenario in SCENARIOS:
@@ -172,58 +173,65 @@ def generate_content_rows():
     else:
         scenario = None
     if scenario is not None:
-        rows.append(dbc.Row([
+        settingRows.append(dbc.Row([
             dbc.Col(html.P(scenario.description))
         ]))
 
     dp_card = render_disease_params()
-    rows.append(dbc.Row([dbc.Col(dp_card)]))
+    settingRows.append(dbc.Row([dbc.Col(dp_card)]))
 
     iv_card = render_iv_card()
-    rows.append(dbc.Row([dbc.Col(iv_card)]))
+    settingRows.append(dbc.Row([dbc.Col(iv_card)]))
 
-    rows.append(dbc.Row([
+    settingRows.append(dbc.Row([
         dbc.Col(id='scenario-details')
     ]))
 
-    rows.append(dbc.Row([
+    settingRows.append(dbc.Row([
         dbc.Col([
             html.Div(id='simulation-days-placeholder', style=dict(display='none')),
-            dbc.Form(dbc.FormGroup(
-                [
-                    dbc.Label("Timeframe", className="mr-2"),
-                    dcc.Dropdown(
-                        id='simulation-days-dropdown',
-                        options=[dict(label=_('%(days)d days', days=x), value=x) for x in (45, 90, 180, 360)],
-                        value=get_variable('simulation_days'),
-                        searchable=False, clearable=False,
-                        style=dict(width = '160px')
-                    ),
-                ],
-                className="mr-3",
-            ), inline=True),
-        ], width=dict(size=6, offset=0)),
+            dbc.Form(dbc.FormGroup([
+                dbc.Label("Timeframe", className="mr-3"),
+                dcc.Dropdown(
+                    id='simulation-days-dropdown',
+                    options=[dict(label=_('%(days)d days', days=x), value=x) for x in (45, 90, 180, 360)],
+                    value=get_variable('simulation_days'),
+                    searchable=False, clearable=False,
+                    style=dict(width='160px'),
+                )],
+            ), inline=True)
+        ], width=dict(size=6)),
         dbc.Col([
             dbc.Button(_('Run simulation'), id='run-simulation', color='primary'),
         ], width=dict(size=6), className='text-right')
     ], className='mt-3'))
 
-    rows.append(dbc.Row([
+    resultRows.append(dbc.Row([
         dbc.Col([
             html.Div(id="simulation-results-container")
         ]),
     ], className='mt-4'))
 
-    rows.append(dbc.Row([
+    resultRows.append(dbc.Row([
         dbc.Col([
             html.Div(id='day-details-container')
         ])
     ]))
+
+    rows = [
+        dbc.Jumbotron(
+            dbc.Container(settingRows),
+            fluid=True,
+            className="bg-grey"
+            ),
+        dbc.Container(resultRows),
+    ]
     return rows
 
 
 def generate_layout():
     headerRows = []
+    settingsRows = []
     contentRows = []
     headerRows.append(dbc.Row([
         dbc.Col([
@@ -235,7 +243,7 @@ def generate_layout():
     ], className='mt-4'))
 
     scenario_id = get_variable('preset_scenario')
-    contentRows.append(dbc.Row([
+    headerRows.append(dbc.Row([
         dbc.Col([
             html.P(_('Preset scenario')),
         ], md=2),
@@ -245,7 +253,7 @@ def generate_layout():
                 options=[{'label': i.name, 'value': i.id} for i in SCENARIOS],
                 value=scenario_id
             ),
-        ], md=4),
+        ], md=4, className="text-dark"),
     ]))
     contentRows.append(html.Div(id='main-content-container'))
 
@@ -257,7 +265,7 @@ def generate_layout():
             fluid=True,
             className="bg-dark text-light mb-0"
             ),
-        dbc.Container(contentRows),
+        html.Div(contentRows),
         dbc.Jumbotron(
             dbc.Container(stc),
             className="mt-5",
