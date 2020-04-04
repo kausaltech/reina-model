@@ -189,16 +189,23 @@ def generate_content_rows():
     rows.append(dbc.Row([
         dbc.Col([
             html.Div(id='simulation-days-placeholder', style=dict(display='none')),
-            dcc.Dropdown(
-                id='simulation-days-dropdown',
-                options=[dict(label=_('%(days)d days', days=x), value=x) for x in (45, 90, 180, 360)],
-                value=get_variable('simulation_days'),
-                searchable=False, clearable=False,
-            ),
-        ], width=dict(size=2, offset=0)),
+            dbc.Form(dbc.FormGroup(
+                [
+                    dbc.Label("Timeframe", className="mr-2"),
+                    dcc.Dropdown(
+                        id='simulation-days-dropdown',
+                        options=[dict(label=_('%(days)d days', days=x), value=x) for x in (45, 90, 180, 360)],
+                        value=get_variable('simulation_days'),
+                        searchable=False, clearable=False,
+                        style=dict(width = '160px')
+                    ),
+                ],
+                className="mr-3",
+            ), inline=True),
+        ], width=dict(size=6, offset=0)),
         dbc.Col([
             dbc.Button(_('Run simulation'), id='run-simulation', color='primary'),
-        ], width=dict(offset=3), className='text-center')
+        ], width=dict(size=6), className='text-right')
     ], className='mt-3'))
 
     rows.append(dbc.Row([
