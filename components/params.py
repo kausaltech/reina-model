@@ -162,10 +162,10 @@ def render_disease_params():
 
     card = dbc.Card([
         dbc.CardHeader([
-            html.H2(dbc.Button(
-                _('Disease parameters'), className="float-left mt-2",
+            dbc.Button(
+                _('Disease parameters'), className="float-left",
                 id="disease-collapse-button",
-            )),
+            ),
         ]),
         dbc.Collapse([
             dbc.CardBody([
