@@ -102,3 +102,25 @@ body, html {
 .grid-unconnected-downstream-card { margin-top:   125px + $archer-width; }
 
 .plot .scatter .lines { stroke-linecap: round; }
+
+// Dash table
+
+.dash-input-cell-value-container {
+  background-color: $light;
+  font-weight: 700;
+}
+
+.dash-table-container .dash-spreadsheet-container .dash-spreadsheet-inner table {
+  border-collapse: collapse;
+  font-family: monospace;
+  --accent: #AAC5DB;
+  --border: lightgrey;
+  --text-color: #3c3c3c;
+  --hover: #fdfdfd;
+  --background-color-ellipses: #fdfdfd;
+  --faded-text: #fafafa;
+  --faded-text-header: #b4b4b4;
+  --selected-background: rgb(205, 228, 247);
+  --faded-dropdown: #f0f0f0;
+  --muted: #c8c8c8;
+}
