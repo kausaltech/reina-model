@@ -33,6 +33,8 @@ if settings.URL_PREFIX:
 app = dash.Dash(__name__, **app_kwargs)
 app.css.config.serve_locally = True
 app.scripts.config.serve_locally = True
+app.title = 'Agent Based COVID-19 Epidemic Forecast'
+
 server = app.server
 with server.app_context():
     server.config.from_object('common.settings')
@@ -117,10 +119,10 @@ def render_iv_card():
 
     iv_card = dbc.Card([
         dbc.CardHeader([
-            html.H2(dbc.Button(
-                _("Events (%(num)s)", num=len(ivs)), className="float-left mt-2",
+            dbc.Button(
+                _("Events (%(num)s)", num=len(ivs)), className="float-left",
                 id="interventions-collapse-button",
-            )),
+            ),
         ]),
         dbc.Collapse([
             dbc.CardBody([
@@ -145,7 +147,7 @@ def render_iv_card():
                         id='new-intervention-value', type='number', size='6'
                     ), md=2),
                     dbc.Col(dbc.Button(
-                        'Lisää', id='new-intervention-add', color='primary'
+                        _("Add"), id='new-intervention-add', color='primary'
                     ), md=2),
                 ], form=True)
             ]),
@@ -156,35 +158,30 @@ def render_iv_card():
 
 
 def generate_layout():
-    navbar = dbc.NavbarSimple(
-        children=[
-            dbc.Badge("v0.1", pill=True, color="primary", className="mr-1"),
-        ],
-        brand=_("Corona epidemic simulator"),
-        brand_href="#",
-        color="primary",
-        dark=True,
-    )
-    rows = []
-    rows.append(dbc.Row([
+    headerRows = []
+    settingsRows = []
+    contentRows = []
+    headerRows.append(dbc.Row([
         dbc.Col([
+            html.Img(src="data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iMjM2IiBoZWlnaHQ9IjkyIiB2aWV3Qm94PSIwIDAgMjM2IDkyIiBmaWxsPSJub25lIiB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciPjxyZWN0IHdpZHRoPSIyMzYiIGhlaWdodD0iOTIiIGZpbGw9IiMzNDNBNDAiLz48ZyBzdHlsZT0ibWl4LWJsZW5kLW1vZGU6c29mdC1saWdodCI+PGNpcmNsZSBjeD0iNDUuNSIgY3k9IjQ2LjUiIHI9IjQ1LjUiIGZpbGw9IiNENEVCRkYiLz48L2c+PGcgc3R5bGU9Im1peC1ibGVuZC1tb2RlOnNvZnQtbGlnaHQiPjxjaXJjbGUgY3g9IjE5MC41IiBjeT0iNDYuNSIgcj0iNDUuNSIgZmlsbD0iI0Q0RUJGRiIvPjwvZz48ZyBzdHlsZT0ibWl4LWJsZW5kLW1vZGU6c29mdC1saWdodCI+PGNpcmNsZSBjeD0iNDYiIGN5PSI0NiIgcj0iMzYiIGZpbGw9IiNDQkUyRjYiLz48L2c+PGcgc3R5bGU9Im1peC1ibGVuZC1tb2RlOnNvZnQtbGlnaHQiPjxjaXJjbGUgY3g9IjE5MCIgY3k9IjQ2IiByPSIzNiIgZmlsbD0iI0NCRTJGNiIvPjwvZz48ZyBzdHlsZT0ibWl4LWJsZW5kLW1vZGU6c29mdC1saWdodCI+PGNpcmNsZSBjeD0iNDUuNSIgY3k9IjQ2LjUiIHI9IjI2LjUiIGZpbGw9IiNDMkQ5RUQiLz48L2c+PGcgc3R5bGU9Im1peC1ibGVuZC1tb2RlOnNvZnQtbGlnaHQiPjxjaXJjbGUgY3g9IjE5MC41IiBjeT0iNDYuNSIgcj0iMjYuNSIgZmlsbD0iI0MyRDlFRCIvPjwvZz48ZyBzdHlsZT0ibWl4LWJsZW5kLW1vZGU6c29mdC1saWdodCI+PGNpcmNsZSBjeD0iNDUuNSIgY3k9IjQ2LjUiIHI9IjEzLjUiIGZpbGw9IiNBQUM1REIiLz48L2c+PGcgc3R5bGU9Im1peC1ibGVuZC1tb2RlOnNvZnQtbGlnaHQiPjxlbGxpcHNlIGN4PSIxOTAiIGN5PSI0Ni41IiByeD0iMTQiIHJ5PSIxMy41IiBmaWxsPSIjQUFDNURCIi8+PC9nPjxnIHN0eWxlPSJtaXgtYmxlbmQtbW9kZTpzb2Z0LWxpZ2h0Ij48Y2lyY2xlIGN4PSIxMTgiIGN5PSI0NiIgcj0iNDYiIGZpbGw9IiNGQ0Q4RDgiLz48L2c+PGcgc3R5bGU9Im1peC1ibGVuZC1tb2RlOnNvZnQtbGlnaHQiPjxjaXJjbGUgY3g9IjExOCIgY3k9IjQ2IiByPSIzNiIgZmlsbD0iI0Y3QjlCOSIvPjwvZz48ZyBzdHlsZT0ibWl4LWJsZW5kLW1vZGU6c29mdC1saWdodCI+PGNpcmNsZSBjeD0iMTE3LjUiIGN5PSI0NS41IiByPSIyNi41IiBmaWxsPSIjRUY5QTlBIi8+PC9nPjxnIHN0eWxlPSJtaXgtYmxlbmQtbW9kZTpzb2Z0LWxpZ2h0Ij48ZWxsaXBzZSBjeD0iMTE4IiBjeT0iNDUuNSIgcng9IjE0IiByeT0iMTMuNSIgZmlsbD0iI0UzN0Q3RCIvPjwvZz48L3N2Zz4=",
+            className="mb-3"),
             html.H3(_('Forecast of the COVID-19 epidemic: %(name)s', name=get_variable('area_name'))),
             html.P(_('Exploration of the effects of interventions to the progression of the epidemic.', className="lead")),
         ], className='mb-4'),
     ], className='mt-4'))
 
     dp_card = render_disease_params()
-    rows.append(dbc.Row([dbc.Col(dp_card)]))
+    settingsRows.append(dbc.Row([dbc.Col(dp_card)]))
 
     iv_card = render_iv_card()
-    rows.append(dbc.Row([dbc.Col(iv_card)]))
+    settingsRows.append(dbc.Row([dbc.Col(iv_card)]))
 
-    rows.append(dbc.Row([
+    settingsRows.append(dbc.Row([
         dbc.Col([
         ], width=dict(size=6, offset=3))
     ]))
 
-    rows.append(dbc.Row([
+    settingsRows.append(dbc.Row([
         dbc.Col([
             html.Div(id='simulation-days-placeholder', style=dict(display='none')),
             dcc.Dropdown(
@@ -199,13 +196,13 @@ def generate_layout():
         ], width=dict(offset=3), className='text-center')
     ], className='mt-3'))
 
-    rows.append(dbc.Row([
+    contentRows.append(dbc.Row([
         dbc.Col([
             html.Div(id="simulation-results-container")
         ]),
     ], className='mt-4'))
 
-    rows.append(dbc.Row([
+    contentRows.append(dbc.Row([
         dbc.Col([
             html.Div(id='day-details-container')
         ])
@@ -214,8 +211,17 @@ def generate_layout():
     stc = generate_static_content()
 
     return html.Div([
-        navbar,
-        dbc.Container(rows),
+        dbc.Jumbotron(
+            dbc.Container(headerRows),
+            fluid=True,
+            className="bg-dark text-light mb-0"
+            ),
+        dbc.Jumbotron(
+            dbc.Container(settingsRows),
+            fluid=True,
+            className="bg-grey"
+            ),
+        dbc.Container(contentRows),
         dbc.Jumbotron(
             dbc.Container(stc),
             className="mt-5",

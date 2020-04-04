@@ -17,6 +17,7 @@ def make_layout(**kwargs):
             t=30,
             r=15,
             l=60,
+            b=40,
         ),
         yaxis=dict(
             rangemode='tozero',

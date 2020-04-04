@@ -215,7 +215,7 @@ def render_population_card(df):
 
     layout = make_layout(
         title=_('Population'), height=250 + bar_count * IV_BAR_PIXELS, showlegend=True,
-        margin=dict(r=250, b=100 + bar_count * IV_BAR_PIXELS),
+        margin=dict(r=250, b=75 + bar_count * IV_BAR_PIXELS),
         shapes=shapes,
         annotations=annotations
     )
@@ -306,10 +306,10 @@ def render_result_table(df):
 
     card = dbc.Card([
         dbc.CardHeader([
-            html.H2(dbc.Button(
-                _('Simulation result data'), className="float-left mt-2",
+            dbc.Button(
+                _('Simulation result data'), className="float-left",
                 id="simulation-results-data-collapse-button",
-            )),
+            ),
         ]),
         dbc.Collapse([
             dbc.CardBody([res_table], className="px-5"),
