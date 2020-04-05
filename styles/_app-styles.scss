@@ -11,11 +11,42 @@ body, html {
   margin-bottom: 200px;
 }
 
-// Sections
+.text-blue {
+  color: $blue;
+}
+.text-indigo {
+  color: $indigo;
+}
+.text-purple {
+  color: $purple;
+}
+.text-pink {
+  color: $pink;
+}
+.text-red {
+  color: $red;
+}
+.text-orange {
+  color: $orange;
+}
+.text-yellow {
+  color: $yellow;
+}
+.text-green {
+  color: $green;
+}
+.text-teal {
+  color: $teal;
+}
+.text-cyan {
+  color: $cyan;
+}
 
 .bg-gray-400 {
   background-color: $gray-400;
 }
+
+// Sections
 
 .summary-card {
   .card-title {

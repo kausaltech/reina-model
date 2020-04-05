@@ -105,7 +105,7 @@ INTERVENTION_TYPES = {
     'testing-mode': dict(label=_('Testing'), color=THEME_COLORS['cyan'], order=0),
     'limit-mass-gatherings': dict(label=_('Limit mass gatherings'), color=THEME_COLORS['orange'], order=1),
     'limit-mobility': dict(label=_('Limit population mobility'), color=THEME_COLORS['red'], order=2),
-    'import-infections': dict(label=_('Import infections'), color=THEME_COLORS['red'], type='event', order=3)
+    'import-infections': dict(label=_('Import infections'), color=THEME_COLORS['purple'], type='event', order=3)
 }
 
 

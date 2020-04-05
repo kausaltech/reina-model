@@ -8,43 +8,13 @@ ARCHER_STROKE = {
     },
 }
 
-GHG_MAIN_SECTOR_COLORS_FI = {
-    'Lämmitys': '#FD4F00',
-    'Liikenne': '#FFC61E',
-    'Sähkö': '#BD2719',
-    'Jätteiden käsittely': '#009246',
-    'Teollisuus ja työkoneet': '#F5A3C7',
-    'Maatalous': '#FFE977'
-}
-
-
-GHG_MAIN_SECTOR_COLORS = {
-    'BuildingHeating': '#fd4f00',
-    'Transportation': '#00d7a7',
-    'ElectricityConsumption': '#9fc9eb',
-    'Waste': '#ffe977',
-    'Industry': '#F5A3C7',
-    'Agriculture': '#ffc61e'
-}
-
- 
-HELSINKI_COLORS = {
-    'brick': '#bd2719',
-    'metro': '#fd4f00',
-    'summer': '#ffc61e',
-    'coat': '#0072c6',
-    'fog': '#9fc9eb',
-    'silver': '#dedfe1',
-    'gold': '#c2a251',
-}
-
 THEME_COLORS = {
     'blue':    '#4E80A6',
     'indigo':  '#4C478F',
     'purple':  '#8849B9',
     'pink':    '#E37D7D',
     'red':     '#A73939',
-    'orange':  '#C88217',
+    'orange':  '#EAB747',
     'yellow':  '#F4CE73',
     'green':   '#279A6D',
     'teal':    '#7AD7A4',

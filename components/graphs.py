@@ -7,7 +7,7 @@ import dash_core_components as dcc
 
 from utils import deepupdate
 from utils.data import find_consecutive_start
-from utils.colors import GHG_MAIN_SECTOR_COLORS, generate_color_scale
+from utils.colors import THEME_COLORS, generate_color_scale
 
 
 def make_layout(**kwargs):
@@ -102,7 +102,7 @@ class PredictionFigureSeries:
         if forecast and self.historical_color:
             color = Color(self.historical_color)
         else:
-            color = Color(GHG_MAIN_SECTOR_COLORS[self.graph.sector_name])
+            color = Color(THEME_COLORS[self.graph.sector_name])
 
         if self.color_idx is not None:
             colors = generate_color_scale(color.hex, self.color_scale)

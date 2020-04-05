@@ -203,34 +203,28 @@ def generate_content_rows():
     resultRows.append(html.H4(_('Outcome'), className="mb-3"))
 
     # Indicator Placemarkers TODO: Map to data
-    resultRows.append(dbc.Row([
-        dbc.Col(
-            dbc.Card(
-                dbc.CardBody([
-                    html.H6(_('Restriction Day Index')),
-                    html.P("197", className="display-4"),
-                    html.Small("Total number of days with full mobility interventions."),
-                ])
-            )
-        , width=dict(size=4)),
-        dbc.Col(
-            dbc.Card(
-                dbc.CardBody([
-                    html.H6(_('ICU Capacity Exceeded')),
-                    html.P("18", className="display-4"),
-                    html.Small("Days ICU units had less than 10% of capacity left."),
-                ])
-            )
-        , width=dict(size=4)),
-                dbc.Col(
-            dbc.Card(
-                dbc.CardBody([
-                    html.H6(_('Fatalities')),
-                    html.P("403", className="display-4"),
-                    html.Small("Total number of deaths."),
-                ])
-            )
-        , width=dict(size=4)),
+    resultRows.append(dbc.CardDeck([
+        dbc.Card(
+            dbc.CardBody([
+                html.H6(_('Restriction Day Index')),
+                html.P("197", className="display-4 text-primary mb-0"),
+                html.Small("Total number of days with full mobility interventions."),
+            ])
+        ),
+        dbc.Card(
+            dbc.CardBody([
+                html.H6(_('ICU Capacity Exceeded')),
+                html.P("18", className="display-4 text-primary mb-0"),
+                html.Small("Days ICU units had less than 10% of capacity left."),
+            ])
+        ),
+        dbc.Card(
+            dbc.CardBody([
+                html.H6(_('Fatalities')),
+                html.P("403", className="display-4 text-primary mb-0"),
+                html.Small("Total number of deaths."),
+            ])
+        )
     ]))
 
     resultRows.append(dbc.Row([
