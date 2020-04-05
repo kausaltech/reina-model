@@ -27,20 +27,20 @@ def make_layout(**kwargs):
             domain=[0.02, 1],
             tickfont=dict(
                 family=fontStack,
-                size=14,
+                size=13,
             ),
             gridwidth=1,
             gridcolor='#ccc',
             fixedrange=True,
         ),
         xaxis=dict(
-            showgrid=False,
+            showgrid=True,
             showline=False,
             anchor='free',
             domain=[0.01, 1],
             tickfont=dict(
                 family=fontStack,
-                size=14,
+                size=13,
             ),
             gridwidth=1,
             gridcolor='#ccc',
