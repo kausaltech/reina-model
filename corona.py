@@ -120,22 +120,27 @@ def render_iv_card():
             ], className="px-5"),
             dbc.CardFooter([
                 html.H6(_('Add a new event')),
-                dbc.Row([
-                    dbc.Col(dcc.DatePickerSingle(
+                dbc.Form([
+                    dcc.DatePickerSingle(
                         id='new-intervention-date', display_format='YYYY-MM-DD',
                         first_day_of_week=1,
-                    ), md=3),
-                    dbc.Col(dcc.Dropdown(
+                        className="mr-3",
+                    ),
+                    dcc.Dropdown(
                         id='new-intervention-id',
-                        options=[{'label': i.label, 'value': i.name} for i in INTERVENTIONS]
-                    ), md=5),
-                    dbc.Col(dbc.Input(
-                        id='new-intervention-value', type='number', size='6'
-                    ), md=2),
-                    dbc.Col(dbc.Button(
+                        options=[{'label': i.label, 'value': i.name} for i in INTERVENTIONS],
+                        style=dict(width="450px"),
+                    ),
+                    dbc.Input(
+                        id='new-intervention-value', type='number', size='6',
+                        style=dict(width="100px"),
+                        className="mx-3",
+                        placeholder=_('value'),
+                    ),
+                    dbc.Button(
                         _("Add"), id='new-intervention-add', color='primary'
-                    ), md=2),
-                ], form=True)
+                    ),
+                ], inline=True),
             ]),
         ], is_open=False, id='interventions-collapse'),
     ], className='mb-4')
@@ -164,7 +169,7 @@ def generate_content_rows():
 
     dp_card = render_disease_params()
 
-    settingRows.append(html.H4("Parameters", className="mb-3"))
+    settingRows.append(html.H4(_('Parameters'), className="mb-3"))
     settingRows.append(dbc.Row([dbc.Col(dp_card)]))
 
     iv_card = render_iv_card()
@@ -181,7 +186,7 @@ def generate_content_rows():
             html.Div(id='simulation-days-placeholder', style=dict(display='none')),
             dbc.Form([
                 dbc.FormGroup([
-                    dbc.Label("Timeframe", className="mr-3"),
+                    dbc.Label(_('Timeframe'), className="mr-3"),
                     dcc.Dropdown(
                         id='simulation-days-dropdown',
                         options=[dict(label=_('%(days)d days', days=x), value=x) for x in (45, 90, 180, 360)],
@@ -196,7 +201,7 @@ def generate_content_rows():
     ], className='mt-3'))
 
     resultRows.append(html.Hr())
-    resultRows.append(html.H4("Outcome", className="mb-3"))
+    resultRows.append(html.H4(_('Outcome'), className="mb-3"))
     resultRows.append(dbc.Row([
         dbc.Col([
             html.Div(id="simulation-results-container")
@@ -232,7 +237,7 @@ def generate_layout():
             html.Img(src="data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iMjM2IiBoZWlnaHQ9IjkyIiB2aWV3Qm94PSIwIDAgMjM2IDkyIiBmaWxsPSJub25lIiB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciPjxyZWN0IHdpZHRoPSIyMzYiIGhlaWdodD0iOTIiIGZpbGw9IiMzNDNBNDAiLz48ZyBzdHlsZT0ibWl4LWJsZW5kLW1vZGU6c29mdC1saWdodCI+PGNpcmNsZSBjeD0iNDUuNSIgY3k9IjQ2LjUiIHI9IjQ1LjUiIGZpbGw9IiNENEVCRkYiLz48L2c+PGcgc3R5bGU9Im1peC1ibGVuZC1tb2RlOnNvZnQtbGlnaHQiPjxjaXJjbGUgY3g9IjE5MC41IiBjeT0iNDYuNSIgcj0iNDUuNSIgZmlsbD0iI0Q0RUJGRiIvPjwvZz48ZyBzdHlsZT0ibWl4LWJsZW5kLW1vZGU6c29mdC1saWdodCI+PGNpcmNsZSBjeD0iNDYiIGN5PSI0NiIgcj0iMzYiIGZpbGw9IiNDQkUyRjYiLz48L2c+PGcgc3R5bGU9Im1peC1ibGVuZC1tb2RlOnNvZnQtbGlnaHQiPjxjaXJjbGUgY3g9IjE5MCIgY3k9IjQ2IiByPSIzNiIgZmlsbD0iI0NCRTJGNiIvPjwvZz48ZyBzdHlsZT0ibWl4LWJsZW5kLW1vZGU6c29mdC1saWdodCI+PGNpcmNsZSBjeD0iNDUuNSIgY3k9IjQ2LjUiIHI9IjI2LjUiIGZpbGw9IiNDMkQ5RUQiLz48L2c+PGcgc3R5bGU9Im1peC1ibGVuZC1tb2RlOnNvZnQtbGlnaHQiPjxjaXJjbGUgY3g9IjE5MC41IiBjeT0iNDYuNSIgcj0iMjYuNSIgZmlsbD0iI0MyRDlFRCIvPjwvZz48ZyBzdHlsZT0ibWl4LWJsZW5kLW1vZGU6c29mdC1saWdodCI+PGNpcmNsZSBjeD0iNDUuNSIgY3k9IjQ2LjUiIHI9IjEzLjUiIGZpbGw9IiNBQUM1REIiLz48L2c+PGcgc3R5bGU9Im1peC1ibGVuZC1tb2RlOnNvZnQtbGlnaHQiPjxlbGxpcHNlIGN4PSIxOTAiIGN5PSI0Ni41IiByeD0iMTQiIHJ5PSIxMy41IiBmaWxsPSIjQUFDNURCIi8+PC9nPjxnIHN0eWxlPSJtaXgtYmxlbmQtbW9kZTpzb2Z0LWxpZ2h0Ij48Y2lyY2xlIGN4PSIxMTgiIGN5PSI0NiIgcj0iNDYiIGZpbGw9IiNGQ0Q4RDgiLz48L2c+PGcgc3R5bGU9Im1peC1ibGVuZC1tb2RlOnNvZnQtbGlnaHQiPjxjaXJjbGUgY3g9IjExOCIgY3k9IjQ2IiByPSIzNiIgZmlsbD0iI0Y3QjlCOSIvPjwvZz48ZyBzdHlsZT0ibWl4LWJsZW5kLW1vZGU6c29mdC1saWdodCI+PGNpcmNsZSBjeD0iMTE3LjUiIGN5PSI0NS41IiByPSIyNi41IiBmaWxsPSIjRUY5QTlBIi8+PC9nPjxnIHN0eWxlPSJtaXgtYmxlbmQtbW9kZTpzb2Z0LWxpZ2h0Ij48ZWxsaXBzZSBjeD0iMTE4IiBjeT0iNDUuNSIgcng9IjE0IiByeT0iMTMuNSIgZmlsbD0iI0UzN0Q3RCIvPjwvZz48L3N2Zz4=",
             className="mb-3"),
             html.H1("REINA", className="font-weight-bold", style=dict(letterSpacing=".2em")),
-            html.H6("Realistic Epidemic Interaction Network Agent Model", className=""),
+            html.H6("Realistic Epidemic Interaction Network Agent Model"),
         ], className='mb-4'),
     ], className='mt-4'))
 
@@ -240,9 +245,9 @@ def generate_layout():
 
     settingsRows.append(dbc.Row([
         dbc.Col([
-            html.H4("Scenario", className="mb-3"),
-            html.H5(_('Forecast of the COVID-19 epidemic: %(name)s', name=get_variable('area_name'))),
-        ], md=12, className="mb-4"),
+            html.H4(_('Scenario'), className="mb-3"),
+            html.P(_('Forecast of the COVID-19 epidemic: %(name)s', name=get_variable('area_name')), className="lead"),
+        ], md=12),
     ]))
 
     settingsRows.append(dbc.Row([
