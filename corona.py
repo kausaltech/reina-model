@@ -34,7 +34,7 @@ if settings.URL_PREFIX:
 app = dash.Dash(__name__, **app_kwargs)
 app.css.config.serve_locally = True
 app.scripts.config.serve_locally = True
-app.title = 'Agent Based COVID-19 Epidemic Forecast'
+app.title = 'REINA - Epidemic Model'
 
 server = app.server
 with server.app_context():
@@ -49,25 +49,6 @@ with server.app_context():
     init_locale(babel)
     register_results_callbacks(app)
     register_params_callbacks(app)
-
-
-'''
-### Kuinka simulaatio toimii?
-Simulaatiossa mallinnetaan kuinka COVID-19 epidemia etenee sairaanhoitokapasiteetista,
-testauskäytännöistä ja ihmiset liikkuvuutta rajoittavista toimenpiteistä riippuen.
-
-Simulaation taustalla on agenttipohjainen malli, jossa käydään läpi jokainen sairastunut
-koko infektio- ja sairauspolun aikana.
-
-#### Tapahtumat
-Tapahtumalistasta voi simulaation lisätä tai poistaa tapahtumia tai toimenpiteitä.
-
-#### Katso myös
-Keskustelua yhteiskehittämisestä [täällä](https://korona.kausal.tech/)
-
-#### Tekijät
-Tämä on työkalun keskeneräinen kehitysversio. Voit tutustua työkalun lähdekoodiin [GitHubissa](https://github.com/kausaltech/corona-agent-simulation)
-'''
 
 
 def generate_static_content():
@@ -126,7 +107,7 @@ def render_iv_card():
                         _("Events (%(num)s)", num=len(ivs)), className="float-left",
                         id="interventions-collapse-button",
                     ),
-                ], width=dict(size=2, order=1)),
+                ], width=dict(size=6, order=1)),
             ]),
         ]),
         dbc.Collapse([
@@ -139,22 +120,27 @@ def render_iv_card():
             ], className="px-5"),
             dbc.CardFooter([
                 html.H6(_('Add a new event')),
-                dbc.Row([
-                    dbc.Col(dcc.DatePickerSingle(
+                dbc.Form([
+                    dcc.DatePickerSingle(
                         id='new-intervention-date', display_format='YYYY-MM-DD',
                         first_day_of_week=1,
-                    ), md=3),
-                    dbc.Col(dcc.Dropdown(
+                        className="mr-3",
+                    ),
+                    dcc.Dropdown(
                         id='new-intervention-id',
-                        options=[{'label': i.label, 'value': i.name} for i in INTERVENTIONS]
-                    ), md=5),
-                    dbc.Col(dbc.Input(
-                        id='new-intervention-value', type='number', size='6'
-                    ), md=2),
-                    dbc.Col(dbc.Button(
+                        options=[{'label': i.label, 'value': i.name} for i in INTERVENTIONS],
+                        style=dict(width="450px"),
+                    ),
+                    dbc.Input(
+                        id='new-intervention-value', type='number', size='6',
+                        style=dict(width="100px"),
+                        className="mx-3",
+                        placeholder=_('value'),
+                    ),
+                    dbc.Button(
                         _("Add"), id='new-intervention-add', color='primary'
-                    ), md=2),
-                ], form=True)
+                    ),
+                ], inline=True),
             ]),
         ], is_open=False, id='interventions-collapse'),
     ], className='mb-4')
@@ -163,6 +149,7 @@ def render_iv_card():
 
 
 def generate_content_rows():
+    scenarioRows = []
     settingRows = []
     resultRows = []
 
@@ -173,11 +160,16 @@ def generate_content_rows():
     else:
         scenario = None
     if scenario is not None:
-        settingRows.append(dbc.Row([
-            dbc.Col(html.P(scenario.description))
+        scenarioRows.append(dbc.Row([
+            dbc.Col([
+                html.Strong(scenario.name+": "),
+                html.Span(scenario.description),
+            ])
         ]))
 
     dp_card = render_disease_params()
+
+    settingRows.append(html.H4(_('Parameters'), className="mb-3"))
     settingRows.append(dbc.Row([dbc.Col(dp_card)]))
 
     iv_card = render_iv_card()
@@ -187,25 +179,28 @@ def generate_content_rows():
         dbc.Col(id='scenario-details')
     ]))
 
+    
+    
     settingRows.append(dbc.Row([
         dbc.Col([
             html.Div(id='simulation-days-placeholder', style=dict(display='none')),
-            dbc.Form(dbc.FormGroup([
-                dbc.Label("Timeframe", className="mr-3"),
-                dcc.Dropdown(
-                    id='simulation-days-dropdown',
-                    options=[dict(label=_('%(days)d days', days=x), value=x) for x in (45, 90, 180, 360)],
-                    value=get_variable('simulation_days'),
-                    searchable=False, clearable=False,
-                    style=dict(width='160px'),
-                )],
-            ), inline=True)
-        ], width=dict(size=6)),
-        dbc.Col([
-            dbc.Button(_('Run simulation'), id='run-simulation', color='primary'),
-        ], width=dict(size=6), className='text-right')
+            dbc.Form([
+                dbc.FormGroup([
+                    dbc.Label(_('Timeframe'), className="mr-3"),
+                    dcc.Dropdown(
+                        id='simulation-days-dropdown',
+                        options=[dict(label=_('%(days)d days', days=x), value=x) for x in (45, 90, 180, 360)],
+                        value=get_variable('simulation_days'),
+                        searchable=False, clearable=False,
+                        style=dict(width='160px'),
+                    )
+                ], className="mr-3"),
+                dbc.Button(_('Run simulation'), id='run-simulation', color='primary')
+                ], inline=True)
+        ], width=dict(size=10)),
     ], className='mt-3'))
 
+    resultRows.append(html.H4(_('Outcome'), className="mb-3"))
     resultRows.append(dbc.Row([
         dbc.Col([
             html.Div(id="simulation-results-container")
@@ -219,11 +214,15 @@ def generate_content_rows():
     ]))
 
     rows = [
-        dbc.Jumbotron(
-            dbc.Container(settingRows),
-            fluid=True,
-            className="bg-grey"
+        html.Div(
+            dbc.Container(scenarioRows),
+            className="bg-gray-400 pb-4"
             ),
+        html.Div(
+            dbc.Container(settingRows),
+            className="bg-grey py-4"
+            ),
+        html.Hr(),
         dbc.Container(resultRows),
     ]
     return rows
@@ -237,38 +236,50 @@ def generate_layout():
         dbc.Col([
             html.Img(src="data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iMjM2IiBoZWlnaHQ9IjkyIiB2aWV3Qm94PSIwIDAgMjM2IDkyIiBmaWxsPSJub25lIiB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciPjxyZWN0IHdpZHRoPSIyMzYiIGhlaWdodD0iOTIiIGZpbGw9IiMzNDNBNDAiLz48ZyBzdHlsZT0ibWl4LWJsZW5kLW1vZGU6c29mdC1saWdodCI+PGNpcmNsZSBjeD0iNDUuNSIgY3k9IjQ2LjUiIHI9IjQ1LjUiIGZpbGw9IiNENEVCRkYiLz48L2c+PGcgc3R5bGU9Im1peC1ibGVuZC1tb2RlOnNvZnQtbGlnaHQiPjxjaXJjbGUgY3g9IjE5MC41IiBjeT0iNDYuNSIgcj0iNDUuNSIgZmlsbD0iI0Q0RUJGRiIvPjwvZz48ZyBzdHlsZT0ibWl4LWJsZW5kLW1vZGU6c29mdC1saWdodCI+PGNpcmNsZSBjeD0iNDYiIGN5PSI0NiIgcj0iMzYiIGZpbGw9IiNDQkUyRjYiLz48L2c+PGcgc3R5bGU9Im1peC1ibGVuZC1tb2RlOnNvZnQtbGlnaHQiPjxjaXJjbGUgY3g9IjE5MCIgY3k9IjQ2IiByPSIzNiIgZmlsbD0iI0NCRTJGNiIvPjwvZz48ZyBzdHlsZT0ibWl4LWJsZW5kLW1vZGU6c29mdC1saWdodCI+PGNpcmNsZSBjeD0iNDUuNSIgY3k9IjQ2LjUiIHI9IjI2LjUiIGZpbGw9IiNDMkQ5RUQiLz48L2c+PGcgc3R5bGU9Im1peC1ibGVuZC1tb2RlOnNvZnQtbGlnaHQiPjxjaXJjbGUgY3g9IjE5MC41IiBjeT0iNDYuNSIgcj0iMjYuNSIgZmlsbD0iI0MyRDlFRCIvPjwvZz48ZyBzdHlsZT0ibWl4LWJsZW5kLW1vZGU6c29mdC1saWdodCI+PGNpcmNsZSBjeD0iNDUuNSIgY3k9IjQ2LjUiIHI9IjEzLjUiIGZpbGw9IiNBQUM1REIiLz48L2c+PGcgc3R5bGU9Im1peC1ibGVuZC1tb2RlOnNvZnQtbGlnaHQiPjxlbGxpcHNlIGN4PSIxOTAiIGN5PSI0Ni41IiByeD0iMTQiIHJ5PSIxMy41IiBmaWxsPSIjQUFDNURCIi8+PC9nPjxnIHN0eWxlPSJtaXgtYmxlbmQtbW9kZTpzb2Z0LWxpZ2h0Ij48Y2lyY2xlIGN4PSIxMTgiIGN5PSI0NiIgcj0iNDYiIGZpbGw9IiNGQ0Q4RDgiLz48L2c+PGcgc3R5bGU9Im1peC1ibGVuZC1tb2RlOnNvZnQtbGlnaHQiPjxjaXJjbGUgY3g9IjExOCIgY3k9IjQ2IiByPSIzNiIgZmlsbD0iI0Y3QjlCOSIvPjwvZz48ZyBzdHlsZT0ibWl4LWJsZW5kLW1vZGU6c29mdC1saWdodCI+PGNpcmNsZSBjeD0iMTE3LjUiIGN5PSI0NS41IiByPSIyNi41IiBmaWxsPSIjRUY5QTlBIi8+PC9nPjxnIHN0eWxlPSJtaXgtYmxlbmQtbW9kZTpzb2Z0LWxpZ2h0Ij48ZWxsaXBzZSBjeD0iMTE4IiBjeT0iNDUuNSIgcng9IjE0IiByeT0iMTMuNSIgZmlsbD0iI0UzN0Q3RCIvPjwvZz48L3N2Zz4=",
             className="mb-3"),
-            html.H3(_('Forecast of the COVID-19 epidemic: %(name)s', name=get_variable('area_name'))),
-            html.P(_('Exploration of the effects of interventions to the progression of the epidemic.', className="lead")),
+            html.H1("REINA", className="font-weight-bold", style=dict(letterSpacing=".2em")),
+            html.H6("Realistic Epidemic Interaction Network Agent Model"),
         ], className='mb-4'),
     ], className='mt-4'))
 
     scenario_id = get_variable('preset_scenario')
-    headerRows.append(dbc.Row([
+
+    settingsRows.append(dbc.Row([
         dbc.Col([
-            html.P(_('Preset scenario')),
-        ], md=2),
+            html.H4(_('Scenario'), className="mb-3"),
+            html.P(_('Forecast of the COVID-19 epidemic: %(name)s', name=get_variable('area_name')), className="lead"),
+        ], md=12),
+    ]))
+
+    settingsRows.append(dbc.Row([
         dbc.Col([
-            dcc.Dropdown(
+            dbc.Form(dbc.FormGroup([
+                dbc.Label(_('Preset'), className="mr-3"),
+                dcc.Dropdown(
                 id='preset-scenario-selector',
                 options=[{'label': i.name, 'value': i.id} for i in SCENARIOS],
-                value=scenario_id
-            ),
-        ], md=4, className="text-dark"),
+                value=scenario_id,
+                style=dict(width="300px"),
+            )],
+            ), inline=True)
+        ], md=12),
     ]))
     contentRows.append(html.Div(id='main-content-container'))
 
     stc = generate_static_content()
 
     return html.Div([
-        dbc.Jumbotron(
+        html.Div(
             dbc.Container(headerRows),
-            fluid=True,
-            className="bg-dark text-light mb-0"
+            className="bg-dark text-light py-4"
+            ),
+        html.Div(
+            dbc.Container(settingsRows),
+            className="bg-gray-400 pt-4 pb-2"
             ),
         html.Div(contentRows),
         dbc.Jumbotron(
             dbc.Container(stc),
-            className="mt-5",
+            className="mt-5 mb-0",
             fluid=True,
         )
     ])
