@@ -11,6 +11,12 @@ body, html {
   margin-bottom: 200px;
 }
 
+// Sections
+
+.bg-gray-400 {
+  background-color: $gray-400;
+}
+
 .summary-card {
   .card-title {
     font-size: 1.2rem;
