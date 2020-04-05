@@ -90,7 +90,7 @@ def render_validation_card(df):
 
 
 IV_BACKGROUND_COLOR = '#eceae6'
-IV_Y_HEIGHT = 0.08
+IV_Y_HEIGHT = 0.06
 IV_Y_MARGIN = IV_Y_HEIGHT * 3
 IV_BAR_PIXELS = 30
 
@@ -102,10 +102,10 @@ class InterventionRange:
 
 
 INTERVENTION_TYPES = {
-    'testing-mode': dict(label=_('Testing'), color='blue', order=0),
-    'limit-mass-gatherings': dict(label=_('Limit mass gatherings'), color='orange', order=1),
-    'limit-mobility': dict(label=_('Limit population mobility'), color='red', order=2),
-    'import-infections': dict(label=_('Import infections'), color='red', type='event', order=3)
+    'testing-mode': dict(label=_('Testing'), color=THEME_COLORS['cyan'], order=0),
+    'limit-mass-gatherings': dict(label=_('Limit mass gatherings'), color=THEME_COLORS['orange'], order=1),
+    'limit-mobility': dict(label=_('Limit population mobility'), color=THEME_COLORS['red'], order=2),
+    'import-infections': dict(label=_('Import infections'), color=THEME_COLORS['red'], type='event', order=3)
 }
 
 
@@ -151,7 +151,7 @@ def _draw_one_intervention(index, ranges, name, y_start):
 
 
 def make_intervention_shapes(df):
-    Y_START = -0.4
+    Y_START = -0.3
 
     shapes = []
     annotations = []
@@ -215,7 +215,7 @@ def render_population_card(df):
 
     layout = make_layout(
         title=_('Population'), height=250 + bar_count * IV_BAR_PIXELS, showlegend=True,
-        margin=dict(r=250, b=75 + bar_count * IV_BAR_PIXELS),
+        margin=dict(r=250, b=50 + bar_count * IV_BAR_PIXELS),
         shapes=shapes,
         annotations=annotations
     )
