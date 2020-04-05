@@ -11,6 +11,12 @@ body, html {
   margin-bottom: 200px;
 }
 
+// Sections
+
+.bg-gray-400 {
+  background-color: $gray-400;
+}
+
 .summary-card {
   .card-title {
     font-size: 1.2rem;
@@ -123,4 +129,22 @@ body, html {
   --selected-background: rgb(205, 228, 247);
   --faded-dropdown: #f0f0f0;
   --muted: #c8c8c8;
+}
+
+// Dash Date Selector style override
+
+.SingleDatePickerInput__withBorder {
+  border-radius: 4px;
+  border: 1px solid #cccccc;
+}
+
+.DateInput {
+  border-radius: 4px;
+}
+
+.DateInput_input {
+  padding-top: 4px;
+  padding-bottom: 4px;
+  border-radius: 4px;
+  font-size: 16px;
 }
