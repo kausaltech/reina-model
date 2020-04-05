@@ -3,6 +3,7 @@ from utils import get_root_path
 from . import calcfunc
 
 
+@calcfunc()
 def get_population():
     f = open(get_root_path() + '/data/005_11re_2018.csv', 'r', encoding='iso8859-1')
     f.readline()
@@ -19,19 +20,18 @@ def get_population():
     return df.set_index('Area')
 
 
-MUNIS_BY_DISTRICT = {
-    'HUS': [
-        'Askola', 'Järvenpää', 'Lohja', 'Raasepori', 'Espoo', 'Karkkila',
-        'Loviisa', 'Sipoo', 'Hanko', 'Kauniainen', 'Mäntsälä', 'Siuntio',
-        'Helsinki', 'Kerava', 'Nurmijärvi', 'Tuusula', 'Hyvinkää', 'Kirkkonummi',
-        'Pornainen', 'Vantaa', 'Inkoo', 'Lapinjärvi', 'Porvoo', 'Vihti'
-    ]
-}
+@calcfunc()
+def get_healthcare_districts():
+    p = get_root_path() + '/data/Shp_jäsenkunnat_2020.xls'
+    df = pd.read_excel(p, header=3, sheet_name='shp_jäsenkunnat_2020_lkm')
+    df = df[['kunta', 'sairaanhoitopiiri', 'erva-alue']].dropna()
+    return df
 
 
 @calcfunc(variables=['area_name'])
 def get_population_for_area(variables):
-    muni_names = MUNIS_BY_DISTRICT[variables['area_name']]
+    df = get_healthcare_districts()
+    muni_names = df[df['sairaanhoitopiiri'] == variables['area_name']]['kunta'].unique()
     df = get_population()
     df = df[df.index.isin(muni_names)]
     df = df.reset_index().drop(columns='Area').groupby(['Age']).sum()
@@ -69,8 +69,11 @@ def get_contacts_for_country(variables):
 @calcfunc(variables=['area_name'])
 def get_detected_cases(variables):
     area_name = variables['area_name']
-    f = open(get_root_path() + '/data/cases_fin.csv', 'r')
+    assert area_name == 'HUS'
+
+    f = open(get_root_path() + '/data/hosp_cases_hus.csv', 'r')
     df = pd.read_csv(f, header=0).set_index('date')
+    return df
 
     cdf = df[['district', 'confirmed']].reset_index().set_index(['date', 'district']).unstack('district')
     cdf['total'] = cdf.sum(axis=1)
@@ -89,6 +92,15 @@ def get_detected_cases(variables):
 
 
 if __name__ == '__main__':
+    get_detected_cases()
+    exit()
+
+    f = open(get_root_path() + '/data/hospitalizations_fin.csv', 'r')
+    hdf = pd.read_csv(f, header=0).set_index('date')
+    hdf = (hdf * ratio).dropna().astype(int)
+    df['hospitalized'] = hdf['hospitalized']
+
+
     df = get_contacts_for_country()
     print(df)
     # print(df.sum(axis=0))

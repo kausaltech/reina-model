@@ -55,6 +55,8 @@ def generate_population_traces(df):
 
 def render_validation_card(df):
     det = get_detected_cases()
+    det = det[det['confirmed'] > 0]
+
     max_date = det.index.max()
     df = df[df.index <= max_date]
 
@@ -69,7 +71,6 @@ def render_validation_card(df):
         ))
         col_name_map = {
             'all_detected': 'confirmed',
-            'dead': 'deaths',
         }
         det_col_name = col_name_map.get(col_name, col_name)
         traces.append(dict(

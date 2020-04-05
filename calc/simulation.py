@@ -57,6 +57,7 @@ def create_disease(variables):
     variables=list(model.DISEASE_PARAMS) + [
         'simulation_days', 'interventions', 'start_date',
         'hospital_beds', 'icu_units', 'p_detected_anyway',
+        'random_seed',
     ],
     funcs=[get_contacts_for_country]
 )
@@ -80,7 +81,7 @@ def simulate_individuals(variables, step_callback=None):
         p_detected_anyway=variables['p_detected_anyway'] / 100
     )
     disease = create_disease(variables)
-    context = model.Context(pop, hc, disease, start_date=variables['start_date'])
+    context = model.Context(pop, hc, disease, start_date=variables['start_date'], random_seed=variables['random_seed'])
     start_date = date.fromisoformat(variables['start_date'])
 
     for iv in variables['interventions']:
@@ -187,7 +188,31 @@ def sample_model_parameters(what, age, variables):
     return c
 
 
+@calcfunc(funcs=[simulate_individuals])
+def simulate_monte_carlo():
+    from variables import allow_set_variable, set_variable
+
+    dfs = []
+    with allow_set_variable():
+        for seed in range(0, 20):
+            print(seed)
+            set_variable('random_seed', seed)
+            df = simulate_individuals()
+            df['run'] = seed
+            dfs.append(df)
+
+    df = pd.concat(dfs)
+    df.index.name = 'date'
+    df = df.reset_index()
+    return df
+
+
 if __name__ == '__main__':
+    df = simulate_monte_carlo()
+    print(df[df.date == df.date.max()])
+    last = df[df.date == df.date.max()]
+    print(last.dead.describe(percentiles=[.25, .5, .75]))
+    exit()
     #sample_model_parameters('icu_period', 50)
     #exit()
 

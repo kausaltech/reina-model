@@ -564,8 +564,10 @@ cdef class Disease:
             args.append(variables[name])
         return cls(*args)
 
+
     cdef float get_infectiousness_over_time(self, int day) nogil:
         return self.infectiousness_over_time.get(day, 0) * self.p_infection
+
 
     cdef float get_source_infectiousness(self, Person *source) nogil:
         cdef int day
@@ -578,10 +580,12 @@ cdef class Disease:
             return 0
         return self.infectiousness_over_time.get(day, 0) * self.p_infection
 
+
     cdef bint did_infect(self, Person *person, Context context, Person *source) nogil:
         cdef float chance = self.get_source_infectiousness(source)
         # FIXME: Smaller chance for asymptomatic people?
         return context.random.chance(chance)
+
 
     cdef int people_exposed(self, Person *person, Context context) nogil:
         # Detected people are quarantined
@@ -619,12 +623,14 @@ cdef class Disease:
 
         return context.random.chance(chance)
 
+
     cdef int get_incubation_days(self, Person *person, Context context) nogil:
         # gamma distribution, mean 5.1 days
         # Source: https://doi.org/10.25561/77731
         cdef float f = context.random.gamma(5.1, 0.86)
         cdef int days = <int> f
         return days
+
 
     cdef int get_illness_days(self, Person *person, Context context) nogil:
         cdef float f = context.random.lognormal(0, 0.6)
@@ -778,24 +784,25 @@ cdef class Context:
     cdef list interventions
     cdef str start_date
     cdef int total_infections, total_infectors, exposed_per_day
+    cdef float cross_border_mobility_factor
 
     def __init__(self, Population pop, HealthcareSystem hc, Disease disease, str start_date, int random_seed=4321):
+        self.random = RandomPool(random_seed)
         self.create_population(pop.susceptible)
 
         self.problem = SimulationProblem.NO_PROBLEMOS
         self.pop = pop
         self.hc = hc
         self.disease = disease
-        self.random = RandomPool(random_seed)
         self.start_date = start_date
         self.day = 0
         self.interventions = []
+        self.cross_border_mobility_factor = 1.0
 
         # Per day
         self.total_infectors = 0
         self.total_infections = 0
         self.exposed_per_day = 0
-
 
     def add_intervention(self, day, name, value):
         if value is None:
@@ -813,25 +820,27 @@ cdef class Context:
         self._free_people()
         PyMem_Free(self.people)
 
-    cdef Person *get_people(self):
-        return self.people
-
-    cdef float lognormal(self, float mean=0.0, float sigma=1.0) nogil:
-        return self.random.lognormal(mean, sigma)
+    cdef inline Person *get_random_person(self):
+        return self.people + (self.random.getint() % self.total_people)
 
     cdef create_population(self, age_counts):
         cdef int idx
         cdef Person *p
+        cdef cnp.ndarray[int] people_idx
 
         total = 0
         for age, count in enumerate(age_counts):
             total += count
 
+        # Initialize list of people in random order
+        people_idx = np.array(np.arange(0, total), dtype='i')
+        np.random.shuffle(people_idx)
+
         people = <Person *> PyMem_Malloc(total * sizeof(Person))
         idx = 0
         for age, count in enumerate(age_counts):
             for i in range(count):
-                p = people + idx
+                p = people + people_idx[idx]
                 person_init(p, idx, age)
                 idx += 1
         self.total_people = total
@@ -892,6 +901,9 @@ cdef class Context:
             # Introduct infections from elsewhere
             count = value
             self.infect_people(count)
+        elif name == 'limit-cross-border-mobility':
+            # Introduct infections from elsewhere
+            self.context.cross_border_mobility_factor = (100 - value) / 100.0
         elif name == 'limit-mass-gatherings':
             self.pop.limit_mass_gatherings = value
         elif name == 'limit-mobility':
@@ -899,14 +911,22 @@ cdef class Context:
         else:
             raise Exception()
 
+    cdef void import_infections(self):
+        cdef int count = 20
+
+        for i in range(count):
+            pass
+
     cdef void _iterate(self):
-        cdef Person *person
-        cdef int idx;
+        cdef Person * person
+        cdef int i
 
         for intervention in self.interventions:
             if intervention.day == self.day:
                 # print(intervention.name)
                 self.apply_intervention(intervention.name, intervention.value)
+
+        self.import_infections()
 
         self.total_infectors = 0
         self.total_infections = 0
@@ -914,8 +934,8 @@ cdef class Context:
 
         self.hc.iterate(self)
 
-        for idx in prange(self.total_people, nogil=True, num_threads=1, schedule='dynamic', chunksize=10000):
-            person = self.people + idx
+        for i in prange(self.total_people, nogil=True, num_threads=1, schedule='dynamic', chunksize=10000):
+            person = self.people + i
             if person.state in (PersonState.RECOVERED, PersonState.DEAD) and not person.included_in_totals:
                 self.total_infectors += 1
                 self.total_infections += person.other_people_infected

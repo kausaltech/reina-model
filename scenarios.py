@@ -1,6 +1,7 @@
 from typing import Dict
 from dataclasses import dataclass
-from flask_babel import get_locale, lazy_gettext as _
+from variables import reset_variables, get_variable, set_variable
+from flask_babel import get_locale
 
 
 DEFAULT_LOCALE = 'en'
@@ -12,38 +13,50 @@ class ScenarioTranslation:
     description: str
 
 
-@dataclass
 class Scenario:
     id: str
     translations: Dict[str, ScenarioTranslation]
     interventions: list
-    variables: dict = None
+    variables: dict
 
-    @property
-    def name(self):
+    def __init__(self):
+        if not hasattr(self, 'variables'):
+            self.variables = {}
+        if not hasattr(self, 'interventions'):
+            self.interventions = []
+
+    def get_translated(self, attr):
         locale = get_locale()
         if locale is None:
             locale = DEFAULT_LOCALE
         else:
             locale = locale.language
-        return self.translations[locale].name.strip()
+        return getattr(self.translations[locale], attr).strip()
 
-    @property
-    def description(self):
-        locale = get_locale()
-        if locale is None:
-            locale = DEFAULT_LOCALE
-        else:
-            locale = locale.language
-        return self.translations[locale].description.strip()
+    def get_name(self):
+        return self.get_translated('name')
+
+    def get_description(self):
+        return self.get_translated('description')
+
+    def apply(self):
+        ivs = get_variable('interventions')
+        if self.interventions:
+            ivs += self.interventions
+            set_variable('interventions', ivs)
+
+        if self.variables:
+            for key, val in self.variables.items():
+                set_variable(key, val)
+
+        set_variable('preset_scenario', self.id)
 
 
-SCENARIOS = []
-SCENARIOS.append(Scenario(
-    id='default',
-    translations={
+class DefaultScenario(Scenario):
+    id = 'default'
+    translations = {
         'fi': ScenarioTranslation(
-            name='Nykymeno', description='''
+            name='Nykyiset rajoitukset', description='''
             Säilytetään nykyiset rajoitukset ja testauskäytäntö.
             '''
         ),
@@ -52,78 +65,124 @@ SCENARIOS.append(Scenario(
             Current mobility restrictions and testing policy remain.
             '''
         ),
-    },
-    interventions=[],
-    variables={
+    }
+    interventions = []
+    variables = {
         'simulation_days': 360
     }
-))
 
 
-SCENARIOS.append(Scenario(
-    id='summer-boogie',
-    translations={
+class MitigationScenario(Scenario):
+    id = 'mitigation'
+    translations = {
+        'fi': ScenarioTranslation(
+            name='Tehohoidon varmistaminen', description='''
+            Varmistetaan sairaanhoidon kapasiteetti liikkuvuusrajoituksilla ja rakennetaan
+            lisää tehohoitokapasiteettia.
+            '''
+        ),
+        'en': ScenarioTranslation(
+            name='Mitigation only', description='''
+            Ensure
+            '''
+        ),
+    }
+    interventions = [
+        ['build-new-icu-capacity', '2020-06-30', 150],
+        ['build-new-icu-capacity', '2020-07-30', 150],
+        ['limit-mobility', '2020-06-15', 40],
+    ]
+
+
+class SummerEasingScenario(Scenario):
+    id = 'summer-boogie'
+    translations = {
         'fi': ScenarioTranslation(
             name='Kesähöllennys', description='''
             Höllennetään nykyisiä rajoituksia hieman toukokuun puolivälistä lähtien.
-            Väestö liikkuu 40% enemmän.
+            Rajoitukset pudotetaan 50%:ista 30%:iin. Säilytetään nykyinen testauskäytäntö,
+            ei tehdä kontaktiketjujen määritystä.
             ''',
         ),
         'en': ScenarioTranslation(
             name='Summer easing', description='''
             Ease current mobility restrictions somewhat starting from mid-May.
-            Population will move 40% more.
+            Restictions will be eased from 50% to 30%.
             ''',
         ),
-    },
-    interventions=[
+    }
+    interventions = [
         ['limit-mobility', '2020-05-15', 30],
-    ],
-))
+    ]
 
-SCENARIOS.append(Scenario(
-    id='hammer-and-testing',
-    translations={
-        'fi': ScenarioTranslation(
-            name='Moukari ja suurennuslasi', description='''
-            Säilytetään nykyiset rajoitukset, mutta laajennetaan testausta kaikkiin oirehtiviin
-            ja jäljitetään tartuntaketjuja.
-            ''',
-        ),
-        'en': ScenarioTranslation(
-            name='Hammer and magnifying glass', description='''
-            Current mobility restrictions remain, but change testing policy to test
-            people even with mild symptoms and perform contact tracing.
-            ''',
-        ),
-    },
-    interventions=[
-        ['test-with-contact-tracing', '2020-05-01']
-    ],
-))
 
-SCENARIOS.append(Scenario(
-    id='hammer-and-dance',
-    translations={
+class HammerDanceScenario(Scenario):
+    id = 'hammer-and-dance'
+    translations = {
         'fi': ScenarioTranslation(
-            name='Moukari ja tanssi',
+            name='Nopea hybridimalli',
             description='''
             Laajennetaan testausta, tehdään kontaktien jäljitystä ja tasapainotellaan rajoitusten kanssa.
             ''',
         ),
         'en': ScenarioTranslation(
-            name='Hammer and dance',
+            name='Fast hybrid model',
             description='''
             Test all people with even mild symptoms, perform contact tracing, and start a
             balancing act with mobility restrictions.
             ''',
         )
-    },
-    interventions=[
+    }
+    interventions = [
         ['test-with-contact-tracing', '2020-05-01'],
-        ['limit-mobility', '2020-05-01', 20],
-        ['limit-mobility', '2020-06-24', 40],
-        ['limit-mobility', '2020-08-15', 20],
+        ['build-new-icu-capacity', '2020-06-30', 150],
+        ['build-new-icu-capacity', '2020-07-30', 150],
+        ['limit-mobility', '2020-05-01', 18],
+        ['limit-mobility', '2020-06-24', 30],
+        ['limit-mobility', '2020-08-15', 18],
         ['limit-mobility', '2020-10-01', 30],
-    ],
-))
+    ]
+
+
+class RetrospectiveEasingScenario(Scenario):
+    id = 'looser-restrictions-to-start-with'
+    translations = {
+        'fi': ScenarioTranslation(
+            name='Ruotsin polku',
+            description='''
+            Mitä jos alusta lähtien oltaisiinkin otettu puolet vähemmän liikkuvuuden rajoituksia käyttöön?
+            ''',
+        ),
+        'en': ScenarioTranslation(
+            name='Followed Sweden',
+            description='''
+            What if we had taken half of the mobility restriction measures to start with?
+            ''',
+        )
+    }
+
+    def apply(self):
+        super().apply()
+        ivs = get_variable('interventions')
+        out = []
+        for iv in ivs:
+            iv = list(iv)
+            if iv[0] == 'limit-mobility':
+                iv[2] = iv[2] // 2
+            out.append(iv)
+        set_variable('interventions', out)
+
+
+SCENARIOS = [
+    DefaultScenario(),
+    MitigationScenario(),
+    SummerEasingScenario(),
+    HammerDanceScenario(),
+    RetrospectiveEasingScenario(),
+]
+
+
+
+"""Kumulatiivinen rajoitusprosenteista laskettu indikaattori, jolla voidaan hyvin karkeasti
+kuvata eristymisestä aiheutuvia psykologisia, sosiaalisia ja talousvaikutuksia.
+Korkeammalla rajoituspäiväluvulla vaikutukset ovat merkittävämmät."""

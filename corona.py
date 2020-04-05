@@ -162,8 +162,8 @@ def generate_content_rows():
     if scenario is not None:
         scenarioRows.append(dbc.Row([
             dbc.Col([
-                html.Strong(scenario.name+": "),
-                html.Span(scenario.description),
+                html.Strong(scenario.get_name() + ": "),
+                html.Span(scenario.get_description()),
             ])
         ]))
 
@@ -179,8 +179,6 @@ def generate_content_rows():
         dbc.Col(id='scenario-details')
     ]))
 
-    
-    
     settingRows.append(dbc.Row([
         dbc.Col([
             html.Div(id='simulation-days-placeholder', style=dict(display='none')),
@@ -256,7 +254,7 @@ def generate_layout():
                 dbc.Label(_('Preset'), className="mr-3"),
                 dcc.Dropdown(
                 id='preset-scenario-selector',
-                options=[{'label': i.name, 'value': i.id} for i in SCENARIOS],
+                options=[{'label': s.get_name(), 'value': s.id} for s in SCENARIOS],
                 value=scenario_id,
                 style=dict(width="300px"),
             )],
@@ -268,6 +266,7 @@ def generate_layout():
     stc = generate_static_content()
 
     return html.Div([
+        html.Script(src='plotly-locale-fi-latest.js'),
         html.Div(
             dbc.Container(headerRows),
             className="bg-dark text-light py-4"
@@ -438,17 +437,6 @@ def update_simulation_results(n_intervals):
     return [out, disabled, interval]
 
 
-def apply_scenario(s):
-    reset_variables()
-    ivs = get_variable('interventions')
-    ivs += s.interventions
-    set_variable('interventions', ivs)
-    variables = s.variables or {}
-    for key, val in variables.items():
-        set_variable(key, val)
-    set_variable('preset_scenario', s.id)
-
-
 @app.callback(
     Output('main-content-container', 'children'),
     [
@@ -462,7 +450,8 @@ def select_scenario(preset_scenario):
         if c_id == 'preset-scenario-selector':
             for s in SCENARIOS:
                 if s.id == preset_scenario:
-                    apply_scenario(s)
+                    s.apply()
+                    break
     return generate_content_rows()
 
 
