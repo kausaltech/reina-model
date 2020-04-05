@@ -107,7 +107,7 @@ def render_iv_card():
                         _("Events (%(num)s)", num=len(ivs)), className="float-left",
                         id="interventions-collapse-button",
                     ),
-                ], width=dict(size=2, order=1)),
+                ], width=dict(size=6, order=1)),
             ]),
         ]),
         dbc.Collapse([
@@ -197,10 +197,9 @@ def generate_content_rows():
                 ], className="mr-3"),
                 dbc.Button(_('Run simulation'), id='run-simulation', color='primary')
                 ], inline=True)
-        ], width=dict(size=6)),
+        ], width=dict(size=10)),
     ], className='mt-3'))
 
-    resultRows.append(html.Hr())
     resultRows.append(html.H4(_('Outcome'), className="mb-3"))
     resultRows.append(dbc.Row([
         dbc.Col([
@@ -223,6 +222,7 @@ def generate_content_rows():
             dbc.Container(settingRows),
             className="bg-grey py-4"
             ),
+        html.Hr(),
         dbc.Container(resultRows),
     ]
     return rows
