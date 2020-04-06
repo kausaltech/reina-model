@@ -81,16 +81,16 @@ class MitigationScenario(Scenario):
         ),
         'en': ScenarioTranslation(
             name='Mitigation only', description='''
-            Ensure
+            Ensure that healthcare capacity is sufficient by
             '''
         ),
     }
     interventions = [
-        ['build-new-icu-capacity', '2020-06-30', 150],
-        ['build-new-icu-capacity', '2020-07-15', 150],
-        ['build-new-icu-capacity', '2020-07-30', 150],
-        ['build-new-icu-capacity', '2020-08-15', 150],
-        ['build-new-icu-capacity', '2020-08-30', 150],
+        ['build-new-icu-units', '2020-06-30', 150],
+        ['build-new-icu-units', '2020-07-15', 150],
+        ['build-new-icu-units', '2020-07-30', 150],
+        ['build-new-icu-units', '2020-08-15', 150],
+        ['build-new-icu-units', '2020-08-30', 150],
         ['limit-mobility', '2020-06-15', 20],
         ['limit-mobility', '2020-07-15', 30],
         ['limit-mobility', '2020-08-15', 25],
