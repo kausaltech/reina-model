@@ -208,21 +208,21 @@ def generate_content_rows():
             dbc.CardBody([
                 html.H6(_('Restriction Day Index')),
                 html.P("XXX", className="display-4 text-primary mb-0"),
-                html.Small("Total number of days with full mobility interventions."),
+                html.Small("Cumulative sum of daily percentages of mobility restrictions"),
             ])
         ),
         dbc.Card(
             dbc.CardBody([
                 html.H6(_('ICU Capacity Exceeded')),
                 html.P("XX", className="display-4 text-primary mb-0"),
-                html.Small("Days ICU units had less than 10% of capacity left."),
+                html.Small("Days ICU units had less than 10% of capacity left"),
             ])
         ),
         dbc.Card(
             dbc.CardBody([
                 html.H6(_('Fatalities')),
                 html.P("XX XXX", className="display-4 text-primary mb-0"),
-                html.Small("Total number of deaths."),
+                html.Small("Total number of deaths"),
             ])
         )
     ]))
