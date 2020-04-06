@@ -339,7 +339,7 @@ msgstr "Rajoituspäiväluku"
 
 #: components/results.py:337
 msgid "The cumulative sum of daily percentages of mobility restrictions. The index can be used as a rough indicator of harmful psychological, social and economic effects. A higher index means more severe effects."
-msgstr "Kumulatiivinen rajoitusprosenteista laskettu indikaattori, jolla voidaan hyvin karkeasti kuvata eristymisestä aiheutuvia sykologisia, sosiaalisia ja talousvaikutuksia. Korkeammalla rajoituspäiväluvulla vaikutukset ovat merkittävämmät."
+msgstr "Kumulatiivinen rajoitusprosenteista laskettu indikaattori, jolla voidaan hyvin karkeasti kuvata eristymisestä aiheutuvia psykologisia, sosiaalisia ja talousvaikutuksia. Korkeammalla rajoituspäiväluvulla vaikutukset ovat merkittävämmät."
 
 #: components/results.py:344
 msgid "Days ICU Capacity Exceeded"

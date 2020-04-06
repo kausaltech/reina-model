@@ -474,6 +474,8 @@ def run_simulation_callback(n_clicks, simulation_days):
 
     print('run simulation (days %d)' % simulation_days)
     set_variable('simulation_days', simulation_days)
+    if n_clicks:
+        set_variable('random_seed', n_clicks)
 
     df = simulate_individuals(only_if_in_cache=True)
     if df is not None:

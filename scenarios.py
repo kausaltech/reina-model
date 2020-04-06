@@ -87,15 +87,18 @@ class MitigationScenario(Scenario):
     }
     interventions = [
         ['build-new-icu-units', '2020-06-30', 150],
+        ['build-new-hospital-beds', '2020-06-30', 300],
         ['build-new-icu-units', '2020-07-15', 150],
+        ['build-new-hospital-beds', '2020-07-15', 300],
         ['build-new-icu-units', '2020-07-30', 150],
+        ['build-new-hospital-beds', '2020-07-30', 300],
         ['build-new-icu-units', '2020-08-15', 150],
+        ['build-new-hospital-beds', '2020-08-15', 300],
         ['build-new-icu-units', '2020-08-30', 150],
-        ['limit-mobility', '2020-06-15', 20],
-        ['limit-mobility', '2020-07-15', 30],
-        ['limit-mobility', '2020-08-15', 25],
+        ['build-new-hospital-beds', '2020-08-30', 300],
+        ['limit-mobility', '2020-06-15', 30],
         ['limit-mobility', '2020-09-15', 40],
-        ['limit-mobility', '2020-11-15', 20],
+        ['limit-mobility', '2020-11-15', 30],
         ['limit-mobility', '2020-12-15', 40],
     ]
 
@@ -141,14 +144,9 @@ class HammerDanceScenario(Scenario):
     }
     interventions = [
         ['test-with-contact-tracing', '2020-05-01'],
-        ['build-new-icu-units', '2020-06-30', 50],
-        ['build-new-icu-units', '2020-07-30', 50],
-        ['build-new-icu-units', '2020-08-30', 50],
-        ['build-new-icu-units', '2020-09-30', 50],
-        ['limit-mobility', '2020-05-01', 10],
+        ['limit-mobility', '2020-05-01', 20],
         ['limit-mobility', '2020-06-24', 25],
         ['limit-mobility', '2020-08-15', 20],
-        ['limit-mobility', '2020-09-01', 15],
         ['limit-mobility', '2020-12-06', 25],
     ]
 
@@ -185,8 +183,8 @@ class RetrospectiveEasingScenario(Scenario):
 
 SCENARIOS = [
     DefaultScenario(),
-    MitigationScenario(),
     SummerEasingScenario(),
+    MitigationScenario(),
     HammerDanceScenario(),
     RetrospectiveEasingScenario(),
 ]
