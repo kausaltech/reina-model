@@ -5,11 +5,28 @@ import dash_table
 import dash_core_components as dcc
 from dash.dependencies import Input, Output, State
 import dash_bootstrap_components as dbc
+import plotly.graph_objects as go
 
 from calc.simulation import sample_model_parameters
 from components.graphs import make_layout
 from components.cards import GraphCard
 from variables import set_variable, get_variable, reset_variable
+
+
+SYMPTOM_MAP = {
+    'ASYMPTOMATIC': _('Asymptomatic'),
+    'MILD': _('Mild'),
+    'SEVERE': _('Severe'),
+    'CRITICAL': _('Critical'),
+    'FATAL': _('Fatal'),
+}
+
+SYMPTOM_COLOR_MAP = {
+    'MILD': 'yellow',
+    'SEVERE': 'orange',
+    'CRITICAL': 'red',
+    'FATAL': 'black',
+}
 
 
 def render_model_param_graphs(age):
@@ -21,10 +38,9 @@ def render_model_param_graphs(age):
 
     period_cards = []
     for param, label in PERIOD_PARAMS:
-        sample = sample_model_parameters(param, age)
         card = GraphCard(param, graph=dict(config=dict(responsive=False)))
         layout = make_layout(
-            title=label, height=250, showlegend=False,
+            title=label, height=250, showlegend=True,
             yaxis=dict(
                 title='%'
             ),
@@ -32,22 +48,34 @@ def render_model_param_graphs(age):
                 title=_('days')
             ),
         )
-        sample = sample * 100 / sum(sample)
-        trace = dict(
-            type='bar', x=sample.index, y=sample.values,
-            hovertemplate='%{y} %', name='',
-        )
-        fig = dict(layout=layout, data=[trace])
+        traces = []
+        if param == 'incubation_period':
+            sample = sample_model_parameters(param, age)
+            trace = dict(
+                type='bar', x=sample.index, y=sample.values,
+                hovertemplate='%{y} %', name='',
+            )
+            traces.append(trace)
+        else:
+            for severity in ('SEVERE', 'CRITICAL', 'FATAL'):
+                if severity == 'SEVERE' and param == 'icu_period':
+                    continue
+                sample = sample_model_parameters(param, age, severity)
+                sample = sample * 100 / sample.sum()
+                trace = go.Bar(
+                    type='bar', x=sample.index, y=sample.values,
+                    hovertemplate='%{y} %', name=str(SYMPTOM_MAP[severity]),
+                    marker_color=SYMPTOM_COLOR_MAP[severity]
+                )
+                traces.append(trace)
+            layout['barmode'] = 'group'
+
+        fig = dict(layout=layout, data=traces)
         card.set_figure(fig)
         period_cards.append(card.render())
 
     sample = sample_model_parameters('symptom_severity', age)
-    sample.index = sample.index.map({
-        'ASYMPTOMATIC': _('Asymptomatic'),
-        'MILD': _('Mild'),
-        'SEVERE': _('Severe'),
-        'CRITICAL': _('Critical'),
-    })
+    sample.index = sample.index.map(SYMPTOM_MAP)
     card = GraphCard('symptom-severity', graph=dict(config=dict(responsive=False)))
     layout = make_layout(
         title=_('Symptom severity'), height=250, showlegend=False,
@@ -67,7 +95,7 @@ def render_model_param_graphs(age):
         title=_('Contacts per day'), height=250, showlegend=False,
         yaxis=dict(
             title='%',
-            range=[0, 15]
+            range=[0, 100]
         ),
         xaxis=dict(
             title=_('number of contacts')

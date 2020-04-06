@@ -22,7 +22,7 @@ def get_population():
 
 @calcfunc()
 def get_healthcare_districts():
-    p = get_root_path() + '/data/Shp_jäsenkunnat_2020.xls'
+    p = get_root_path() + '/data/shp_jasenkunnat_2020.xls'
     df = pd.read_excel(p, header=3, sheet_name='shp_jäsenkunnat_2020_lkm')
     df = df[['kunta', 'sairaanhoitopiiri', 'erva-alue']].dropna()
     return df

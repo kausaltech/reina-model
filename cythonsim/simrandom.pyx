@@ -1,11 +1,14 @@
 # cython: language_level=3
+# DISABLEDcython: profile=True
+# DISABLEDcython: linetrace=True
+
 
 from numpy.random import PCG64
 import numpy as np
 
 from cpython.pycapsule cimport PyCapsule_IsValid, PyCapsule_GetPointer
 from numpy.random cimport bitgen_t
-from numpy.random.c_distributions cimport random_lognormal, random_gamma
+from numpy.random.c_distributions cimport random_lognormal, random_gamma_f
 
 
 cdef class RandomPool:
@@ -20,11 +23,11 @@ cdef class RandomPool:
         self.rng = <bitgen_t *> PyCapsule_GetPointer(capsule, 'BitGenerator')
 
     cdef double get(self) nogil:
-        cdef bitgen_t *rng = self.rng
+        cdef bitgen_t * rng = self.rng
         return rng.next_double(rng.state)
 
     cdef unsigned int getint(self) nogil:
-        cdef bitgen_t *rng = self.rng
+        cdef bitgen_t * rng = self.rng
         return rng.next_uint32(rng.state)
 
     cdef bint chance(self, double p) nogil:
@@ -37,11 +40,17 @@ cdef class RandomPool:
         return val < p
 
     cdef double lognormal(self, double mean, double sigma) nogil:
-        cdef bitgen_t *rng = self.rng
+        cdef bitgen_t * rng = self.rng
         cdef double ret = random_lognormal(rng, mean, sigma)
         return ret
 
-    cdef double gamma(self, double mean, double sigma) nogil:
-        cdef bitgen_t *rng = self.rng
-        cdef double ret = random_gamma(rng, mean, sigma)
+    cdef float gamma(self, float mu, float cv) nogil:
+        cdef bitgen_t * rng = self.rng
+        cdef float sigma, theta, kappa
+
+        sigma = cv * mu
+        theta = sigma**2 / mu
+        kappa = mu / theta
+
+        cdef float ret = random_gamma_f(rng, theta, kappa)
         return ret

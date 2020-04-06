@@ -13,7 +13,10 @@ def make_ext(modname, pyxfilename):
         include_dirs=[inc_path],
         extra_compile_args=['-fopenmp'],
         extra_link_args=['-fopenmp'],
-        define_macros=[("NPY_NO_DEPRECATED_API", None)]
+        define_macros=[
+            ("NPY_NO_DEPRECATED_API", None),
+            # ("CYTHON_TRACE_NOGIL", "1"),
+        ]
     )
 
 

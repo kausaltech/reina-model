@@ -187,7 +187,7 @@ def generate_content_rows():
                     dbc.Label(_('Timeframe'), className="mr-3"),
                     dcc.Dropdown(
                         id='simulation-days-dropdown',
-                        options=[dict(label=_('%(days)d days', days=x), value=x) for x in (45, 90, 180, 360, 730)],
+                        options=[dict(label=_('%(days)d days', days=x), value=x) for x in (45, 90, 180, 365, 730)],
                         value=get_variable('simulation_days'),
                         searchable=False, clearable=False,
                         style=dict(width='160px'),
@@ -199,37 +199,6 @@ def generate_content_rows():
     ], className='mt-3'))
 
     resultRows.append(html.H4(_('Outcome'), className="mb-3"))
-
-    # Indicator Placemarkers TODO: Map to data
-    resultRows.append(dbc.Row([
-        dbc.Col(
-            dbc.Card(
-                dbc.CardBody([
-                    html.H6(_('Restriction Day Index')),
-                    html.P("197", className="display-4"),
-                    html.Small("Total number of days with full mobility interventions."),
-                ])
-            )
-        , width=dict(size=4)),
-        dbc.Col(
-            dbc.Card(
-                dbc.CardBody([
-                    html.H6(_('ICU Capacity Exceeded')),
-                    html.P("18", className="display-4"),
-                    html.Small("Days ICU units had less than 10% of capacity left."),
-                ])
-            )
-        , width=dict(size=4)),
-                dbc.Col(
-            dbc.Card(
-                dbc.CardBody([
-                    html.H6(_('Fatalities')),
-                    html.P("403", className="display-4"),
-                    html.Small("Total number of deaths."),
-                ])
-            )
-        , width=dict(size=4)),
-    ]))
 
     resultRows.append(dbc.Row([
         dbc.Col([

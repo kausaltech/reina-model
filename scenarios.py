@@ -40,6 +40,7 @@ class Scenario:
         return self.get_translated('description')
 
     def apply(self):
+        reset_variables()
         ivs = get_variable('interventions')
         if self.interventions:
             ivs += self.interventions
@@ -67,9 +68,6 @@ class DefaultScenario(Scenario):
         ),
     }
     interventions = []
-    variables = {
-        'simulation_days': 360
-    }
 
 
 class MitigationScenario(Scenario):
@@ -89,8 +87,16 @@ class MitigationScenario(Scenario):
     }
     interventions = [
         ['build-new-icu-capacity', '2020-06-30', 150],
+        ['build-new-icu-capacity', '2020-07-15', 150],
         ['build-new-icu-capacity', '2020-07-30', 150],
-        ['limit-mobility', '2020-06-15', 40],
+        ['build-new-icu-capacity', '2020-08-15', 150],
+        ['build-new-icu-capacity', '2020-08-30', 150],
+        ['limit-mobility', '2020-06-15', 30],
+        ['limit-mobility', '2020-07-15', 50],
+        ['limit-mobility', '2020-08-15', 30],
+        ['limit-mobility', '2020-09-15', 70],
+        ['limit-mobility', '2020-11-15', 35],
+        ['limit-mobility', '2020-12-15', 40],
     ]
 
 
@@ -137,10 +143,10 @@ class HammerDanceScenario(Scenario):
         ['test-with-contact-tracing', '2020-05-01'],
         ['build-new-icu-capacity', '2020-06-30', 150],
         ['build-new-icu-capacity', '2020-07-30', 150],
-        ['limit-mobility', '2020-05-01', 18],
-        ['limit-mobility', '2020-06-24', 30],
-        ['limit-mobility', '2020-08-15', 18],
-        ['limit-mobility', '2020-10-01', 30],
+        ['limit-mobility', '2020-05-01', 35],
+        ['limit-mobility', '2020-06-24', 20],
+        ['limit-mobility', '2020-08-15', 35],
+        ['limit-mobility', '2020-10-01', 20],
     ]
 
 
@@ -151,18 +157,19 @@ class RetrospectiveEasingScenario(Scenario):
             name='Ruotsin polku',
             description='''
             Mitä jos alusta lähtien oltaisiinkin otettu puolet vähemmän liikkuvuuden rajoituksia käyttöön?
-            ''',
+            '''
         ),
         'en': ScenarioTranslation(
             name='Followed Sweden',
             description='''
             What if we had taken half of the mobility restriction measures to start with?
-            ''',
+            '''
         )
     }
 
     def apply(self):
         super().apply()
+
         ivs = get_variable('interventions')
         out = []
         for iv in ivs:
@@ -180,8 +187,6 @@ SCENARIOS = [
     HammerDanceScenario(),
     RetrospectiveEasingScenario(),
 ]
-
-
 
 """Kumulatiivinen rajoitusprosenteista laskettu indikaattori, jolla voidaan hyvin karkeasti
 kuvata eristymisestä aiheutuvia psykologisia, sosiaalisia ja talousvaikutuksia.

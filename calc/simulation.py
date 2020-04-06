@@ -1,3 +1,4 @@
+import multiprocessing
 from dataclasses import dataclass
 from calc import calcfunc, ExecutionInterrupted
 import numpy as np
@@ -35,7 +36,8 @@ POP_ATTRS = [
     'dead', 'recovered', 'all_infected',
 ]
 STATE_ATTRS = [
-    'exposed_per_day', 'hospital_beds', 'icu_units', 'tests_run_per_day', 'r', 'sim_time_ms',
+    'exposed_per_day', 'available_hospital_beds', 'available_icu_units',
+    'total_icu_units', 'tests_run_per_day', 'r', 'mobility_limitation',
 ]
 
 
@@ -97,20 +99,18 @@ def simulate_individuals(variables, step_callback=None):
     days = variables['simulation_days']
 
     df = pd.DataFrame(
-        columns=POP_ATTRS + STATE_ATTRS,
+        columns=POP_ATTRS + STATE_ATTRS + ['us_per_infected'],
         index=pd.date_range(start_date, periods=days)
     )
 
     for day in range(days):
-        state = context.generate_state()
+        s = context.generate_state()
 
-        rec = {attr: sum(getattr(state, attr)) for attr in POP_ATTRS}
-        rec['hospital_beds'] = state.available_hospital_beds
-        rec['icu_units'] = state.available_icu_units
-        rec['r'] = state.r
-        rec['exposed_per_day'] = state.exposed_per_day
-        rec['tests_run_per_day'] = state.tests_run_per_day
-        rec['sim_time_ms'] = pc.measure()
+        rec = {attr: sum(s[attr]) for attr in POP_ATTRS}
+        for state_attr in STATE_ATTRS:
+            rec[state_attr] = s[state_attr]
+
+        rec['us_per_infected'] = pc.measure() * 1000 / rec['infected'] if rec['infected'] else 0
 
         """
         dead = context.get_population_stats('dead')
@@ -137,9 +137,12 @@ def simulate_individuals(variables, step_callback=None):
                 raise ExecutionInterrupted()
 
         context.iterate()
-        # cProfile.runctx("context.iterate()", globals(), locals(), "profile.prof")
-        # s = pstats.Stats("profile.prof")
-        # s.strip_dirs().sort_stats("time").print_stats()
+        if False:
+            import cProfile
+            import pstats
+            cProfile.runctx("context.iterate()", globals(), locals(), "profile.prof")
+            s = pstats.Stats("profile.prof")
+            s.strip_dirs().sort_stats("time").print_stats()
 
     return df
 
@@ -151,7 +154,7 @@ def simulate_individuals(variables, step_callback=None):
     ],
     funcs=[get_contacts_for_country]
 )
-def sample_model_parameters(what, age, variables):
+def sample_model_parameters(what, age, severity=None, variables=None):
     avg_contacts_per_day = get_contacts_for_country()
     age_counts = [1]
     pop = model.Population(age_counts, list(avg_contacts_per_day.items()))
@@ -164,7 +167,7 @@ def sample_model_parameters(what, age, variables):
     if variables['sample_limit_mobility'] != 0:
         context.apply_intervention('limit-mobility', variables['sample_limit_mobility'])
 
-    samples = context.sample(what, age)
+    samples = context.sample(what, age, severity)
 
     if what == 'infectiousness':
         s = pd.Series(index=samples['day'], data=samples['val'])
@@ -177,11 +180,12 @@ def sample_model_parameters(what, age, variables):
         c.index = c.index.map(model.SEVERITY_TO_STR)
 
     if False:
+        # c /= c.sum()
         for a, b in c.iteritems():
             print('    (%d, %.2f),' % (a, b))
         import matplotlib.pyplot as plt
         fig = plt.figure()
-        print(s.mean())
+        print('Mean: %f, median: %f' % (s.mean(), s.median()))
         plt.plot(c)
         plt.show()
 
@@ -189,35 +193,46 @@ def sample_model_parameters(what, age, variables):
 
 
 @calcfunc(funcs=[simulate_individuals])
-def simulate_monte_carlo():
-    from variables import allow_set_variable, set_variable
+def simulate_monte_carlo(seed):
+    from variables import allow_set_variable, set_variable, get_variable
 
-    dfs = []
     with allow_set_variable():
-        for seed in range(0, 20):
-            print(seed)
-            set_variable('random_seed', seed)
-            df = simulate_individuals()
-            df['run'] = seed
-            dfs.append(df)
+        print(seed)
+        set_variable('random_seed', seed)
+        df = simulate_individuals()
+        df['run'] = seed
+
+    return df
+
+
+def run_monte_carlo(n):
+    from variables import get_variable
+
+    with multiprocessing.Pool(processes=8) as pool:
+        dfs = pool.map(simulate_monte_carlo, range(n))
 
     df = pd.concat(dfs)
     df.index.name = 'date'
     df = df.reset_index()
+    df['scenario'] = get_variable('preset_scenario')
+    #df.to_csv('reina_%s.csv' % get_variable('preset_scenario'))
+
     return df
 
 
 if __name__ == '__main__':
-    df = simulate_monte_carlo()
-    print(df[df.date == df.date.max()])
-    last = df[df.date == df.date.max()]
-    print(last.dead.describe(percentiles=[.25, .5, .75]))
-    exit()
-    #sample_model_parameters('icu_period', 50)
-    #exit()
+    if False:
+        df = run_monte_carlo(16)
+        print(df[df.date == df.date.max()])
+        last = df[df.date == df.date.max()]
+        print(last.dead.describe(percentiles=[.25, .5, .75]))
+        exit()
+    if True:
+        sample_model_parameters('icu_period', 50, 'CRITICAL')
+        exit()
 
     header = '%-12s' % 'day'
-    for attr in POP_ATTRS + STATE_ATTRS:
+    for attr in POP_ATTRS + STATE_ATTRS + ['us_per_infected']:
         header += '%15s' % attr
     print(header)
 
@@ -228,11 +243,11 @@ if __name__ == '__main__':
         for attr in POP_ATTRS:
             s += '%15d' % rec[attr]
 
-        for attr in ['exposed_per_day', 'hospital_beds', 'icu_units', 'tests_run_per_day']:
+        for attr in ['exposed_per_day', 'available_hospital_beds', 'available_icu_units', 'tests_run_per_day']:
             s += '%15d' % rec[attr]
         s += '%13.2f' % rec['r']
         if rec['infected']:
-            s += '%13.2f' % (rec['sim_time_ms'] * 1000 / rec['infected'])
+            s += '%13.2f' % rec['us_per_infected']
         print(s)
         return True
 

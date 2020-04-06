@@ -227,8 +227,8 @@ def render_population_card(df):
 
 def render_result_graphs(df):
     hc_cols = (
-        ('hospital_beds', _('Hospital beds')),
-        ('icu_units', _('ICU units')),
+        ('available_hospital_beds', _('Hospital beds')),
+        ('available_icu_units', _('ICU units')),
     )
     traces = []
     for col, name in hc_cols:
@@ -282,7 +282,7 @@ def render_result_graphs(df):
 
 def render_result_table(df):
     df = df.rename(columns=dict(tests_run_per_day='positive_tests_per_day'))
-    df = df.drop(columns='sim_time_ms')
+    df = df.drop(columns='us_per_infected')
     df.index = df.index.date
 
     cols = [{'name': 'date', 'id': 'date', 'type': 'datetime'}]
@@ -320,8 +320,45 @@ def render_result_table(df):
     return dbc.Row([dbc.Col(card)])
 
 
+def render_indicators(df):
+    rdays = df['mobility_limitation'].dropna().cumsum().iloc[-1]
+    icu_cap = ((df['available_icu_units'] / df['total_icu_units']) < 0.1).sum()
+    dead = df['dead'].dropna().iloc[-1]
+
+    # Indicator Placemarkers TODO: Map to data
+    cols = []
+    cols.append(dbc.Col(
+        dbc.Card(
+            dbc.CardBody([
+                html.H6(_('Restriction Day Index')),
+                html.P('%d' % rdays, className="display-4"),
+                html.Small("Total number of days with full mobility interventions."),
+            ])
+        ), width=dict(size=4))
+    )
+    cols.append(dbc.Col(
+        dbc.Card(
+            dbc.CardBody([
+                html.H6(_('ICU Capacity Exceeded')),
+                html.P('%d' % icu_cap, className="display-4"),
+                html.Small("Days ICU units had less than 10% of capacity left."),
+            ])
+        ), width=dict(size=4))
+    )
+    cols.append(dbc.Col(
+        dbc.Card(
+            dbc.CardBody([
+                html.H6(_('Fatalities')),
+                html.P('%d' % dead, className="display-4"),
+                html.Small("Total number of deaths."),
+            ])
+        ), width=dict(size=4))
+    )
+    return dbc.Row(cols)
+
+
 def render_results(df):
-    return html.Div([render_result_graphs(df), render_result_table(df)])
+    return html.Div([render_indicators(df), render_result_graphs(df), render_result_table(df)])
 
 
 def register_results_callbacks(app):

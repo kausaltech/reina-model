@@ -8,6 +8,6 @@ cdef class RandomPool:
     cdef double get(self) nogil
     cdef bint chance(self, double p) nogil
     cdef double lognormal(self, double mean, double sigma) nogil
-    cdef double gamma(self, double mean, double sigma) nogil
+    cdef float gamma(self, float mu, float cv) nogil
 
     cdef unsigned int getint(self) nogil

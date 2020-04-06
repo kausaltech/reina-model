@@ -14,6 +14,10 @@ def make_ext(modname, pyxfilename):
         include_dirs=[inc_path],
         libraries=['npyrandom'],
         library_dirs=[lib_path],
+        define_macros=[
+            ("NPY_NO_DEPRECATED_API", None),
+            # ("CYTHON_TRACE_NOGIL", "1"),
+        ]
     )
 
 

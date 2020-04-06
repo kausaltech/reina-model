@@ -8,7 +8,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: PROJECT VERSION\n"
 "Report-Msgid-Bugs-To: EMAIL@ADDRESS\n"
-"POT-Creation-Date: 2020-04-03 23:27+0300\n"
+"POT-Creation-Date: 2020-04-06 11:26+0300\n"
 "PO-Revision-Date: YEAR-MO-DA HO:MI+ZONE\n"
 "Last-Translator: FULL NAME <EMAIL@ADDRESS>\n"
 "Language-Team: LANGUAGE <LL@li.org>\n"
@@ -17,219 +17,239 @@ msgstr ""
 "Content-Transfer-Encoding: 8bit\n"
 "Generated-By: Babel 2.8.0\n"
 
-#: corona.py:103
+#: corona.py:86
 msgid "Date"
 msgstr ""
 
-#: corona.py:104
+#: corona.py:87
 msgid "Event"
 msgstr ""
 
-#: components/params.py:143 corona.py:105
+#: components/params.py:162 corona.py:88
 msgid "Value"
 msgstr ""
 
-#: corona.py:124
+#: corona.py:107
 #, python-format
 msgid "Events (%(num)s)"
 msgstr ""
 
-#: corona.py:134
+#: corona.py:117
 msgid "Restore default events"
 msgstr ""
 
-#: corona.py:139
+#: corona.py:122
 msgid "Add a new event"
 msgstr ""
 
-#: corona.py:192
+#: corona.py:138
+msgid "value"
+msgstr ""
+
+#: corona.py:141
+msgid "Add"
+msgstr ""
+
+#: corona.py:172
+msgid "Parameters"
+msgstr ""
+
+#: corona.py:187
+msgid "Timeframe"
+msgstr ""
+
+#: corona.py:190
 #, python-format
 msgid "%(days)d days"
 msgstr ""
 
-#: corona.py:198
+#: corona.py:196
 msgid "Run simulation"
 msgstr ""
 
-#: corona.py:221
-msgid "Corona epidemic simulator"
+#: corona.py:201
+msgid "Outcome"
 msgstr ""
 
-#: corona.py:230
+#: corona.py:252
+msgid "Scenario"
+msgstr ""
+
+#: corona.py:253
 #, python-format
 msgid "Forecast of the COVID-19 epidemic: %(name)s"
 msgstr ""
 
-#: corona.py:231
-msgid "Exploration of the effects of interventions to the progression of the epidemic."
-msgstr ""
-
-#: corona.py:238
-msgid "Preset scenario"
-msgstr ""
-
-#: calc/simulation.py:21
-msgid "Test all with symptoms"
+#: corona.py:260
+msgid "Preset"
 msgstr ""
 
 #: calc/simulation.py:22
-msgid "Test people only with severe symptoms"
+msgid "Test all with symptoms"
 msgstr ""
 
 #: calc/simulation.py:23
+msgid "Test people only with severe symptoms"
+msgstr ""
+
+#: calc/simulation.py:24
 msgid "Test all with symptoms and perform contact tracing"
 msgstr ""
 
-#: calc/simulation.py:24 components/params.py:209 components/results.py:107
+#: calc/simulation.py:25 components/params.py:228 components/results.py:108
 msgid "Limit population mobility"
 msgstr ""
 
-#: calc/simulation.py:25 components/results.py:106
+#: calc/simulation.py:26 components/results.py:107
 msgid "Limit mass gatherings"
 msgstr ""
 
-#: calc/simulation.py:25
+#: calc/simulation.py:26
 msgid "max. contacts"
 msgstr ""
 
-#: calc/simulation.py:26 components/results.py:108
+#: calc/simulation.py:27 components/results.py:109
 msgid "Import infections"
 msgstr ""
 
-#: calc/simulation.py:26
+#: calc/simulation.py:27
 msgid "infections"
 msgstr ""
 
-#: calc/simulation.py:27
+#: calc/simulation.py:28
 msgid "Import new infections daily"
 msgstr ""
 
-#: calc/simulation.py:27
+#: calc/simulation.py:28
 msgid "infections/day"
 msgstr ""
 
-#: calc/simulation.py:28
+#: calc/simulation.py:29
 msgid "Build new hospital beds"
 msgstr ""
 
-#: calc/simulation.py:28
+#: calc/simulation.py:29
 msgid "beds"
 msgstr ""
 
-#: calc/simulation.py:29
+#: calc/simulation.py:30
 msgid "Build new ICU units"
 msgstr ""
 
-#: calc/simulation.py:29
+#: calc/simulation.py:30
 msgid "units"
 msgstr ""
 
 #: components/params.py:17
-msgid "Incubation period"
-msgstr ""
-
-#: components/params.py:18
-msgid "Duration of hospital treatment"
-msgstr ""
-
-#: components/params.py:19
-msgid "Duration of ICU treatment"
-msgstr ""
-
-#: components/params.py:32 components/params.py:120 components/params.py:121 components/params.py:122
-#: components/params.py:123
-msgid "days"
-msgstr ""
-
-#: components/params.py:46
 msgid "Asymptomatic"
 msgstr ""
 
-#: components/params.py:47
+#: components/params.py:18
 msgid "Mild"
 msgstr ""
 
-#: components/params.py:48
+#: components/params.py:19
 msgid "Severe"
 msgstr ""
 
-#: components/params.py:49
+#: components/params.py:20
 msgid "Critical"
 msgstr ""
 
-#: components/params.py:53
+#: components/params.py:21
+msgid "Fatal"
+msgstr ""
+
+#: components/params.py:27
+msgid "Incubation period"
+msgstr ""
+
+#: components/params.py:28
+msgid "Duration of hospital treatment"
+msgstr ""
+
+#: components/params.py:29
+msgid "Duration of ICU treatment"
+msgstr ""
+
+#: components/params.py:41 components/params.py:139 components/params.py:140 components/params.py:141
+#: components/params.py:142
+msgid "days"
+msgstr ""
+
+#: components/params.py:72
 msgid "Symptom severity"
 msgstr ""
 
-#: components/params.py:67
+#: components/params.py:86
 msgid "Contacts per day"
 msgstr ""
 
-#: components/params.py:73
+#: components/params.py:92
 msgid "number of contacts"
 msgstr ""
 
-#: components/params.py:87
+#: components/params.py:106
 msgid "Infectiousness over time"
 msgstr ""
 
-#: components/params.py:92
+#: components/params.py:111
 msgid "Day of illness"
 msgstr ""
 
-#: components/params.py:113
+#: components/params.py:132
 msgid "Ratio of all infected people who remain asymptomatic"
 msgstr ""
 
-#: components/params.py:114
+#: components/params.py:133
 msgid "Probability of becoming infected after being exposed"
 msgstr ""
 
-#: components/params.py:117
+#: components/params.py:136
 msgid "Probability of dying after regular hospital treatment"
 msgstr ""
 
-#: components/params.py:118
+#: components/params.py:137
 msgid "Probability of dying if no hospital beds are available"
 msgstr ""
 
-#: components/params.py:119
+#: components/params.py:138
 msgid "Probability of dying if no ICU units are available"
 msgstr ""
 
-#: components/params.py:120
+#: components/params.py:139
 msgid "Mean number of days of being ill"
 msgstr ""
 
-#: components/params.py:121
+#: components/params.py:140
 msgid "Mean number of days of being hospitalized"
 msgstr ""
 
-#: components/params.py:122
+#: components/params.py:141
 msgid "Mean number of days of being in ICU care"
 msgstr ""
 
-#: components/params.py:123
+#: components/params.py:142
 msgid "Mean number of days in regular hospital care before ICU"
 msgstr ""
 
-#: components/params.py:141
+#: components/params.py:160
 msgid "Description"
 msgstr ""
 
-#: components/params.py:166
+#: components/params.py:185
 msgid "Disease parameters"
 msgstr ""
 
-#: components/params.py:174
+#: components/params.py:193
 msgid "Restore defaults"
 msgstr ""
 
-#: components/params.py:200
+#: components/params.py:219
 msgid "Distributions based on model parameters"
 msgstr ""
 
-#: components/params.py:202
+#: components/params.py:221
 msgid "Age of person"
 msgstr ""
 
@@ -261,55 +281,67 @@ msgstr ""
 msgid "Recovered"
 msgstr ""
 
-#: components/results.py:66
+#: components/results.py:68
 msgid "(simulated)"
 msgstr ""
 
-#: components/results.py:77
+#: components/results.py:78
 msgid "(real)"
 msgstr ""
 
-#: components/results.py:84
+#: components/results.py:85
 msgid "Validation"
 msgstr ""
 
-#: components/results.py:105
+#: components/results.py:106
 msgid "Testing"
 msgstr ""
 
-#: components/results.py:217
+#: components/results.py:218
 msgid "Population"
 msgstr ""
 
-#: components/results.py:229
+#: components/results.py:230
 msgid "Hospital beds"
 msgstr ""
 
-#: components/results.py:230
+#: components/results.py:231
 msgid "ICU units"
 msgstr ""
 
-#: components/results.py:242
+#: components/results.py:243
 msgid "Free capacity in the healthcare system"
 msgstr ""
 
-#: components/results.py:254
+#: components/results.py:255
 msgid "Reproductive number (Rₜ)"
 msgstr ""
 
-#: components/results.py:255
+#: components/results.py:256
 msgid "Infection fatality ratio (IFR, %"
 msgstr ""
 
-#: components/results.py:256
+#: components/results.py:257
 msgid "Case fatality ratio (CFR, %"
 msgstr ""
 
-#: components/results.py:267
+#: components/results.py:268
 msgid "Epidemic parameters"
 msgstr ""
 
-#: components/results.py:310
+#: components/results.py:311
 msgid "Simulation result data"
+msgstr ""
+
+#: components/results.py:333
+msgid "Restriction Day Index"
+msgstr ""
+
+#: components/results.py:342
+msgid "ICU Capacity Exceeded"
+msgstr ""
+
+#: components/results.py:351
+msgid "Fatalities"
 msgstr ""
 

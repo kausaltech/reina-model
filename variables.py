@@ -2,6 +2,7 @@ import json
 import flask
 import hashlib
 from flask import session
+from contextlib import contextmanager
 
 
 # Variables
@@ -9,7 +10,7 @@ VARIABLE_DEFAULTS = {
     'area_name': 'HUS',
     'country': 'Finland',
     'max_age': 100,
-    'simulation_days': 360,
+    'simulation_days': 365,
     'start_date': '2020-02-18',
     'hospital_beds': 2600,
     'icu_units': 300,
@@ -128,13 +129,18 @@ VARIABLE_DEFAULTS = {
 # we will reset everybody's custom session variables.
 DEFAULT_VARIABLE_HASH = hashlib.md5(json.dumps(VARIABLE_DEFAULTS).encode('utf8')).hexdigest()
 
+_allow_variable_set = False
+
 
 def set_variable(var_name, value):
     assert var_name in VARIABLE_DEFAULTS
     assert isinstance(value, type(VARIABLE_DEFAULTS[var_name]))
 
-    if value != VARIABLE_DEFAULTS[var_name]:
-        assert flask.has_request_context()
+    if not flask.has_request_context():
+        if not _allow_variable_set:
+            raise Exception('Should not set variable outside of request context')
+        VARIABLE_DEFAULTS[var_name] = value
+        return
 
     if value == VARIABLE_DEFAULTS[var_name]:
         if var_name in session:
@@ -157,9 +163,11 @@ def get_variable(var_name, var_store=None):
 
     if out is None:
         out = VARIABLE_DEFAULTS[var_name]
+
     if isinstance(out, list):
         # Make a copy
         return list(out)
+
     return out
 
 
@@ -174,3 +182,15 @@ def reset_variables():
         if var_name not in session:
             continue
         del session[var_name]
+
+
+@contextmanager
+def allow_set_variable():
+    global _allow_variable_set
+
+    old = _allow_variable_set
+    _allow_variable_set = True
+    try:
+        yield None
+    finally:
+        _allow_variable_set = old
