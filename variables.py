@@ -109,9 +109,9 @@ VARIABLE_DEFAULTS = {
         # FIXME: Fully remove import interventions
         ['import-infections', '2020-02-22', 5],
         ['import-infections', '2020-03-05', 20],
-        ['import-infections', '2020-03-07', 40],
-        ['import-infections', '2020-03-09', 30],
-        ['import-infections', '2020-03-11', 20],
+        ['import-infections', '2020-03-07', 120],
+        ['import-infections', '2020-03-09', 120],
+        ['import-infections', '2020-03-11', 80],
         ['import-infections', '2020-03-13', 20],
         ['import-infections', '2020-03-15', 20],
     ],

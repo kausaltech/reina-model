@@ -23,3 +23,4 @@ cython
 # workarounds below
 werkzeug<1.0
 futures<3.2.0
+faker

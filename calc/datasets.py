@@ -72,7 +72,9 @@ def get_detected_cases(variables):
     assert area_name == 'HUS'
 
     f = open(get_root_path() + '/data/hosp_cases_hus.csv', 'r')
-    df = pd.read_csv(f, header=0).set_index('date')
+    df = pd.read_csv(f, header=0)
+    df['date'] = pd.to_datetime(df['date']).dt.date
+    df = df.set_index('date')
     return df
 
     cdf = df[['district', 'confirmed']].reset_index().set_index(['date', 'district']).unstack('district')

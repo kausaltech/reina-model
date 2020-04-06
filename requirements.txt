@@ -21,6 +21,7 @@ dash-html-components==1.0.2  # via -r requirements.in, dash
 dash-table==4.6.1         # via -r requirements.in, dash
 dash==1.9.1               # via -r requirements.in, dash-bootstrap-components, dash-daq
 dash_renderer==1.2.4      # via dash
+Faker==4.0.2
 fastparquet==0.3.3        # via -r requirements.in
 flask-babel==1.0.0        # via -r requirements.in
 flask-caching==1.8.0      # via -r requirements.in

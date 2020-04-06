@@ -95,7 +95,6 @@ def render_model_param_graphs(age):
         title=_('Contacts per day'), height=250, showlegend=False,
         yaxis=dict(
             title='%',
-            range=[0, 100]
         ),
         xaxis=dict(
             title=_('number of contacts')

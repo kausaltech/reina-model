@@ -91,11 +91,11 @@ class MitigationScenario(Scenario):
         ['build-new-icu-capacity', '2020-07-30', 150],
         ['build-new-icu-capacity', '2020-08-15', 150],
         ['build-new-icu-capacity', '2020-08-30', 150],
-        ['limit-mobility', '2020-06-15', 30],
-        ['limit-mobility', '2020-07-15', 50],
-        ['limit-mobility', '2020-08-15', 30],
-        ['limit-mobility', '2020-09-15', 70],
-        ['limit-mobility', '2020-11-15', 35],
+        ['limit-mobility', '2020-06-15', 20],
+        ['limit-mobility', '2020-07-15', 30],
+        ['limit-mobility', '2020-08-15', 25],
+        ['limit-mobility', '2020-09-15', 40],
+        ['limit-mobility', '2020-11-15', 20],
         ['limit-mobility', '2020-12-15', 40],
     ]
 
@@ -141,12 +141,15 @@ class HammerDanceScenario(Scenario):
     }
     interventions = [
         ['test-with-contact-tracing', '2020-05-01'],
-        ['build-new-icu-capacity', '2020-06-30', 150],
-        ['build-new-icu-capacity', '2020-07-30', 150],
-        ['limit-mobility', '2020-05-01', 35],
-        ['limit-mobility', '2020-06-24', 20],
-        ['limit-mobility', '2020-08-15', 35],
-        ['limit-mobility', '2020-10-01', 20],
+        ['build-new-icu-units', '2020-06-30', 50],
+        ['build-new-icu-units', '2020-07-30', 50],
+        ['build-new-icu-units', '2020-08-30', 50],
+        ['build-new-icu-units', '2020-09-30', 50],
+        ['limit-mobility', '2020-05-01', 10],
+        ['limit-mobility', '2020-06-24', 25],
+        ['limit-mobility', '2020-08-15', 20],
+        ['limit-mobility', '2020-09-01', 15],
+        ['limit-mobility', '2020-12-06', 25],
     ]
 
 
@@ -187,7 +190,3 @@ SCENARIOS = [
     HammerDanceScenario(),
     RetrospectiveEasingScenario(),
 ]
-
-"""Kumulatiivinen rajoitusprosenteista laskettu indikaattori, jolla voidaan hyvin karkeasti
-kuvata eristymisestä aiheutuvia psykologisia, sosiaalisia ja talousvaikutuksia.
-Korkeammalla rajoituspäiväluvulla vaikutukset ovat merkittävämmät."""

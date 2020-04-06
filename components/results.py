@@ -6,6 +6,7 @@ from dash_table.Format import Format, Scheme
 import dash_bootstrap_components as dbc
 import dash_html_components as html
 import dash_table
+import pandas as pd
 from dash.dependencies import Input, Output, State
 from flask_babel import lazy_gettext as _
 
@@ -57,6 +58,7 @@ def render_validation_card(df):
     det = get_detected_cases()
     det = det[det['confirmed'] > 0]
 
+    det.index = pd.DatetimeIndex(det.index)
     max_date = det.index.max()
     df = df[df.index <= max_date]
 
@@ -332,17 +334,17 @@ def render_indicators(df):
             dbc.CardBody([
                 html.H6(_('Restriction Day Index')),
                 html.P('%d' % rdays, className="display-4"),
-                html.Small("Total number of days with full mobility interventions."),
-            ])
+                html.Small(_('''The cumulative sum of daily percentages of mobility restrictions. The index can be used as a rough indicator of harmful psychological, social and economic effects. A higher index means more severe effects.''')),
+            ], style=dict(minHeight='280px'))
         ), width=dict(size=4))
     )
     cols.append(dbc.Col(
         dbc.Card(
             dbc.CardBody([
-                html.H6(_('ICU Capacity Exceeded')),
+                html.H6(_('Days ICU Capacity Exceeded')),
                 html.P('%d' % icu_cap, className="display-4"),
-                html.Small("Days ICU units had less than 10% of capacity left."),
-            ])
+                html.Small(str(_("Number of days that ICU units had less than 10%% of capacity left.")).replace('%%', '%')),
+            ], style=dict(minHeight='280px'))
         ), width=dict(size=4))
     )
     cols.append(dbc.Col(
@@ -350,11 +352,11 @@ def render_indicators(df):
             dbc.CardBody([
                 html.H6(_('Fatalities')),
                 html.P('%d' % dead, className="display-4"),
-                html.Small("Total number of deaths."),
-            ])
+                html.Small(_("Total number of deaths at the end of simulation.")),
+            ], style=dict(minHeight='280px'))
         ), width=dict(size=4))
     )
-    return dbc.Row(cols)
+    return dbc.Row(cols, className='mb-4')
 
 
 def render_results(df):

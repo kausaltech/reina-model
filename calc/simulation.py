@@ -93,7 +93,6 @@ def simulate_individuals(variables, step_callback=None):
         else:
             val = 0
         context.add_intervention(d, iv[0], val)
-
     pc.measure()
 
     days = variables['simulation_days']
@@ -227,28 +226,42 @@ if __name__ == '__main__':
         last = df[df.date == df.date.max()]
         print(last.dead.describe(percentiles=[.25, .5, .75]))
         exit()
-    if True:
+    if False:
         sample_model_parameters('icu_period', 50, 'CRITICAL')
         exit()
 
-    header = '%-12s' % 'day'
-    for attr in POP_ATTRS + STATE_ATTRS + ['us_per_infected']:
-        header += '%15s' % attr
-    print(header)
+    if False:
+        header = '%-12s' % 'day'
+        for attr in POP_ATTRS + STATE_ATTRS + ['us_per_infected']:
+            header += '%15s' % attr
+        print(header)
 
-    def step_callback(df):
-        rec = df.dropna().iloc[-1]
+        def step_callback(df):
+            rec = df.dropna().iloc[-1]
 
-        s = '%-12s' % rec.name.date().isoformat()
-        for attr in POP_ATTRS:
-            s += '%15d' % rec[attr]
+            s = '%-12s' % rec.name.date().isoformat()
+            for attr in POP_ATTRS:
+                s += '%15d' % rec[attr]
 
-        for attr in ['exposed_per_day', 'available_hospital_beds', 'available_icu_units', 'tests_run_per_day']:
-            s += '%15d' % rec[attr]
-        s += '%13.2f' % rec['r']
-        if rec['infected']:
-            s += '%13.2f' % rec['us_per_infected']
-        print(s)
-        return True
+            for attr in ['exposed_per_day', 'available_hospital_beds', 'available_icu_units', 'tests_run_per_day']:
+                s += '%15d' % rec[attr]
+            s += '%13.2f' % rec['r']
+            if rec['infected']:
+                s += '%13.2f' % rec['us_per_infected']
+            print(s)
+            return True
 
-    simulate_individuals(step_callback=step_callback, skip_cache=True)
+        simulate_individuals(step_callback=step_callback, skip_cache=True)
+
+    if True:
+        from variables import allow_set_variable, set_variable, get_variable
+        from calc.datasets import get_detected_cases
+
+        with allow_set_variable():
+            set_variable('simulation_days', 50)
+            df = simulate_individuals(skip_cache=True)
+            df = df[['all_infected', 'all_detected']]
+            cdf = get_detected_cases()
+            cdf.index = pd.DatetimeIndex(cdf.index)
+            df['confirmed'] = cdf['confirmed']
+            print(df)

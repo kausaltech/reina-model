@@ -4,12 +4,11 @@
 # zzzython: profile=True
 # zzzython: linetrace=True
 
-
-
 import numpy as np
 from collections import namedtuple
-from datetime import date
+from datetime import date, timedelta
 from cython.parallel import prange
+from faker.providers.person.fi_FI import Provider as NameProvider
 
 cimport cython
 cimport openmp
@@ -108,13 +107,31 @@ SEVERITY_TO_STR = {
 STR_TO_SEVERITY = {val: key for key, val in SEVERITY_TO_STR.items()}
 
 
+first_names = list(NameProvider.first_names.keys())
+last_names = list(NameProvider.last_names.keys())
+
+cdef str person_name(Person *self):
+    cdef int idx = self.idx
+
+    fn = first_names[idx % len(first_names)]
+    idx /= len(first_names)
+    sn = first_names[idx % len(first_names)]
+    idx /= len(first_names)
+    ln = last_names[idx % len(last_names)]
+    idx /= len(last_names)
+
+    return '%s %s %s (%d)' % (fn, sn, ln, self.idx)
+
+
 cdef str person_print(Person *self):
+    cdef str name = person_name(self)
+
     if self.infectees != NULL:
         infectees = '[%s]' % ', '.join(['%d' % self.infectees[i] for i in range(self.nr_infectees)])
     else:
         infectees = ''
-    return 'Person %d: %d years, infection day %d, %s, %s, detected %d (others infected %d%s)' % (
-        self.idx, self.age, self.day_of_illness, STATE_TO_STR[self.state],
+    return '%s: %d years, infection day %d, %s, %s, detected %d (others infected %d%s)' % (
+        name, self.age, self.day_of_illness, STATE_TO_STR[self.state],
         SEVERITY_TO_STR[self.symptom_severity], self.was_detected, self.other_people_infected,
         infectees
     )
@@ -371,8 +388,8 @@ cdef class HealthcareSystem:
         p.queued_for_testing = 1
         with gil:
             self.testing_queue.append(person_idx)
-            IF TESTING_TRACE == True:
-                print('Person %d to test queue' % person_idx)
+            IF TESTING_TRACE:
+                context.trace('added to test queue', person_idx=person_idx)
         return True
 
     cdef void perform_contact_tracing(self, int person_idx, Context context, int level) nogil:
@@ -381,9 +398,9 @@ cdef class HealthcareSystem:
         if level > 1:
             return
 
-        IF TESTING_TRACE == True:
+        IF TESTING_TRACE:
             with gil:
-                print('%sContact tracing person: %s' % (level * '  ', person_print(p)))
+                test_trace('%sContact tracing %s' % (level * '  ', person_name(p)))
 
         if p.infector >= 0:
             if self.queue_for_testing(p.infector, context):
@@ -407,17 +424,21 @@ cdef class HealthcareSystem:
             person = context.people + idx
             if not person.queued_for_testing:
                 raise Exception()
-            person.queued_for_testing = 1
+            person.queued_for_testing = 0
 
             if not person.is_infected or person.was_detected:
+                IF TESTING_TRACE:
+                    raise Exception(person_print(person))
                 continue
 
             if not self.is_detected(person, context):
+                IF TESTING_TRACE:
+                    raise Exception(person_print(person))
                 continue
 
             # Infection is detected
-            IF TESTING_TRACE == True:
-                print('Person %d detected' % idx)
+            IF TESTING_TRACE:
+                context.trace('detected', person_idx=person.idx)
             person_detect(person, context)
             if self.testing_mode == TestingMode.ALL_WITH_SYMPTOMS_CT:
                 # With contact tracing we queue the infector and the
@@ -426,9 +447,10 @@ cdef class HealthcareSystem:
                 self.perform_contact_tracing(idx, context, 0)
 
     cdef void seek_testing(self, Person *person, Context context) nogil:
-        IF TESTING_TRACE == True:
+        IF TESTING_TRACE:
             with gil:
-                print('Person %d seeks testing' % person.idx)
+                context.trace('seeks testing', person_idx=person.idx)
+
         queue_for_testing = False
         if self.testing_mode in (TestingMode.ALL_WITH_SYMPTOMS, TestingMode.ALL_WITH_SYMPTOMS_CT):
             queue_for_testing = True
@@ -849,6 +871,17 @@ cdef class Context:
         self.total_infections = 0
         self.exposed_per_day = 0
 
+    cdef trace(self, str s, int person_idx=-1):
+        cdef str ps
+        cdef Person *p
+
+        if person_idx >= 0:
+            person = self.people + person_idx
+            ps = '[' + person_name(person) + '] '
+        else:
+            ps = ''
+        print('Day %d. %s%s' % (self.day, ps, s))
+
     def add_intervention(self, day, name, value):
         if value is None:
             value = 0
@@ -886,7 +919,7 @@ cdef class Context:
         for age, count in enumerate(age_counts):
             for i in range(count):
                 p = people + people_idx[idx]
-                person_init(p, idx, age)
+                person_init(p, people_idx[idx], age)
                 idx += 1
         self.total_people = total
         self.people = people
@@ -929,7 +962,6 @@ cdef class Context:
             person_infect(person, self)
 
     def apply_intervention(self, name, value):
-        # print(name, value)
         if name == 'test-all-with-symptoms':
             # Start testing everyone who shows even mild symptoms
             self.hc.set_testing_mode(TestingMode.ALL_WITH_SYMPTOMS)
