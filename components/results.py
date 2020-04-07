@@ -170,13 +170,13 @@ def make_intervention_shapes(df):
         name = iv[0]
         if name == 'test-all-with-symptoms':
             name = 'testing-mode'
-            strength = 0.5
+            strength = 0.3
         elif name == 'test-only-severe-symptoms':
             name = 'testing-mode'
             strength = 0.2
         elif name == 'test-with-contact-tracing':
             name = 'testing-mode'
-            strength = 0.8
+            strength = 0.3 + (iv[2] / 100) * 0.7
         elif name == 'limit-mobility':
             strength = iv[2] / 100
         elif name == 'limit-mass-gatherings':

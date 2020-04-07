@@ -21,7 +21,7 @@ class Intervention:
 INTERVENTIONS = [
     Intervention('test-all-with-symptoms', _('Test all with symptoms')),
     Intervention('test-only-severe-symptoms', _('Test people only with severe symptoms')),
-    Intervention('test-with-contact-tracing', _('Test all with symptoms and perform contact tracing')),
+    Intervention('test-with-contact-tracing', _('Test all with symptoms and perform contact tracing with given accuracy'), '%'),
     Intervention('limit-mobility', _('Limit population mobility'), '%'),
     Intervention('limit-mass-gatherings', _('Limit mass gatherings'), _('max. contacts')),
     Intervention('import-infections', _('Import infections'), _('infections')),
@@ -61,7 +61,8 @@ def create_disease(variables):
         'hospital_beds', 'icu_units', 'p_detected_anyway',
         'random_seed',
     ],
-    funcs=[get_contacts_for_country]
+    funcs=[get_contacts_for_country],
+    filedeps=[model.__file__],
 )
 def simulate_individuals(variables, step_callback=None):
     pc = PerfCounter()

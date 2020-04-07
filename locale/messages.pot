@@ -8,7 +8,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: PROJECT VERSION\n"
 "Report-Msgid-Bugs-To: EMAIL@ADDRESS\n"
-"POT-Creation-Date: 2020-04-06 17:43+0300\n"
+"POT-Creation-Date: 2020-04-07 18:47+0300\n"
 "PO-Revision-Date: YEAR-MO-DA HO:MI+ZONE\n"
 "Last-Translator: FULL NAME <EMAIL@ADDRESS>\n"
 "Language-Team: LANGUAGE <LL@li.org>\n"
@@ -25,7 +25,7 @@ msgstr ""
 msgid "Event"
 msgstr ""
 
-#: components/params.py:170 corona.py:88
+#: components/params.py:172 corona.py:88
 msgid "Value"
 msgstr ""
 
@@ -93,10 +93,10 @@ msgid "Test people only with severe symptoms"
 msgstr ""
 
 #: calc/simulation.py:24
-msgid "Test all with symptoms and perform contact tracing"
+msgid "Test all with symptoms and perform contact tracing with given accuracy"
 msgstr ""
 
-#: calc/simulation.py:25 components/params.py:236 components/results.py:110
+#: calc/simulation.py:25 components/params.py:238 components/results.py:110
 msgid "Limit population mobility"
 msgstr ""
 
@@ -172,83 +172,83 @@ msgstr ""
 msgid "Duration of ICU treatment"
 msgstr ""
 
-#: components/params.py:48 components/params.py:147 components/params.py:148 components/params.py:149 components/params.py:150
+#: components/params.py:48 components/params.py:149 components/params.py:150 components/params.py:151 components/params.py:152
 msgid "days"
 msgstr ""
 
-#: components/params.py:81
+#: components/params.py:83
 msgid "Symptom severity"
 msgstr ""
 
-#: components/params.py:95
+#: components/params.py:97
 msgid "Contacts per day"
 msgstr ""
 
-#: components/params.py:100
+#: components/params.py:102
 msgid "number of contacts"
 msgstr ""
 
-#: components/params.py:114
+#: components/params.py:116
 msgid "Infectiousness over time"
 msgstr ""
 
-#: components/params.py:119
+#: components/params.py:121
 msgid "Day of illness"
 msgstr ""
 
-#: components/params.py:140
+#: components/params.py:142
 msgid "Ratio of all infected people who remain asymptomatic"
 msgstr ""
 
-#: components/params.py:141
+#: components/params.py:143
 msgid "Probability of becoming infected after being exposed"
 msgstr ""
 
-#: components/params.py:144
+#: components/params.py:146
 msgid "Probability of dying after regular hospital treatment"
 msgstr ""
 
-#: components/params.py:145
+#: components/params.py:147
 msgid "Probability of dying if no hospital beds are available"
 msgstr ""
 
-#: components/params.py:146
+#: components/params.py:148
 msgid "Probability of dying if no ICU units are available"
 msgstr ""
 
-#: components/params.py:147
+#: components/params.py:149
 msgid "Mean number of days of being ill"
 msgstr ""
 
-#: components/params.py:148
+#: components/params.py:150
 msgid "Mean number of days of being hospitalized"
 msgstr ""
 
-#: components/params.py:149
+#: components/params.py:151
 msgid "Mean number of days of being in ICU care"
 msgstr ""
 
-#: components/params.py:150
+#: components/params.py:152
 msgid "Mean number of days in regular hospital care before ICU"
 msgstr ""
 
-#: components/params.py:168
+#: components/params.py:170
 msgid "Description"
 msgstr ""
 
-#: components/params.py:193
+#: components/params.py:195
 msgid "Disease parameters"
 msgstr ""
 
-#: components/params.py:201
+#: components/params.py:203
 msgid "Restore defaults"
 msgstr ""
 
-#: components/params.py:227
+#: components/params.py:229
 msgid "Distributions based on model parameters"
 msgstr ""
 
-#: components/params.py:229
+#: components/params.py:231
 msgid "Age of person"
 msgstr ""
 
@@ -346,7 +346,7 @@ msgstr ""
 
 #: components/results.py:346
 #, python-format
-msgid "Number of days that ICU units had less than 10% of capacity left."
+msgid "Number of days that ICU units had less than 10%% of capacity left."
 msgstr ""
 
 #: components/results.py:353

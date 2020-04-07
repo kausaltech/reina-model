@@ -230,8 +230,8 @@ def register_params_callbacks(app):
                 dbc.Row([dbc.Col([
                     html.P(_('Age of person')),
                     dcc.Slider(
-                        id='disease-params-age-slider', min=0, max=80, step=1, value=60,
-                        marks={x: str(x) for x in range(0, 80 + 1, 10)}
+                        id='disease-params-age-slider', min=0, max=90, step=1, value=60,
+                        marks={x: str(x) for x in range(0, 90 + 1, 10)}
                     ),
                 ])]),
                 dbc.Row([dbc.Col([

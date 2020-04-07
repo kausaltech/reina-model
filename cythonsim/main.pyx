@@ -5,6 +5,7 @@
 # zzzython: linetrace=True
 
 import numpy as np
+import pandas as pd
 from collections import namedtuple
 from datetime import date, timedelta
 from cython.parallel import prange
@@ -17,6 +18,10 @@ from libc.stdlib cimport malloc, free
 cimport numpy as cnp
 
 from cythonsim.simrandom cimport RandomPool
+
+ctypedef int int32
+ctypedef unsigned char uint8
+ctypedef int int16
 
 
 cdef enum SymptomSeverity:
@@ -37,17 +42,46 @@ cdef enum PersonState:
     DEAD
 
 
-ctypedef int int32
-ctypedef unsigned char uint8
-ctypedef unsigned int int16
-
-
 cdef enum SimulationProblem:
     NO_PROBLEMOS
     TOO_MANY_INFECTEES
     HOSPITAL_ACCOUNTING_FAILURE
+    NEGATIVE_CONTACTS
     MALLOC_FAILURE
     OTHER_FAILURE
+    WRONG_STATE
+
+
+STATE_TO_STR = {
+    PersonState.SUSCEPTIBLE: 'SUSCEPTIBLE',
+    PersonState.INCUBATION: 'INCUBATION',
+    PersonState.ILLNESS: 'ILLNESS',
+    PersonState.HOSPITALIZED: 'HOSPITALIZED',
+    PersonState.IN_ICU: 'IN_ICU',
+    PersonState.RECOVERED: 'RECOVERED',
+    PersonState.DEAD: 'DEAD',
+}
+SEVERITY_TO_STR = {
+    SymptomSeverity.ASYMPTOMATIC: 'ASYMPTOMATIC',
+    SymptomSeverity.MILD: 'MILD',
+    SymptomSeverity.SEVERE: 'SEVERE',
+    SymptomSeverity.CRITICAL: 'CRITICAL',
+    SymptomSeverity.FATAL: 'FATAL',
+}
+STR_TO_SEVERITY = {val: key for key, val in SEVERITY_TO_STR.items()}
+
+PROBLEM_TO_STR = {
+    SimulationProblem.NO_PROBLEMOS: 'No problemos',
+    SimulationProblem.TOO_MANY_INFECTEES: 'Too many infectees',
+    SimulationProblem.HOSPITAL_ACCOUNTING_FAILURE: 'Hospital accounting failure',
+    SimulationProblem.NEGATIVE_CONTACTS: 'Negative number of contacts',
+    SimulationProblem.MALLOC_FAILURE: 'Malloc failure',
+    SimulationProblem.OTHER_FAILURE: 'Other failure',
+    SimulationProblem.WRONG_STATE: 'Wrong state',
+}
+
+class SimulationFailed(Exception):
+    pass
 
 
 DEF MAX_INFECTEES = 64
@@ -56,9 +90,11 @@ DEF MAX_INFECTEES = 64
 cdef struct Person:
     int32 idx, infector
     uint8 age, has_immunity, is_infected, was_detected, queued_for_testing, \
-        symptom_severity, days_left, day_of_illness, state, \
-        included_in_totals
-    int16 day_of_infection, other_people_infected, other_people_exposed_today
+        symptom_severity, state, included_in_totals
+    int16 day_of_infection, days_left, other_people_infected, other_people_exposed_today, \
+        day_of_illness
+    int16 max_contacts_per_day
+
     float days_from_onset_to_removed
     uint8 nr_infectees
     int32 *infectees
@@ -82,29 +118,11 @@ cdef void person_init(Person *self, int32 idx, uint8 age) nogil:
     self.symptom_severity = SymptomSeverity.ASYMPTOMATIC
     self.state = PersonState.SUSCEPTIBLE
     self.nr_infectees = 0
+    self.max_contacts_per_day = 0
     self.infector = -1
     self.infectees = NULL
 
     openmp.omp_init_lock(&self.lock)
-
-
-STATE_TO_STR = {
-    PersonState.SUSCEPTIBLE: 'SUSCEPTIBLE',
-    PersonState.INCUBATION: 'INCUBATION',
-    PersonState.ILLNESS: 'ILLNESS',
-    PersonState.HOSPITALIZED: 'HOSPITALIZED',
-    PersonState.IN_ICU: 'IN_ICU',
-    PersonState.RECOVERED: 'RECOVERED',
-    PersonState.DEAD: 'DEAD',
-}
-SEVERITY_TO_STR = {
-    SymptomSeverity.ASYMPTOMATIC: 'ASYMPTOMATIC',
-    SymptomSeverity.MILD: 'MILD',
-    SymptomSeverity.SEVERE: 'SEVERE',
-    SymptomSeverity.CRITICAL: 'CRITICAL',
-    SymptomSeverity.FATAL: 'FATAL',
-}
-STR_TO_SEVERITY = {val: key for key, val in SEVERITY_TO_STR.items()}
 
 
 first_names = list(NameProvider.first_names.keys())
@@ -123,17 +141,28 @@ cdef str person_name(Person *self):
     return '%s %s %s (%d)' % (fn, sn, ln, self.idx)
 
 
-cdef str person_print(Person *self):
+cdef str person_str(Person *self, int today=-1):
     cdef str name = person_name(self)
 
     if self.infectees != NULL:
         infectees = '[%s]' % ', '.join(['%d' % self.infectees[i] for i in range(self.nr_infectees)])
     else:
         infectees = ''
-    return '%s: %d years, infection day %d, %s, %s, detected %d (others infected %d%s)' % (
-        name, self.age, self.day_of_illness, STATE_TO_STR[self.state],
-        SEVERITY_TO_STR[self.symptom_severity], self.was_detected, self.other_people_infected,
-        infectees
+
+    if today >= 0 and self.is_infected:
+        days_ago = ' (%d days ago)' % (today - self.day_of_infection)
+    else:
+        days_ago = ''
+
+    if self.queued_for_testing:
+        queued = 'queued for testing, '
+    else:
+        queued = ''
+
+    return '%s: %d years, infection on day %d%s, %s, %s, days left %d, %sdetected %d, max. contacts %d (others infected %d%s)' % (
+        name, self.age, self.day_of_infection, days_ago, STATE_TO_STR[self.state],
+        SEVERITY_TO_STR[self.symptom_severity], self.days_left, queued, self.was_detected,
+        self.max_contacts_per_day, self.other_people_infected, infectees
     )
 
 
@@ -148,18 +177,18 @@ cdef void person_infect(Person *self, Context context, Person *source=NULL) nogi
         self.infector = source.idx
         if source.infectees != NULL:
             if source.nr_infectees >= MAX_INFECTEES:
-                context.problem = SimulationProblem.TOO_MANY_INFECTEES
+                context.set_problem(SimulationProblem.TOO_MANY_INFECTEES)
                 return
             source.infectees[source.nr_infectees] = self.idx
             source.nr_infectees += 1
 
     if context.hc.testing_mode == TestingMode.ALL_WITH_SYMPTOMS_CT:
         if self.infectees != NULL:
-            context.problem = SimulationProblem.OTHER_FAILURE
+            context.set_problem(SimulationProblem.OTHER_FAILURE)
         else:
             self.infectees = <int32 *> malloc(sizeof(int32) * MAX_INFECTEES)
             if self.infectees == NULL:
-                context.problem = SimulationProblem.MALLOC_FAILURE
+                context.set_problem(SimulationProblem.MALLOC_FAILURE)
 
     context.pop.infect(self)
 
@@ -198,21 +227,31 @@ cdef inline DailyContacts * _get_daily_contacts(Person *self) nogil:
 """
 
 @cython.cdivision(True)
-cdef void person_expose_others(Person *self, Context context, int nr_contacts) nogil:
+cdef void person_expose_others(Person *self, Context context) nogil:
     cdef Person *people = context.people
-    cdef int32 *infectees = self.infectees
-    cdef int exposee_idx, total, i, infected_idx
+    cdef int32 *infectees
+    cdef int nr_contacts, exposee_idx, total, i
     cdef Person *target
 
+    nr_contacts = context.disease.people_exposed(self, context)
     self.other_people_exposed_today = nr_contacts
-    infected_idx = 0
+    if nr_contacts == 0:
+        return
+    if nr_contacts < 0:
+        context.set_problem(SimulationProblem.NEGATIVE_CONTACTS, self)
+        return
+
+    if nr_contacts > self.max_contacts_per_day:
+        self.max_contacts_per_day = nr_contacts
+
+    infectees = self.infectees
     for i in range(nr_contacts):
         exposee_idx = context.random.getint() % context.total_people
         target = &people[exposee_idx]
         if person_expose(target, context, self):
             if infectees != NULL:
                 if self.other_people_infected >= MAX_INFECTEES:
-                    context.problem = SimulationProblem.TOO_MANY_INFECTEES
+                    context.set_problem(SimulationProblem.TOO_MANY_INFECTEES, self)
                     break
                 infectees[self.other_people_infected] = exposee_idx
             self.other_people_infected += 1
@@ -316,20 +355,16 @@ cdef void person_advance(Person *self, Context context) nogil:
     self.other_people_exposed_today = 0
 
     if self.state == PersonState.INCUBATION:
-        people_exposed = context.disease.people_exposed(self, context)
-        if people_exposed:
-            person_expose_others(self, context, people_exposed)
-
-        self.days_left -= 1
+        person_expose_others(self, context)
+        if self.days_left > 0:
+            self.days_left -= 1
         if self.days_left == 0:
             person_become_ill(self, context)
     elif self.state == PersonState.ILLNESS:
-        people_exposed = context.disease.people_exposed(self, context)
-        if people_exposed:
-            person_expose_others(self, context, people_exposed)
-
+        person_expose_others(self, context)
         self.day_of_illness += 1
-        self.days_left -= 1
+        if self.days_left > 0:
+            self.days_left -= 1
         if self.days_left == 0:
             # People with mild symptoms recover after the symptomatic period
             # and people with more severe symptoms are hospitalized.
@@ -338,7 +373,8 @@ cdef void person_advance(Person *self, Context context) nogil:
             else:
                 person_recover(self, context)
     elif self.state == PersonState.HOSPITALIZED:
-        self.days_left -= 1
+        if self.days_left > 0:
+            self.days_left -= 1
         if self.days_left == 0:
             # People with critical symptoms will be transferred to ICU care
             # after a period in a non-iCU hospital care.
@@ -347,7 +383,8 @@ cdef void person_advance(Person *self, Context context) nogil:
             else:
                 person_release_from_hospital(self, context)
     elif self.state == PersonState.IN_ICU:
-        self.days_left -= 1
+        if self.days_left > 0:
+            self.days_left -= 1
         if self.days_left == 0:
             person_release_from_hospital(self, context)
 
@@ -366,6 +403,7 @@ cdef class HealthcareSystem:
     cdef int32 beds, icu_units, available_beds, available_icu_units
     cdef int32 tests_run_per_day
     cdef float p_detected_anyway
+    cdef float p_successful_tracing
     cdef TestingMode testing_mode
     cdef list testing_queue
     cdef openmp.omp_lock_t lock
@@ -379,12 +417,18 @@ cdef class HealthcareSystem:
         self.testing_queue = []
         self.tests_run_per_day = 0
         self.p_detected_anyway = p_detected_anyway
+        self.p_successful_tracing = 1.0
         openmp.omp_init_lock(&self.lock)
 
-    cdef bint queue_for_testing(self, int person_idx, Context context) nogil:
+    cdef bint queue_for_testing(self, int person_idx, Context context, float p_success) nogil:
         cdef Person *p = context.people + person_idx
         if p.state == PersonState.DEAD or p.was_detected or p.queued_for_testing:
             return False
+
+        # There is a chance we might not catch this person in contact tracing
+        if not context.random.chance(p_success):
+            return False
+
         p.queued_for_testing = 1
         with gil:
             self.testing_queue.append(person_idx)
@@ -403,12 +447,12 @@ cdef class HealthcareSystem:
                 test_trace('%sContact tracing %s' % (level * '  ', person_name(p)))
 
         if p.infector >= 0:
-            if self.queue_for_testing(p.infector, context):
+            if self.queue_for_testing(p.infector, context, self.p_successful_tracing):
                 self.perform_contact_tracing(p.infector, context, level + 1)
         if p.infectees != NULL:
             for i in range(p.nr_infectees):
                 infectee_idx = p.infectees[i]
-                if self.queue_for_testing(infectee_idx, context):
+                if self.queue_for_testing(infectee_idx, context, self.p_successful_tracing):
                     self.perform_contact_tracing(infectee_idx, context, level + 1)
 
     cdef iterate(self, Context context):
@@ -428,13 +472,11 @@ cdef class HealthcareSystem:
 
             if not person.is_infected or person.was_detected:
                 IF TESTING_TRACE:
-                    raise Exception(person_print(person))
-                continue
+                    raise Exception(person_str(person))
 
             if not self.is_detected(person, context):
                 IF TESTING_TRACE:
-                    raise Exception(person_print(person))
-                continue
+                    raise Exception(person_str(person))
 
             # Infection is detected
             IF TESTING_TRACE:
@@ -463,10 +505,10 @@ cdef class HealthcareSystem:
 
                 # with gil:
                 #    print('Day %d. Seek testing and got it' % context.day)
-                #    person_print(person)
+                #    person_str(person)
 
         if queue_for_testing:
-            self.queue_for_testing(person.idx, context)
+            self.queue_for_testing(person.idx, context, 1)
 
     cdef bint hospitalize(self, Person *person) nogil:
         if self.available_beds == 0:
@@ -474,8 +516,9 @@ cdef class HealthcareSystem:
         self.available_beds -= 1
         return True
 
-    def set_testing_mode(self, mode):
+    def set_testing_mode(self, mode, p_successful_tracing=1.0):
         self.testing_mode = mode
+        self.p_successful_tracing = p_successful_tracing
 
     cdef bint is_detected(self, Person *person, Context context) nogil:
         # Person needs to have viral load in order to be detected
@@ -547,8 +590,13 @@ cdef class ClassedValues:
 
         for idx in range(len(self.classes)):
             if self.classes[idx] > kls:
+                idx -= 1
                 break
         return self.values[idx]
+
+    def print(self):
+        for i in range(len(self.classes)):
+            print('%d: %f' % (self.classes[i], self.values[i]))
 
 
 cdef inline int round_to_int(float f) nogil:
@@ -776,13 +824,16 @@ cdef class Population:
         self.limit_mass_gatherings = 0
         self.population_mobility_factor = 1.0
 
+
     cdef int contacts_per_day(self, Person *person, Context context, float factor=1.0, int limit=100) nogil:
         # Contacts per day follows a lognormal distribution with
         # mean at `avg_contacts_per_day`.
         cdef float f = factor * self.population_mobility_factor
         f *= context.random.lognormal(0, 0.5) * self.avg_contacts_per_day.get_greatest_lte(person.age)
-
+        if f < 1:
+            f = 1
         cdef int contacts = <int> f - 1
+
         if self.limit_mass_gatherings:
             if contacts > self.limit_mass_gatherings:
                 contacts = self.limit_mass_gatherings
@@ -845,6 +896,7 @@ cdef class Context:
     cdef public Disease disease
     cdef public RandomPool random
     cdef SimulationProblem problem
+    cdef Person * problem_person
     cdef int day
     cdef Person * people
     cdef int total_people
@@ -858,6 +910,7 @@ cdef class Context:
         self.create_population(pop.susceptible)
 
         self.problem = SimulationProblem.NO_PROBLEMOS
+        self.problem_person = NULL
         self.pop = pop
         self.hc = hc
         self.disease = disease
@@ -871,7 +924,11 @@ cdef class Context:
         self.total_infections = 0
         self.exposed_per_day = 0
 
-    cdef trace(self, str s, int person_idx=-1):
+    cdef void set_problem(self, SimulationProblem problem, Person *p = NULL) nogil:
+        self.problem = problem
+        self.problem_person = p
+
+    cdef str _get_log_msg(self, str s, int person_idx):
         cdef str ps
         cdef Person *p
 
@@ -880,7 +937,19 @@ cdef class Context:
             ps = '[' + person_name(person) + '] '
         else:
             ps = ''
-        print('Day %d. %s%s' % (self.day, ps, s))
+        return 'Day %d. %s%s' % (self.day, ps, s)
+
+    cdef void error(self, str s, int person_idx=-1):
+        cdef str out = self._get_log_msg(s, person_idx)
+        print('[ERROR] %s' % out)
+
+    cdef void trace(self, str s, int person_idx=-1):
+        cdef str out = self._get_log_msg(s, person_idx)
+        print(out)
+
+    def get_date_for_today(self):
+        d = date.fromisoformat(self.start_date)
+        return (d + timedelta(days=self.day)).isoformat()
 
     def add_intervention(self, day, name, value):
         if value is None:
@@ -970,7 +1039,7 @@ cdef class Context:
             self.hc.set_testing_mode(TestingMode.ONLY_SEVERE_SYMPTOMS)
         elif name == 'test-with-contact-tracing':
             # Test only those who show severe or critical symptoms
-            self.hc.set_testing_mode(TestingMode.ALL_WITH_SYMPTOMS_CT)
+            self.hc.set_testing_mode(TestingMode.ALL_WITH_SYMPTOMS_CT, value / 100.0)
         elif name == 'build-new-icu-units':
             self.hc.icu_units += value
             self.hc.available_icu_units += value
@@ -997,7 +1066,7 @@ cdef class Context:
         for i in range(count):
             pass
 
-    cdef inline void _iterate_person(self, int idx) nogil:
+    cdef inline void _process_person(self, int idx) nogil:
         cdef Person * person
 
         person = self.people + idx
@@ -1013,9 +1082,16 @@ cdef class Context:
 
         self.exposed_per_day += person.other_people_exposed_today
 
-    cdef void _iterate(self):
+    cdef void _iterate_people(self) nogil:
         cdef int i, start_idx, person_idx
 
+        start_idx = self.random.getint() % self.total_people
+        for i in range(self.total_people):
+            person_idx = (start_idx + i) % self.total_people
+            self._process_person(person_idx)
+
+
+    cdef void _iterate(self):
         for intervention in self.interventions:
             if intervention.day == self.day:
                 # print(intervention.name)
@@ -1029,18 +1105,44 @@ cdef class Context:
 
         self.hc.iterate(self)
 
-        start_idx = self.random.getint() % self.total_people
-        for i in prange(self.total_people, nogil=True, num_threads=1, schedule='dynamic', chunksize=10000):
-            person_idx = (start_idx + i) % self.total_people
-            self._iterate_person(person_idx)
+        self._iterate_people()
 
-        if self.problem != SimulationProblem.NO_PROBLEMOS:
-            raise Exception('Simulation failed with %d' % self.problem)
+        #if self.get_date_for_today() == '2020-05-16':
+        #    self.dump_state()
 
         self.day += 1
 
     def iterate(self):
         self._iterate()
+        if self.problem != SimulationProblem.NO_PROBLEMOS:
+            raise SimulationFailed(PROBLEM_TO_STR[self.problem])
+
+    cdef void _dump_people_in_state(self, PersonState state):
+        cdef Person *p
+        cdef int i
+
+        for i in range(self.total_people):
+            p = self.people + i
+            if p.state == state:
+                print(person_str(p, self.day))
+
+    cdef void dump_state(self):
+        cdef Person *p
+        cdef int i, max_contacts = 0
+        cdef cnp.ndarray[int] mc = np.empty(self.total_people, dtype='i')
+
+        for state in (PersonState.INCUBATION, PersonState.ILLNESS, PersonState.HOSPITALIZED, PersonState.IN_ICU):
+            print('%s:\n' % STATE_TO_STR[state])
+            self._dump_people_in_state(state)
+            print('=' * 80)
+            print()
+
+        for i in range(self.total_people):
+            p = self.people + i
+            mc[i] = p.max_contacts_per_day
+        print('Max. contacts per day:')
+        for c1, c2 in pd.Series(mc).value_counts().sort_index().items():
+            print('%4d %d' % (c1, c2))
 
     cpdef sample(self, str what, int age, str severity=None):
         cdef int sample_size = 10000

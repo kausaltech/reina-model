@@ -52,7 +52,11 @@ def _get_func_hash_data(func, seen_funcs):
 def _hash_funcs(funcs):
     m = hashlib.md5()
     for f in funcs:
-        m.update(f.source_hash)
+        m.update(f.__code__.co_code)
+        if f.filedeps:
+            for fn in f.filedeps:
+                update_time = os.path.getmtime(fn)
+                m.update(bytes(str(update_time), encoding='ascii'))
     return m.hexdigest()
 
 
@@ -63,10 +67,11 @@ def _calculate_cache_key(func, hash_data, var_store):
 
     func_hash = _hash_funcs(funcs)
     func_name = '.'.join((func.__module__, func.__name__))
+
     return '%s:%s:%s' % (func_name, hashlib.md5(var_data.encode()).hexdigest(), func_hash)
 
 
-def calcfunc(variables=None, datasets=None, funcs=None):
+def calcfunc(variables=None, datasets=None, funcs=None, filedeps=None):
     if datasets is not None:
         assert isinstance(datasets, (list, tuple, dict))
         if not isinstance(datasets, dict):
@@ -86,11 +91,17 @@ def calcfunc(variables=None, datasets=None, funcs=None):
         for func in funcs:
             assert callable(func) or isinstance(func, str)
 
+    if filedeps is not None:
+        assert isinstance(filedeps, (list, tuple))
+        for filedep in filedeps:
+            assert isinstance(filedep, str)
+            assert os.path.getmtime(filedep)
+
     def wrapper_factory(func):
         func.variables = variables
         func.datasets = datasets
         func.calcfuncs = funcs
-        func.source_hash = hashlib.md5(inspect.getsource(func).encode('utf8')).digest()
+        func.filedeps = filedeps
 
         @wraps(func)
         def wrap_calc_func(*args, **kwargs):

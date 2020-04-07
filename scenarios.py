@@ -81,7 +81,8 @@ class MitigationScenario(Scenario):
         ),
         'en': ScenarioTranslation(
             name='Mitigation only', description='''
-            Ensure that healthcare capacity is sufficient by
+            Ensure that healthcare capacity remains sufficient through restricting
+            population mobility and rapidly building more ICU units.
             '''
         ),
     }
@@ -96,10 +97,10 @@ class MitigationScenario(Scenario):
         ['build-new-hospital-beds', '2020-08-15', 300],
         ['build-new-icu-units', '2020-08-30', 150],
         ['build-new-hospital-beds', '2020-08-30', 300],
-        ['limit-mobility', '2020-06-15', 30],
+        ['limit-mobility', '2020-06-01', 30],
         ['limit-mobility', '2020-09-15', 40],
-        ['limit-mobility', '2020-11-15', 30],
-        ['limit-mobility', '2020-12-15', 40],
+        ['limit-mobility', '2020-10-15', 25],
+        # ['limit-mobility', '2020-12-15', 30],
     ]
 
 
@@ -132,22 +133,27 @@ class HammerDanceScenario(Scenario):
             name='Nopea hybridimalli',
             description='''
             Laajennetaan testausta, tehdään kontaktien jäljitystä ja tasapainotellaan rajoitusten kanssa.
+            Parannetaan kontaktien jäljityksen osumatarkkuutta pitkin vuotta.
             ''',
         ),
         'en': ScenarioTranslation(
             name='Fast hybrid model',
             description='''
             Test all people with even mild symptoms, perform contact tracing, and start a
-            balancing act with mobility restrictions.
+            balancing act with mobility restrictions. Improve accuracy of contact tracing
+            over the year.
             ''',
         )
     }
     interventions = [
-        ['test-with-contact-tracing', '2020-05-01'],
-        ['limit-mobility', '2020-05-01', 20],
+        ['test-with-contact-tracing', '2020-05-01', 30],
+        ['test-with-contact-tracing', '2020-06-01', 40],
+        ['test-with-contact-tracing', '2020-07-01', 50],
+        ['test-with-contact-tracing', '2020-08-01', 60],
+        ['limit-mobility', '2020-05-01', 30],
         ['limit-mobility', '2020-06-24', 25],
-        ['limit-mobility', '2020-08-15', 20],
-        ['limit-mobility', '2020-12-06', 25],
+        ['limit-mobility', '2020-08-15', 10],
+        ['limit-mobility', '2020-12-06', 15],
     ]
 
 
@@ -155,13 +161,13 @@ class RetrospectiveEasingScenario(Scenario):
     id = 'looser-restrictions-to-start-with'
     translations = {
         'fi': ScenarioTranslation(
-            name='Ruotsin polku',
+            name='Ruotsin malli',
             description='''
             Mitä jos alusta lähtien oltaisiinkin otettu puolet vähemmän liikkuvuuden rajoituksia käyttöön?
             '''
         ),
         'en': ScenarioTranslation(
-            name='Followed Sweden',
+            name='Swedish model',
             description='''
             What if we had taken half of the mobility restriction measures to start with?
             '''
