@@ -8,6 +8,7 @@ from contextlib import contextmanager
 # Variables
 VARIABLE_DEFAULTS = {
     'area_name': 'HUS',
+    'area_name_long': 'Helsingin ja Uudenmaan sairaanhoitopiiri',
     'country': 'Finland',
     'max_age': 100,
     'simulation_days': 365,

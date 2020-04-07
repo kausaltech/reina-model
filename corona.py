@@ -250,7 +250,7 @@ def generate_layout():
     settingsRows.append(dbc.Row([
         dbc.Col([
             html.H4(_('Scenario'), className="mb-3"),
-            html.P(_('Forecast of the COVID-19 epidemic: %(name)s', name=get_variable('area_name')), className="lead"),
+            html.P(_('Forecast of the COVID-19 epidemic: %(name)s', name=get_variable('area_name_long')), className="lead"),
         ], md=12),
     ]))
 

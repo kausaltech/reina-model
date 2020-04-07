@@ -32,7 +32,7 @@ SYMPTOM_COLOR_MAP = {
 def render_model_param_graphs(age):
     PERIOD_PARAMS = (
         ('incubation_period', _('Incubation period')),
-        ('hospitalization_period', _('Duration of hospital treatment')),
+        ('hospitalization_period', _('Duration of regular hospital treatment')),
         ('icu_period', _('Duration of ICU treatment')),
     )
 

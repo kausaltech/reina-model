@@ -7,7 +7,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: PROJECT VERSION\n"
 "Report-Msgid-Bugs-To: EMAIL@ADDRESS\n"
-"POT-Creation-Date: 2020-04-07 18:47+0300\n"
+"POT-Creation-Date: 2020-04-07 19:30+0300\n"
 "PO-Revision-Date: 2020-03-29 16:35+0300\n"
 "Last-Translator: FULL NAME <EMAIL@ADDRESS>\n"
 "Language: fi\n"
@@ -101,14 +101,6 @@ msgstr "Testataan kaikki oirehtivat sekä määritetään tartuntaketjut annetul
 msgid "Limit population mobility"
 msgstr "Rajoitetaan väestön liikkuvuutta"
 
-#: calc/simulation.py:26 components/results.py:109
-msgid "Limit mass gatherings"
-msgstr "Rajoitetaan kokoontumisia"
-
-#: calc/simulation.py:26
-msgid "max. contacts"
-msgstr "kontaktia (max.)"
-
 #: calc/simulation.py:27 components/results.py:111
 msgid "Import infections"
 msgstr "Alueelle tulee infektioita"
@@ -116,14 +108,6 @@ msgstr "Alueelle tulee infektioita"
 #: calc/simulation.py:27
 msgid "infections"
 msgstr "infektiota"
-
-#: calc/simulation.py:28
-msgid "Import new infections daily"
-msgstr "Alueelle tulee päivittäin uusia infektioita"
-
-#: calc/simulation.py:28
-msgid "infections/day"
-msgstr "infektiota/pv"
 
 #: calc/simulation.py:29
 msgid "Build new hospital beds"
@@ -159,15 +143,15 @@ msgstr "Kriittinen"
 
 #: components/params.py:21
 msgid "Fatal"
-msgstr "Kuolema"
+msgstr "Fataali"
 
 #: components/params.py:34
 msgid "Incubation period"
 msgstr "Itämisaika"
 
 #: components/params.py:35
-msgid "Duration of hospital treatment"
-msgstr "Sairaalahoitojakson kesto"
+msgid "Duration of regular hospital treatment"
+msgstr "Osastohoitojakson kesto"
 
 #: components/params.py:36
 msgid "Duration of ICU treatment"
@@ -263,7 +247,7 @@ msgstr "Aktiiviset tartunnat"
 
 #: components/results.py:32
 msgid "Detected cases"
-msgstr "Tunnistetut tapaukset"
+msgstr "Havaitut tapaukset"
 
 #: components/results.py:33
 msgid "Hospitalized"
@@ -281,6 +265,10 @@ msgstr "Kuolleet"
 msgid "Recovered"
 msgstr "Toipuneet"
 
+#: components/results.py:44
+msgid "(cum.)"
+msgstr "(kum.)"
+
 #: components/results.py:70
 msgid "(simulated)"
 msgstr "(simuloitu)"
@@ -297,64 +285,68 @@ msgstr "Vertailu toteumaan"
 msgid "Testing"
 msgstr "Testaus"
 
-#: components/results.py:220
+#: components/results.py:109
+msgid "Limit mass gatherings"
+msgstr "Rajoitetaan kokoontumisia"
+
+#: components/results.py:224
 msgid "Population"
 msgstr "Väestö"
 
-#: components/results.py:232
+#: components/results.py:236
 msgid "Hospital beds"
 msgstr "Vuodepaikat"
 
-#: components/results.py:233
+#: components/results.py:237
 msgid "ICU units"
 msgstr "Tehohoitopaikat"
 
-#: components/results.py:245
+#: components/results.py:249
 msgid "Free capacity in the healthcare system"
 msgstr "Sairaanhoitojärjestelmän vapaa kapasiteetti"
 
-#: components/results.py:257
+#: components/results.py:261
 msgid "Reproductive number (Rₜ)"
 msgstr "Rₜ-luku"
 
-#: components/results.py:258
+#: components/results.py:262
 msgid "Infection fatality ratio (IFR, %"
 msgstr "Infektiokuolleisuus (IFR, %)"
 
-#: components/results.py:259
+#: components/results.py:263
 msgid "Case fatality ratio (CFR, %"
 msgstr "Tapauskuolleisuus (CFR, %)"
 
-#: components/results.py:270
+#: components/results.py:274
 msgid "Epidemic parameters"
 msgstr "Epidemian parametrit"
 
-#: components/results.py:313
+#: components/results.py:317
 msgid "Simulation result data"
 msgstr "Simulaatioajon tulosdata"
 
-#: components/results.py:335
+#: components/results.py:339
 msgid "Restriction Day Index"
 msgstr "Rajoituspäiväluku"
 
-#: components/results.py:337
+#: components/results.py:341
 msgid "The cumulative sum of daily percentages of mobility restrictions. The index can be used as a rough indicator of harmful psychological, social and economic effects. A higher index means more severe effects."
 msgstr "Kumulatiivinen rajoitusprosenteista laskettu indikaattori, jolla voidaan hyvin karkeasti kuvata eristymisestä aiheutuvia psykologisia, sosiaalisia ja talousvaikutuksia. Korkeammalla rajoituspäiväluvulla vaikutukset ovat merkittävämmät."
 
-#: components/results.py:344
+#: components/results.py:348
 msgid "Days ICU Capacity Exceeded"
 msgstr "Tehohoitokapasiteetin ylitys päivinä"
 
-#: components/results.py:346
+#: components/results.py:350
 #, python-format
 msgid "Number of days that ICU units had less than 10%% of capacity left."
 msgstr "Kuinka monena päivänä tehohoitokapasiteettia oli alle 10%% jäljellä."
 
-#: components/results.py:353
+#: components/results.py:357
 msgid "Fatalities"
 msgstr "Kuolleet"
 
-#: components/results.py:355
+#: components/results.py:359
 msgid "Total number of deaths at the end of simulation."
 msgstr "Kuolleiden lukumäärä simulaation päättyessä."
 
@@ -407,4 +399,25 @@ msgstr "Kuolleiden lukumäärä simulaation päättyessä."
 
 #~ msgid "Test all with symptoms and perform contact tracing"
 #~ msgstr "Testataan kaikki oirehtivat sekä määritetään tartuntaketjut"
+
+#~ msgid "max. contacts"
+#~ msgstr "kontaktia (max.)"
+
+#~ msgid "Import new infections daily"
+#~ msgstr "Alueelle tulee päivittäin uusia infektioita"
+
+#~ msgid "infections/day"
+#~ msgstr "infektiota/pv"
+
+#~ msgid "Duration of hospital treatment"
+#~ msgstr "Sairaalahoitojakson kesto"
+
+#~ msgid "Detected cases (cum.)"
+#~ msgstr "Tunnistetut tapaukset (kum.)"
+
+#~ msgid "Dead (cum.)"
+#~ msgstr "Kuolleet (kum.)"
+
+#~ msgid "Recovered (cum.)"
+#~ msgstr "Toipuneet (kum.)"
 

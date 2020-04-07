@@ -8,7 +8,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: PROJECT VERSION\n"
 "Report-Msgid-Bugs-To: EMAIL@ADDRESS\n"
-"POT-Creation-Date: 2020-04-07 18:47+0300\n"
+"POT-Creation-Date: 2020-04-07 19:30+0300\n"
 "PO-Revision-Date: YEAR-MO-DA HO:MI+ZONE\n"
 "Last-Translator: FULL NAME <EMAIL@ADDRESS>\n"
 "Language-Team: LANGUAGE <LL@li.org>\n"
@@ -100,28 +100,12 @@ msgstr ""
 msgid "Limit population mobility"
 msgstr ""
 
-#: calc/simulation.py:26 components/results.py:109
-msgid "Limit mass gatherings"
-msgstr ""
-
-#: calc/simulation.py:26
-msgid "max. contacts"
-msgstr ""
-
 #: calc/simulation.py:27 components/results.py:111
 msgid "Import infections"
 msgstr ""
 
 #: calc/simulation.py:27
 msgid "infections"
-msgstr ""
-
-#: calc/simulation.py:28
-msgid "Import new infections daily"
-msgstr ""
-
-#: calc/simulation.py:28
-msgid "infections/day"
 msgstr ""
 
 #: calc/simulation.py:29
@@ -165,14 +149,15 @@ msgid "Incubation period"
 msgstr ""
 
 #: components/params.py:35
-msgid "Duration of hospital treatment"
+msgid "Duration of regular hospital treatment"
 msgstr ""
 
 #: components/params.py:36
 msgid "Duration of ICU treatment"
 msgstr ""
 
-#: components/params.py:48 components/params.py:149 components/params.py:150 components/params.py:151 components/params.py:152
+#: components/params.py:48 components/params.py:149 components/params.py:150 components/params.py:151
+#: components/params.py:152
 msgid "days"
 msgstr ""
 
@@ -280,6 +265,10 @@ msgstr ""
 msgid "Recovered"
 msgstr ""
 
+#: components/results.py:44
+msgid "(cum.)"
+msgstr ""
+
 #: components/results.py:70
 msgid "(simulated)"
 msgstr ""
@@ -296,64 +285,70 @@ msgstr ""
 msgid "Testing"
 msgstr ""
 
-#: components/results.py:220
+#: components/results.py:109
+msgid "Limit mass gatherings"
+msgstr ""
+
+#: components/results.py:224
 msgid "Population"
 msgstr ""
 
-#: components/results.py:232
+#: components/results.py:236
 msgid "Hospital beds"
 msgstr ""
 
-#: components/results.py:233
+#: components/results.py:237
 msgid "ICU units"
 msgstr ""
 
-#: components/results.py:245
+#: components/results.py:249
 msgid "Free capacity in the healthcare system"
 msgstr ""
 
-#: components/results.py:257
+#: components/results.py:261
 msgid "Reproductive number (Rₜ)"
 msgstr ""
 
-#: components/results.py:258
+#: components/results.py:262
 msgid "Infection fatality ratio (IFR, %"
 msgstr ""
 
-#: components/results.py:259
+#: components/results.py:263
 msgid "Case fatality ratio (CFR, %"
 msgstr ""
 
-#: components/results.py:270
+#: components/results.py:274
 msgid "Epidemic parameters"
 msgstr ""
 
-#: components/results.py:313
+#: components/results.py:317
 msgid "Simulation result data"
 msgstr ""
 
-#: components/results.py:335
+#: components/results.py:339
 msgid "Restriction Day Index"
 msgstr ""
 
-#: components/results.py:337
-msgid "The cumulative sum of daily percentages of mobility restrictions. The index can be used as a rough indicator of harmful psychological, social and economic effects. A higher index means more severe effects."
+#: components/results.py:341
+msgid ""
+"The cumulative sum of daily percentages of mobility restrictions. The index can be used as a rough indicator of "
+"harmful psychological, social and economic effects. A higher index means more severe effects."
 msgstr ""
 
-#: components/results.py:344
+#: components/results.py:348
 msgid "Days ICU Capacity Exceeded"
 msgstr ""
 
-#: components/results.py:346
+#: components/results.py:350
 #, python-format
 msgid "Number of days that ICU units had less than 10%% of capacity left."
 msgstr ""
 
-#: components/results.py:353
+#: components/results.py:357
 msgid "Fatalities"
 msgstr ""
 
-#: components/results.py:355
+#: components/results.py:359
 msgid "Total number of deaths at the end of simulation."
 msgstr ""
 

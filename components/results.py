@@ -40,8 +40,8 @@ POP_COLS = (
 def generate_population_traces(df):
     traces = []
     for col, color, name in POP_COLS:
-        # if col in ('susceptible', 'recovered'):
-        #    continue
+        if col in ('all_detected', 'dead', 'recovered'):
+            name += ' ' + _('(cum.)')
         t = dict(
             type='scatter', line=dict(color=THEME_COLORS[color]),
             name=name, x=df.index, y=df[col], mode='lines',
