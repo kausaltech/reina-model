@@ -101,6 +101,8 @@ class MitigationScenario(Scenario):
         ['limit-mobility', '2020-09-15', 40],
         ['limit-mobility', '2020-10-15', 30],
         ['limit-mobility', '2020-12-15', 20],
+        ['limit-mobility', '2021-01-15', 5],
+        ['limit-mobility', '2021-02-15', 0],
     ]
 
 
@@ -130,14 +132,14 @@ class HammerDanceScenario(Scenario):
     id = 'hammer-and-dance'
     translations = {
         'fi': ScenarioTranslation(
-            name='Nopea hybridimalli',
+            name='Hybridimalli',
             description='''
             Laajennetaan testausta, tehdään kontaktien jäljitystä ja tasapainotellaan rajoitusten kanssa.
             Parannetaan kontaktien jäljityksen osumatarkkuutta pitkin vuotta.
             ''',
         ),
         'en': ScenarioTranslation(
-            name='Fast hybrid model',
+            name='Hybrid model',
             description='''
             Test all people with even mild symptoms, perform contact tracing, and start a
             balancing act with mobility restrictions. Improve accuracy of contact tracing
