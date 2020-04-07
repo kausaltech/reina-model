@@ -95,7 +95,7 @@ VARIABLE_DEFAULTS = {
         ['test-all-with-symptoms', '2020-02-20'],
         ['test-only-severe-symptoms', '2020-03-15'],
 
-        ['limit-mass-gatherings', '2020-03-12', 50],
+        # ['limit-mass-gatherings', '2020-03-12', 50],
 
         ['limit-mobility', '2020-03-12', 10],
         ['limit-mobility', '2020-03-17', 20],

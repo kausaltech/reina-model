@@ -99,8 +99,8 @@ class MitigationScenario(Scenario):
         ['build-new-hospital-beds', '2020-08-30', 300],
         ['limit-mobility', '2020-06-01', 30],
         ['limit-mobility', '2020-09-15', 40],
-        ['limit-mobility', '2020-10-15', 25],
-        # ['limit-mobility', '2020-12-15', 30],
+        ['limit-mobility', '2020-10-15', 30],
+        ['limit-mobility', '2020-12-15', 20],
     ]
 
 

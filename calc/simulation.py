@@ -23,9 +23,9 @@ INTERVENTIONS = [
     Intervention('test-only-severe-symptoms', _('Test people only with severe symptoms')),
     Intervention('test-with-contact-tracing', _('Test all with symptoms and perform contact tracing with given accuracy'), '%'),
     Intervention('limit-mobility', _('Limit population mobility'), '%'),
-    Intervention('limit-mass-gatherings', _('Limit mass gatherings'), _('max. contacts')),
+    # Intervention('limit-mass-gatherings', _('Limit mass gatherings'), _('max. contacts')),
     Intervention('import-infections', _('Import infections'), _('infections')),
-    Intervention('import-infections-per-day', _('Import new infections daily'), _('infections/day')),
+    # Intervention('import-infections-per-day', _('Import new infections daily'), _('infections/day')),
     Intervention('build-new-hospital-beds', _('Build new hospital beds'), _('beds')),
     Intervention('build-new-icu-units', _('Build new ICU units'), _('units')),
 ]

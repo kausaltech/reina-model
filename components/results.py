@@ -168,6 +168,10 @@ def make_intervention_shapes(df):
     out = []
     for iv in ivs:
         name = iv[0]
+        # Disable limit mass gatherings for now
+        if name == 'limit-mass-gatherings':
+            continue
+
         if name == 'test-all-with-symptoms':
             name = 'testing-mode'
             strength = 0.3

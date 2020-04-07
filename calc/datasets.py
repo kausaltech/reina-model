@@ -66,12 +66,18 @@ def get_contacts_for_country(variables):
     return pd.Series(counts, index=ages)
 
 
-@calcfunc(variables=['area_name'])
+CASES_FNAME = get_root_path() + '/data/hosp_cases_hus.csv'
+
+
+@calcfunc(
+    variables=['area_name'],
+    filedeps=[CASES_FNAME]
+)
 def get_detected_cases(variables):
     area_name = variables['area_name']
     assert area_name == 'HUS'
 
-    f = open(get_root_path() + '/data/hosp_cases_hus.csv', 'r')
+    f = open(CASES_FNAME, 'r')
     df = pd.read_csv(f, header=0)
     df['date'] = pd.to_datetime(df['date']).dt.date
     df = df.set_index('date')
