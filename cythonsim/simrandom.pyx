@@ -52,5 +52,5 @@ cdef class RandomPool:
         theta = sigma**2 / mu
         kappa = mu / theta
 
-        cdef float ret = random_gamma_f(rng, theta, kappa)
+        cdef float ret = random_gamma_f(rng, kappa, theta)
         return ret
