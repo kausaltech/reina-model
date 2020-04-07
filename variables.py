@@ -125,6 +125,8 @@ VARIABLE_DEFAULTS = {
 }
 
 
+_variable_overrides = {}
+
 # Make a hash of the default variables so that when they change,
 # we will reset everybody's custom session variables.
 DEFAULT_VARIABLE_HASH = hashlib.md5(json.dumps(VARIABLE_DEFAULTS).encode('utf8')).hexdigest()
@@ -139,7 +141,7 @@ def set_variable(var_name, value):
     if not flask.has_request_context():
         if not _allow_variable_set:
             raise Exception('Should not set variable outside of request context')
-        VARIABLE_DEFAULTS[var_name] = value
+        _variable_overrides[var_name] = value
         return
 
     if value == VARIABLE_DEFAULTS[var_name]:
@@ -160,6 +162,8 @@ def get_variable(var_name, var_store=None):
             reset_variables()
         if var_name in session:
             out = session[var_name]
+    elif var_name in _variable_overrides:
+        out = _variable_overrides[var_name]
 
     if out is None:
         out = VARIABLE_DEFAULTS[var_name]
@@ -172,16 +176,23 @@ def get_variable(var_name, var_store=None):
 
 
 def reset_variable(var_name):
-    if flask.has_request_context() and var_name in session:
-        del session[var_name]
+    if flask.has_request_context():
+        if var_name in session:
+            del session[var_name]
+    else:
+        if var_name in _variable_overrides:
+            del _variable_overrides[var_name]
 
 
 def reset_variables():
-    session['default_variable_hash'] = DEFAULT_VARIABLE_HASH
-    for var_name in VARIABLE_DEFAULTS.keys():
-        if var_name not in session:
-            continue
-        del session[var_name]
+    if flask.has_request_context():
+        session['default_variable_hash'] = DEFAULT_VARIABLE_HASH
+        for var_name in VARIABLE_DEFAULTS.keys():
+            if var_name not in session:
+                continue
+            del session[var_name]
+    else:
+        _variable_overrides.clear()
 
 
 @contextmanager

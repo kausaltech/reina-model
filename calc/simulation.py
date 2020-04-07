@@ -196,41 +196,54 @@ def simulate_monte_carlo(seed):
     from variables import allow_set_variable, set_variable, get_variable
 
     with allow_set_variable():
-        print(seed)
         set_variable('random_seed', seed)
+        print(seed)
         df = simulate_individuals()
         df['run'] = seed
 
     return df
 
 
-def run_monte_carlo(n):
-    from variables import get_variable
+def run_monte_carlo(scenario_name):
+    from scenarios import SCENARIOS
+    from variables import allow_set_variable
 
+    for scenario in SCENARIOS:
+        if scenario.id == scenario_name:
+            break
+    else:
+        raise Exception('Scenario not found')
+
+    with allow_set_variable():
+        scenario.apply()
+
+    print(scenario.id)
     with multiprocessing.Pool(processes=8) as pool:
-        dfs = pool.map(simulate_monte_carlo, range(n))
+        dfs = pool.map(simulate_monte_carlo, range(30))
 
     df = pd.concat(dfs)
     df.index.name = 'date'
     df = df.reset_index()
-    df['scenario'] = get_variable('preset_scenario')
-    #df.to_csv('reina_%s.csv' % get_variable('preset_scenario'))
+    df['scenario'] = scenario.id
+    df.to_csv('reina_%s.csv' % scenario.id, index=False)
 
     return df
 
 
 if __name__ == '__main__':
     if False:
-        df = run_monte_carlo(16)
-        print(df[df.date == df.date.max()])
-        last = df[df.date == df.date.max()]
-        print(last.dead.describe(percentiles=[.25, .5, .75]))
+        from scenarios import SCENARIOS
+        for scenario in SCENARIOS:
+            df = run_monte_carlo(scenario.id)
+            print(df[df.date == df.date.max()])
+            last = df[df.date == df.date.max()]
+            print(last.dead.describe(percentiles=[.25, .5, .75]))
         exit()
     if False:
         sample_model_parameters('icu_period', 50, 'CRITICAL')
         exit()
 
-    if False:
+    if True:
         header = '%-12s' % 'day'
         for attr in POP_ATTRS + STATE_ATTRS + ['us_per_infected']:
             header += '%15s' % attr
@@ -253,7 +266,7 @@ if __name__ == '__main__':
 
         simulate_individuals(step_callback=step_callback, skip_cache=True)
 
-    if True:
+    if False:
         from variables import allow_set_variable, set_variable, get_variable
         from calc.datasets import get_detected_cases
 

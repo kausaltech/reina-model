@@ -40,7 +40,7 @@ def render_model_param_graphs(age):
     for param, label in PERIOD_PARAMS:
         card = GraphCard(param, graph=dict(config=dict(responsive=False)))
         layout = make_layout(
-            title=label, height=250, showlegend=True,
+            title=label, height=250,
             yaxis=dict(
                 title='%'
             ),
@@ -51,6 +51,7 @@ def render_model_param_graphs(age):
         traces = []
         if param == 'incubation_period':
             sample = sample_model_parameters(param, age)
+            sample = sample * 100 / sample.sum()
             trace = dict(
                 type='bar', x=sample.index, y=sample.values,
                 hovertemplate='%{y} %', name='',
@@ -69,6 +70,7 @@ def render_model_param_graphs(age):
                 )
                 traces.append(trace)
             layout['barmode'] = 'group'
+            layout['showlegend'] = True
 
         fig = dict(layout=layout, data=traces)
         card.set_figure(fig)
