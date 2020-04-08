@@ -4,7 +4,6 @@ __pycache__/
 
 /node_modules/
 /.sass-cache/
-/assets/
 /flask-session/
 /flask_session/
 /cythonsim/*.html
