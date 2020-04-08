@@ -202,7 +202,7 @@ def generate_content_rows():
                     dbc.Label(_('Timeframe'), className="mr-3"),
                     dcc.Dropdown(
                         id='simulation-days-dropdown',
-                        options=[dict(label=_('%(days)d days', days=x), value=x) for x in (45, 90, 180, 360, 730)],
+                        options=[dict(label=_('%(days)d days', days=x), value=x) for x in (45, 90, 180, 365, 730)],
                         value=get_variable('simulation_days'),
                         searchable=False, clearable=False,
                         style=dict(width='160px'),
