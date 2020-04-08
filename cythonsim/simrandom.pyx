@@ -1,6 +1,5 @@
 # cython: language_level=3
-# DISABLEDcython: profile=True
-# DISABLEDcython: linetrace=True
+# cython: profile=False
 
 
 from numpy.random import PCG64

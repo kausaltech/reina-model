@@ -1,8 +1,7 @@
 # cython: language_level=3
 # cython: boundscheck=False
 # cython: wraparound=False
-# zzzython: profile=True
-# zzzython: linetrace=True
+# cython: profile=False
 
 import numpy as np
 import pandas as pd
@@ -572,12 +571,14 @@ cdef class ClassedValues:
         self.num_classes = len(pairs)
         self.classes = np.array([x[0] for x in pairs], dtype='i')
         self.values = np.array([x[1] for x in pairs], dtype='f')
-        #self.min_class = self.classes.min()
-        #self.max_class = self.classes.max()
+        self.min_class = min(self.classes)
+        self.max_class = max(self.classes)
 
     cdef float get(self, int kls, float default) nogil:
         cdef int idx;
 
+        if kls < self.min_class or kls > self.max_class:
+            return default
         for idx in range(self.num_classes):
             if self.classes[idx] == kls:
                 return self.values[idx]
@@ -1080,14 +1081,15 @@ cdef class Context:
 
         self.exposed_per_day += person.other_people_exposed_today
 
+    @cython.cdivision(True)
     cdef void _iterate_people(self) nogil:
+        cdef int total_people = self.total_people
         cdef int i, start_idx, person_idx
 
-        start_idx = self.random.getint() % self.total_people
-        for i in range(self.total_people):
-            person_idx = (start_idx + i) % self.total_people
+        start_idx = self.random.getint() % total_people
+        for i in range(total_people):
+            person_idx = (start_idx + i) % total_people
             self._process_person(person_idx)
-
 
     cdef void _iterate(self):
         for intervention in self.interventions:
