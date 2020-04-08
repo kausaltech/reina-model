@@ -35,10 +35,32 @@ app_kwargs = dict(suppress_callback_exceptions=True)
 if settings.URL_PREFIX:
     app_kwargs['routes_pathname_prefix'] = settings.URL_PREFIX
 
+meta_tags = [
+    {
+        'name': 'title',
+        'content': 'REINA — Realistic Epidemic Model for COVID-19',
+    }, {
+        'name': 'description',
+        'description': 'Simulate how interventions affect the spread of an COVID-19 epidemic using a realistic agent model.'
+    }
+]
+
+if settings.BASE_URL:
+    meta_tags.append({
+        'property': 'og:url',
+        'content': settings.BASE_URL
+    })
+    meta_tags.append({
+        'property': 'og:image',
+        'content': settings.BASE_URL + '/assets/site.png'
+    })
+
+app_kwargs['meta_tags'] = meta_tags
+
 app = dash.Dash(__name__, **app_kwargs)
 app.css.config.serve_locally = True
 app.scripts.config.serve_locally = True
-app.title = 'REINA - Epidemic Model'
+app.title = 'REINA — Realistic Epidemic Model for COVID-19'
 
 server = app.server
 with server.app_context():

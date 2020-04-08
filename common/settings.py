@@ -20,6 +20,7 @@ SESSION_KEY_PREFIX = 'ghgdash-session'
 REDIS_URL = os.getenv('REDIS_URL', None)
 
 URL_PREFIX = os.getenv('URL_PREFIX', None)
+BASE_URL = os.getenv('BASE_URL', None)
 
 
 def get_cache_config():
