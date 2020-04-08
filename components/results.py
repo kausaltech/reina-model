@@ -337,7 +337,7 @@ def render_indicators(df):
         dbc.Card(
             dbc.CardBody([
                 html.H6(_('Restriction Day Index')),
-                html.P('%d' % rdays, className="display-4"),
+                html.P('%d' % rdays, className="display-4 text-primary mb-1"),
                 html.Small(_('''The cumulative sum of daily percentages of mobility restrictions. The index can be used as a rough indicator of harmful psychological, social and economic effects. A higher index means more severe effects.''')),
             ], style=dict(minHeight='280px'))
         ), width=dict(size=4))
@@ -346,7 +346,7 @@ def render_indicators(df):
         dbc.Card(
             dbc.CardBody([
                 html.H6(_('Days ICU Capacity Exceeded')),
-                html.P('%d' % icu_cap, className="display-4"),
+                html.P('%d' % icu_cap, className="display-4 text-primary mb-1"),
                 html.Small(str(_("Number of days that ICU units had less than 10%% of capacity left.")).replace('%%', '%')),
             ], style=dict(minHeight='280px'))
         ), width=dict(size=4))
@@ -355,7 +355,7 @@ def render_indicators(df):
         dbc.Card(
             dbc.CardBody([
                 html.H6(_('Fatalities')),
-                html.P('%d' % dead, className="display-4"),
+                html.P('%d' % dead, className="display-4 text-primary mb-1"),
                 html.Small(_("Total number of deaths at the end of simulation.")),
             ], style=dict(minHeight='280px'))
         ), width=dict(size=4))

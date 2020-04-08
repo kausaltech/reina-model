@@ -189,24 +189,23 @@ def render_disease_params():
         editable=True,
     )
 
-    card = dbc.Card([
-        dbc.CardHeader([
-            dbc.Button(
-                _('Disease parameters'), className="float-left",
-                id="disease-collapse-button",
+    card = dbc.CardBody([
+            dp_table,
+            html.Div(
+                dbc.Button(
+                _('Restore defaults'), id='disease-params-reset-defaults', color='secondary',
+                size='sm', className='mt-3'
+                ), 
+            className='text-right'),
+            html.Div(
+                dbc.Button(
+                    _('Distributions'), color="link",
+                    id="disease-collapse-button",
+                ),
             ),
-        ]),
-        dbc.Collapse([
-            dbc.CardBody([
-                dp_table,
-                html.Div(dbc.Button(
-                    _('Restore defaults'), id='disease-params-reset-defaults', color='secondary',
-                    size='sm', className='mt-3'
-                ), className='text-right'),
-                html.Div(id='disease-param-specifics'),
-            ], className="px-5"),
-        ], is_open=False, id='disease-collapse'),
-    ], className='mb-4')
+            html.Div(id='disease-param-specifics'),
+            dbc.Collapse(html.Div(), is_open=False, id='disease-collapse'),
+        ], className="px-5")
 
     return card
 
