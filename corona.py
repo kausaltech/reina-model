@@ -99,60 +99,46 @@ def render_iv_card():
         style_as_list_view=True,
     )
 
-    iv_card = dbc.Card([
-        dbc.CardHeader([
-            dbc.Row([
-                dbc.Col([
-                    dbc.Button(
-                        _("Events (%(num)s)", num=len(ivs)), className="float-left",
-                        id="interventions-collapse-button",
-                    ),
-                ], width=dict(size=6, order=1)),
-            ]),
-        ]),
-        dbc.Collapse([
-            dbc.CardBody([
-                iv_table,
-                html.Div(dbc.Button(
-                    _('Restore default events'), id='interventions-reset-defaults', color='secondary',
-                    size='sm', className='mt-3'
-                ), className='text-right'),
-            ], className="px-5"),
-            dbc.CardFooter([
-                html.H6(_('Add a new event')),
-                dbc.Form([
-                    dcc.DatePickerSingle(
-                        id='new-intervention-date', display_format='YYYY-MM-DD',
-                        first_day_of_week=1,
-                        className="mr-3",
-                    ),
-                    dcc.Dropdown(
-                        id='new-intervention-id',
-                        options=[{'label': i.label, 'value': i.name} for i in INTERVENTIONS],
-                        style=dict(width="450px"),
-                    ),
-                    dbc.Input(
-                        id='new-intervention-value', type='number', size='6',
-                        style=dict(width="100px"),
-                        className="mx-3",
-                        placeholder=_('value'),
-                    ),
-                    dbc.Button(
-                        _("Add"), id='new-intervention-add', color='primary'
-                    ),
-                ], inline=True),
-            ]),
-        ], is_open=False, id='interventions-collapse'),
-    ], className='mb-4')
+    iv_card = dbc.CardBody([
+        html.Div([
+            dbc.Form([
+                html.Span(_('Add a new event: ')),
+                dcc.DatePickerSingle(
+                    id='new-intervention-date', display_format='YYYY-MM-DD',
+                    first_day_of_week=1,
+                    className="mx-3",
+                ),
+                dcc.Dropdown(
+                    id='new-intervention-id',
+                    options=[{'label': i.label, 'value': i.name} for i in INTERVENTIONS],
+                    style=dict(width="450px"),
+                ),
+                dbc.Input(
+                    id='new-intervention-value', type='number', size='6',
+                    style=dict(width="100px"),
+                    className="mx-3",
+                    placeholder=_('value'),
+                ),
+                dbc.Button(
+                    _("Add"), id='new-intervention-add', color='primary'
+                ),
+            ], inline=True),
+        ], className="mb-3"),
+        iv_table,
+        html.Div(dbc.Button(
+            _('Restore default events'), id='interventions-reset-defaults', color='secondary',
+            size='sm', className='mt-3'
+        ), className='text-right'),
+    ], className="px-5"),
 
     return iv_card
 
 
 def generate_content_rows():
     scenarioRows = []
-    settingRows = []
     resultRows = []
 
+    ivs = get_variable('interventions')
     scenario_id = get_variable('preset_scenario')
     for scenario in SCENARIOS:
         if scenario.id == scenario_id:
@@ -164,39 +150,54 @@ def generate_content_rows():
             dbc.Col([
                 html.Strong(scenario.get_name() + ": "),
                 html.Span(scenario.get_description()),
-            ])
+            ], className="mb-3")
         ]))
 
-    dp_card = render_disease_params()
+    scenarioRows.append(dbc.Button(
+        _('⚙ Settings'),
+        color="link", className="px-0 mb-1",
+        id="settings-collapse-button",
+        )
+    )
 
-    settingRows.append(html.H4(_('Parameters'), className="mb-3"))
-    settingRows.append(dbc.Row([dbc.Col(dp_card)]))
-
-    iv_card = render_iv_card()
-    settingRows.append(dbc.Row([dbc.Col(iv_card)]))
-
-    settingRows.append(dbc.Row([
-        dbc.Col(id='scenario-details')
-    ]))
-
-    settingRows.append(dbc.Row([
-        dbc.Col([
+    settingsTabs = dbc.Card([
+        dbc.CardHeader(dbc.Tabs(
+            [
+                dbc.Tab(label=_("Events (%(num)s)", num=len(ivs)), tab_id="iv-tab"),
+                dbc.Tab(label="Disease Parameters", tab_id="param-tab"), 
+            ],
+            id="card-tabs",
+            card=True,
+            active_tab="iv-tab",
+            )),
+        dbc.CardBody(html.Div(id="card-content")),
+        dbc.CardFooter([
             html.Div(id='simulation-days-placeholder', style=dict(display='none')),
             dbc.Form([
-                dbc.FormGroup([
-                    dbc.Label(_('Timeframe'), className="mr-3"),
-                    dcc.Dropdown(
-                        id='simulation-days-dropdown',
-                        options=[dict(label=_('%(days)d days', days=x), value=x) for x in (45, 90, 180, 365, 730)],
-                        value=get_variable('simulation_days'),
-                        searchable=False, clearable=False,
-                        style=dict(width='160px'),
-                    )
-                ], className="mr-3"),
-                dbc.Button(_('Run simulation'), id='run-simulation', color='primary')
-                ], inline=True)
-        ], width=dict(size=10)),
-    ], className='mt-3'))
+            dbc.FormGroup([
+                dbc.Label(_('Timeframe'), className="mr-3"),
+                dcc.Dropdown(
+                    id='simulation-days-dropdown',
+                    options=[dict(label=_('%(days)d days', days=x), value=x) for x in (45, 90, 180, 360, 730)],
+                    value=get_variable('simulation_days'),
+                    searchable=False, clearable=False,
+                    style=dict(width='160px'),
+                )
+            ], className="mr-3"),
+            dbc.Button(_('Run simulation'), id='run-simulation', color='primary')
+            ], inline=True)
+        ])
+    ])
+
+    scenarioRows.append(
+        dbc.Collapse(
+            settingsTabs,
+            id="settings-collapse"
+        )
+    )
+    scenarioRows.append(dbc.Row([
+        dbc.Col(id='scenario-details')
+    ]))
 
     resultRows.append(html.H4(_('Outcome'), className="mb-3"))
 
@@ -217,12 +218,10 @@ def generate_content_rows():
             dbc.Container(scenarioRows),
             className="bg-gray-400 pb-4"
             ),
-        html.Div(
-            dbc.Container(settingRows),
-            className="bg-grey py-4"
+        dbc.Container(
+            resultRows,
+            className="pt-4"
             ),
-        html.Hr(),
-        dbc.Container(resultRows),
     ]
     return rows
 
@@ -293,17 +292,25 @@ def generate_layout():
 
 app.layout = generate_layout
 
+@app.callback(
+    Output("card-content", "children"),
+    [Input("card-tabs", "active_tab")],
+)
+def tab_content(active_tab):
+    if active_tab == "param-tab":
+        return render_disease_params()
+    if active_tab == "iv-tab":
+        return render_iv_card()
 
 @app.callback(
-    Output("interventions-collapse", "is_open"),
-    [Input("interventions-collapse-button", "n_clicks")],
-    [State("interventions-collapse", "is_open")],
+    Output("settings-collapse", "is_open"),
+    [Input("settings-collapse-button", "n_clicks")],
+    [State("settings-collapse", "is_open")],
 )
 def toggle_iv_collapse(n, is_open):
     if n:
         return not is_open
     return is_open
-
 
 @app.callback(
     Output('day-details-container', 'children'),
