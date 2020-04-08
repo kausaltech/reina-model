@@ -76,6 +76,21 @@ def interventions_to_rows():
         iv_rows.append(row)
     return iv_rows
 
+def render_region_info():
+    region_card = dbc.CardBody(
+        html.Ul([
+            html.Li([
+                html.Strong("Region Name: "),
+                html.Span("Helsingin ja Uudenmaan sairaanhoitopiiri"),
+            ]),
+            html.Li([
+                html.Strong("Region Population: "),
+                html.Span("1 640 000"),
+            ]),
+        ])
+    , className="px-5"),
+
+    return region_card
 
 def render_iv_card():
     ivs = interventions_to_rows()
@@ -165,6 +180,7 @@ def generate_content_rows():
             [
                 dbc.Tab(label=_("Events (%(num)s)", num=len(ivs)), tab_id="iv-tab"),
                 dbc.Tab(label="Disease Parameters", tab_id="param-tab"), 
+                dbc.Tab(label="Region Details", tab_id="region-tab"), 
             ],
             id="card-tabs",
             card=True,
@@ -301,6 +317,8 @@ def tab_content(active_tab):
         return render_disease_params()
     if active_tab == "iv-tab":
         return render_iv_card()
+    if active_tab == "region-tab":
+        return render_region_info()
 
 @app.callback(
     Output("settings-collapse", "is_open"),
