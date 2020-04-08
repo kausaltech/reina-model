@@ -86,12 +86,14 @@ experiment how tuning the parameters changes the outcome of the simulation.
 
 ## Authors
 
-[Jouni T. Tuomisto](mailto:jouni.tuomisto@kausal.tech), Finnish Institute for Health and Welfare, Kuopio, Finland
+You may contact the authors by sending an email to [reina@kausal.tech](mailto:reina@kausal.tech).
 
-[Juha Yrjölä](mailto:juha.yrjola@kausal.tech), Kausal Ltd, Helsinki, Finland
+Jouni T. Tuomisto, Finnish Institute for Health and Welfare, Kuopio, Finland
 
-[Mikko Kolehmainen](mailto:mikko.kolehmainen@uef.fi), University of Eastern Finland, Kuopio, Finland
+Juha Yrjölä, Kausal Ltd, Helsinki, Finland
 
-[Juhani Bonsdorff](mailto:juhani.bonsdorff@gmail.com), Stretta Capital Oy, Helsinki, Finland
+Mikko Kolehmainen, University of Eastern Finland, Kuopio, Finland
 
-[Tero Tikkanen](mailto:tero.tikkanen@kausal.tech), Kausal Ltd, Helsinki, Finland
+Juhani Bonsdorff, Stretta Capital Oy, Helsinki, Finland
+
+Tero Tikkanen, Kausal Ltd, Helsinki, Finland
