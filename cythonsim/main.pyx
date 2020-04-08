@@ -606,15 +606,20 @@ cdef inline int round_to_int(float f) nogil:
 DISEASE_PARAMS = (
     'p_infection', 'p_asymptomatic', 'p_severe', 'p_critical', 'p_hospital_death',
     'p_icu_death', 'p_hospital_death_no_beds', 'p_icu_death_no_beds',
-    'mean_illness_duration', 'mean_hospitalization_duration', 'mean_icu_duration',
-    'mean_hospitalization_duration_before_icu'
+    'mean_incubation_duration',
+    'mean_duration_from_onset_to_death', 'mean_duration_from_onset_to_recovery',
+    'ratio_of_duration_before_hospitalisation', 'ratio_of_duration_in_ward',
 )
 
 cdef class Disease:
     cdef float p_infection, p_asymptomatic, p_hospital_death
     cdef float p_icu_death_no_beds, p_hospital_death_no_beds
-    cdef float mean_illness_duration, mean_hospitalization_duration, mean_icu_duration
-    cdef float mean_hospitalization_duration_before_icu
+    cdef float mean_incubation_duration
+    cdef float mean_duration_from_onset_to_death
+    cdef float mean_duration_from_onset_to_recovery
+    cdef float ratio_of_duration_before_hospitalisation
+    cdef float ratio_of_duration_in_ward
+
     cdef ClassedValues p_severe
     cdef ClassedValues p_critical
     cdef ClassedValues infectiousness_over_time
@@ -623,8 +628,9 @@ cdef class Disease:
     def __init__(self,
         p_infection, p_asymptomatic, p_severe, p_critical, p_hospital_death,
         p_icu_death, p_hospital_death_no_beds, p_icu_death_no_beds,
-        mean_illness_duration, mean_hospitalization_duration, mean_icu_duration,
-        mean_hospitalization_duration_before_icu
+        mean_incubation_duration,
+        mean_duration_from_onset_to_death, mean_duration_from_onset_to_recovery,
+        ratio_of_duration_before_hospitalisation, ratio_of_duration_in_ward,
     ):
         self.p_infection = p_infection
         self.p_asymptomatic = p_asymptomatic
@@ -633,10 +639,11 @@ cdef class Disease:
         self.p_hospital_death_no_beds = p_hospital_death_no_beds
         self.p_icu_death_no_beds = p_icu_death_no_beds
 
-        self.mean_illness_duration = mean_illness_duration
-        self.mean_hospitalization_duration = mean_hospitalization_duration
-        self.mean_hospitalization_duration_before_icu = mean_hospitalization_duration_before_icu
-        self.mean_icu_duration = mean_icu_duration
+        self.mean_incubation_duration = mean_incubation_duration
+        self.mean_duration_from_onset_to_death = mean_duration_from_onset_to_death
+        self.mean_duration_from_onset_to_recovery = mean_duration_from_onset_to_recovery
+        self.ratio_of_duration_in_ward = ratio_of_duration_in_ward
+        self.ratio_of_duration_before_hospitalisation = ratio_of_duration_before_hospitalisation
 
         self.p_severe = ClassedValues(p_severe)
         self.p_critical = ClassedValues(p_critical)
@@ -720,69 +727,57 @@ cdef class Disease:
 
         # μ = 5.1
         # cv = 0.86
-        cdef float f = context.random.gamma(5.1, 0.86)
+        cdef float f = context.random.gamma(self.mean_incubation_duration, 0.86)
         cdef int days = round_to_int(f) # Round to nearest integer
         return days
+
 
     cdef float get_days_from_onset_to_removed(self, Person *person, Context context) nogil:
         cdef float mu, cv, f
 
         if person.symptom_severity == SymptomSeverity.FATAL:
             # source: https://www.imperial.ac.uk/mrc-global-infectious-disease-analysis/covid-19/report-13-europe-npi-impact/
-            mu = 18.8
-            cv = 0.45
-        elif person.symptom_severity == SymptomSeverity.CRITICAL:
-            mu = 21
+            mu = self.mean_duration_from_onset_to_death
             cv = 0.45
         else:
-            mu = 14
+            mu = self.mean_duration_from_onset_to_recovery
             cv = 0.45
 
         return context.random.gamma(mu, cv)
 
     cdef int get_illness_days(self, Person *person, Context context) nogil:
         cdef float f
-        cdef int days
 
-        if person.symptom_severity == SymptomSeverity.FATAL:
-            days = round_to_int(person.days_from_onset_to_removed * 0.316)
-        elif person.symptom_severity == SymptomSeverity.CRITICAL:
-            days = round_to_int(person.days_from_onset_to_removed * 0.29)
-        elif person.symptom_severity == SymptomSeverity.SEVERE:
-            days = round_to_int(context.random.gamma(self.mean_illness_duration, 0.45))
-        else:
-            # FIXME: days = #### Same distribution as infectiousness
-            f = context.random.lognormal(0, 0.6)
-            f *= self.mean_illness_duration
-            days = 1 + <int> f
-            if days > 30:
-                days = 30
+        f = person.days_from_onset_to_removed
+        # Asymptomatic and mild spend all of the days in the illness state.
+        # Others spend the rest in hospitalization and in ICU.
+        if person.symptom_severity not in (SymptomSeverity.ASYMPTOMATIC, SymptomSeverity.MILD):
+            f *= self.ratio_of_duration_before_hospitalisation
 
-        return days
+        return round_to_int(f)
 
     cdef int get_hospitalization_days(self, Person *person, Context context) nogil:
-        cdef float f = 0
-        cdef int days
+        cdef float f
 
-        if person.symptom_severity == SymptomSeverity.FATAL:
-            f = person.days_from_onset_to_removed * 0.159
-        elif person.symptom_severity == SymptomSeverity.CRITICAL:
-            f = person.days_from_onset_to_removed * 0.14
-        elif person.symptom_severity == SymptomSeverity.SEVERE:
-            f = context.random.gamma(self.mean_hospitalization_duration, 0.45)
-
-        days = <int> round_to_int(f)
-
-        return days
-
-    cdef int get_icu_days(self, Person *person, Context context) nogil:
-        if person.symptom_severity == SymptomSeverity.FATAL:
-            f = person.days_from_onset_to_removed * 0.526
-        elif person.symptom_severity == SymptomSeverity.CRITICAL:
-            f = person.days_from_onset_to_removed * 0.57
+        if person.symptom_severity == SymptomSeverity.SEVERE:
+            f = person.days_from_onset_to_removed * (1 - self.ratio_of_duration_before_hospitalisation)
+        elif person.symptom_severity in (SymptomSeverity.FATAL, SymptomSeverity.CRITICAL):
+            f = person.days_from_onset_to_removed * self.ratio_of_duration_in_ward
         else:
             f = 0
-        return <int> round_to_int(f)
+
+        return round_to_int(f)
+
+    cdef int get_icu_days(self, Person *person, Context context) nogil:
+        cdef float f
+
+        if person.symptom_severity in (SymptomSeverity.FATAL, SymptomSeverity.CRITICAL):
+            f = 1 - self.ratio_of_duration_in_ward - self.ratio_of_duration_before_hospitalisation
+            f *= person.days_from_onset_to_removed
+        else:
+            f = 0
+
+        return round_to_int(f)
 
     cdef SymptomSeverity get_symptom_severity(self, Person *person, Context context) nogil:
         cdef int i

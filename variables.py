@@ -48,18 +48,12 @@ VARIABLE_DEFAULTS = {
     # Chance to die if no ICU care units are available
     'p_icu_death_no_beds': 100.0,  # %
 
-    # Mean number of days of being ill
-    'mean_illness_duration': 7.0,
-    # Average number of days of being hospitalized for people with
-    # only severe symptoms
-    'mean_hospitalization_duration': 14.0,
+    'mean_incubation_duration': 5.1,
+    'mean_duration_from_onset_to_death': 18.8,
+    'mean_duration_from_onset_to_recovery': 21.0,
 
-    # Average number of days in regular hospital bed before being
-    # transferred to ICU for patients with critical symptoms.
-    'mean_hospitalization_duration_before_icu': 3.0,
-    # Average number of ICU care days
-    'mean_icu_duration': 21.0,
-
+    'ratio_of_duration_before_hospitalisation': 30.0,  # %
+    'ratio_of_duration_in_ward': 15.0,  # %
 
     # Chance to be detected if showing mild symptoms but testing
     # is only for severe cases (might apply to e.g. healthcare workers)

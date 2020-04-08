@@ -145,15 +145,14 @@ def render_model_param_graphs(age):
 DISEASE_PARAMS = (
     ('p_asymptomatic', _('Ratio of all infected people who remain asymptomatic'), '%',),
     ('p_infection', _('Probability of becoming infected after being exposed'), '%',),
-    # ('p_critical', _('Probability of requiring ICU care after having severe symptoms'), '%',),
-    # ('p_icu_death', _('Probability of dying during ICU care'), '%'),
-    ('p_hospital_death', _('Probability of dying after regular hospital treatment'), '%'),
-    ('p_hospital_death_no_beds', _('Probability of dying if no hospital beds are available'), '%'),
+    ('p_hospital_death_no_beds', _('Probability of dying if severe symptoms and no hospital beds are available'), '%'),
     ('p_icu_death_no_beds', _('Probability of dying if no ICU units are available'), '%'),
-    ('mean_illness_duration', _('Mean number of days of being ill'), _('days')),
-    ('mean_hospitalization_duration', _('Mean number of days of being hospitalized'), _('days')),
-    ('mean_icu_duration', _('Mean number of days of being in ICU care'), _('days')),
-    ('mean_hospitalization_duration_before_icu', _('Mean number of days in regular hospital care before ICU'), _('days')),
+    ('mean_incubation_duration', _('Mean incubation period length'), _('days')),
+    ('mean_duration_from_onset_to_recovery', _('Mean duration from symptom onset to recovery'), _('days')),
+    ('mean_duration_from_onset_to_death', _('Mean duration from symptom onset to death'), _('days')),
+
+    ('ratio_of_duration_before_hospitalisation', _('Ratio of time before hospitalization'), '%'),
+    ('ratio_of_duration_in_ward', _('Ratio of time in ward before ICU care'), '%'),
 )
 
 

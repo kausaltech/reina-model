@@ -7,7 +7,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: PROJECT VERSION\n"
 "Report-Msgid-Bugs-To: EMAIL@ADDRESS\n"
-"POT-Creation-Date: 2020-04-08 11:48+0300\n"
+"POT-Creation-Date: 2020-04-08 19:30+0300\n"
 "PO-Revision-Date: 2020-03-29 16:35+0300\n"
 "Last-Translator: FULL NAME <EMAIL@ADDRESS>\n"
 "Language: fi\n"
@@ -26,65 +26,65 @@ msgstr "Alueen nimi"
 msgid "Region Population"
 msgstr "Alueen väkiluku"
 
-#: corona.py:109
+#: corona.py:110
 msgid "Date"
 msgstr "Päivämäärä"
 
-#: corona.py:110
+#: corona.py:111
 msgid "Event"
 msgstr "Tapahtuma"
 
-#: components/params.py:172 corona.py:111
+#: components/params.py:175 corona.py:112
 msgid "Value"
 msgstr "Arvo"
 
-#: corona.py:128
+#: corona.py:129
 msgid "Add a new event: "
 msgstr "Lisää uusi tapahtuma: "
 
-#: corona.py:143
+#: corona.py:144
 msgid "value"
 msgstr "arvo"
 
-#: corona.py:146
+#: corona.py:147
 msgid "Add"
 msgstr "Lisää"
 
-#: corona.py:152
+#: corona.py:153
 msgid "Restore default events"
 msgstr "Palauta oletustapahtumat"
 
-#: corona.py:180
+#: corona.py:181
 msgid "Settings"
 msgstr "Asetukset"
 
-#: corona.py:188
+#: corona.py:189
 #, python-format
 msgid "Events (%(num)s)"
 msgstr "Tapahtumat (%(num)s)"
 
-#: corona.py:189
+#: corona.py:190
 msgid "Disease Parameters"
 msgstr "Taudin parametrit"
 
-#: corona.py:190
+#: corona.py:191
 msgid "Region Details"
 msgstr "Alueen tiedot"
 
-#: corona.py:201
+#: corona.py:202
 msgid "Timeframe"
 msgstr "Simuloitava aika"
 
-#: corona.py:204
+#: corona.py:205
 #, python-format
 msgid "%(days)d days"
 msgstr "%(days)d päivää"
 
-#: corona.py:210
+#: corona.py:211
 msgid "Run simulation"
 msgstr "Suorita simulaatio"
 
-#: corona.py:225
+#: corona.py:226
 msgid "Outcome"
 msgstr "Tulos"
 
@@ -113,7 +113,7 @@ msgstr "Testataan ainoastaan vakavasti oirehtivat"
 msgid "Test all with symptoms and perform contact tracing with given accuracy"
 msgstr "Testataan kaikki oirehtivat sekä määritetään tartuntaketjut annetulla osumatarkkuudella"
 
-#: calc/simulation.py:25 components/params.py:237 components/results.py:110
+#: calc/simulation.py:25 components/params.py:240 components/results.py:110
 msgid "Limit population mobility"
 msgstr "Rajoitetaan väestön liikkuvuutta"
 
@@ -161,95 +161,99 @@ msgstr "Kriittinen"
 msgid "Fatal"
 msgstr "Fataali"
 
-#: components/params.py:34
+#: components/params.py:35
 msgid "Incubation period"
 msgstr "Itämisaika"
 
-#: components/params.py:35
+#: components/params.py:36
+msgid "Illness period"
+msgstr "Oireiluaika"
+
+#: components/params.py:37
 msgid "Duration of regular hospital treatment"
 msgstr "Osastohoitojakson kesto"
 
-#: components/params.py:36
+#: components/params.py:38
 msgid "Duration of ICU treatment"
 msgstr "Tehohoitojakson kesto"
 
-#: components/params.py:48 components/params.py:149 components/params.py:150 components/params.py:151 components/params.py:152
+#: components/params.py:50 components/params.py:150 components/params.py:151 components/params.py:152
 msgid "days"
 msgstr "päivää"
 
-#: components/params.py:83
+#: components/params.py:87
 msgid "Symptom severity"
 msgstr "Oireiden vakavuus"
 
-#: components/params.py:97
+#: components/params.py:101
 msgid "Contacts per day"
 msgstr "Lähikontaktia päivässä"
 
-#: components/params.py:102
+#: components/params.py:106
 msgid "number of contacts"
 msgstr "kontaktien lukumäärä"
 
-#: components/params.py:116
+#: components/params.py:120
 msgid "Infectiousness over time"
 msgstr "Tarttuvuus ajan kuluessa"
 
-#: components/params.py:121
+#: components/params.py:125
 msgid "Day of illness"
 msgstr "Sairauspäivä"
 
-#: components/params.py:142
+#: components/params.py:146
 msgid "Ratio of all infected people who remain asymptomatic"
 msgstr "Osuus tartunnan saaneista, jotka jäävät oireettomiksi"
 
-#: components/params.py:143
+#: components/params.py:147
 msgid "Probability of becoming infected after being exposed"
 msgstr "Todennäköisyys, että taudille altistunut saa tartunnan"
 
-#: components/params.py:146
-msgid "Probability of dying after regular hospital treatment"
-msgstr "Sairaalahoitoa tarvitsevista osuus, joka kuolee sairaalahoidon päätteeksi"
-
-#: components/params.py:147
-msgid "Probability of dying if no hospital beds are available"
-msgstr "Sairaalahoitoa tarvitsevien osuus, joka kuolee jos sairaalapaikkaa ei ole vapaana"
-
 #: components/params.py:148
+msgid "Probability of dying if severe symptoms and no hospital beds are available"
+msgstr "Todennäköisyys kuolla, jos potilaalla on vakavat oireet eikä sairaalahoitoa ole vapaana"
+
+#: components/params.py:149
 msgid "Probability of dying if no ICU units are available"
 msgstr "Tehohoitoa tarvitsevien osuus, joka kuolee jos tehohoitopaikkaa ei ole vapaana"
 
-#: components/params.py:149
-msgid "Mean number of days of being ill"
-msgstr "Sairausjakson keskimääräinen kesto päivinä"
-
 #: components/params.py:150
-msgid "Mean number of days of being hospitalized"
-msgstr "Sairaalahoitojakson keskimääräinen kesto päivinä"
+msgid "Mean incubation period length"
+msgstr "Keskimääräinen inkubaatioaika"
 
 #: components/params.py:151
-msgid "Mean number of days of being in ICU care"
-msgstr "Tehohoitojakson keskimääräinen kesto päivinä"
+msgid "Mean duration from symptom onset to recovery"
+msgstr "Keskimääräinen aika oireiden alkamisesta toipumiseen"
 
 #: components/params.py:152
-msgid "Mean number of days in regular hospital care before ICU"
-msgstr "Sairaalahoitojakson keskimääräinen kesto päivinä ennen tehohoitojaksoa"
+msgid "Mean duration from symptom onset to death"
+msgstr "Keskimääräinen aika oireiden alkamisesta kuolemaan"
 
-#: components/params.py:170
+#: components/params.py:154
+msgid "Ratio of time before hospitalization"
+msgstr "Osuus sairastamisajasta ennen osastohoitoa"
+
+#: components/params.py:155
+msgid "Ratio of time in ward before ICU care"
+msgstr "Osuus sairastamisajasta osastohoidossa ennen tehohoitoa"
+
+#: components/params.py:173
 msgid "Description"
 msgstr "Kuvaus"
 
-#: components/params.py:196
+#: components/params.py:199
 msgid "Restore defaults"
 msgstr "Palauta oletukset"
 
-#: components/params.py:202
+#: components/params.py:205
 msgid "Distributions"
 msgstr "Jakaumat"
 
-#: components/params.py:228
+#: components/params.py:231
 msgid "Distributions based on model parameters"
 msgstr "Mallin oletusten mukaiset jakaumat"
 
-#: components/params.py:230
+#: components/params.py:233
 msgid "Age of person"
 msgstr "Henkilön ikä"
 
@@ -445,4 +449,22 @@ msgstr "Kuolleiden lukumäärä simulaation päättyessä."
 
 #~ msgid "Disease parameters"
 #~ msgstr "Taudin parametrit"
+
+#~ msgid "Probability of dying after regular hospital treatment"
+#~ msgstr "Sairaalahoitoa tarvitsevista osuus, joka kuolee sairaalahoidon päätteeksi"
+
+#~ msgid "Probability of dying if no hospital beds are available"
+#~ msgstr "Sairaalahoitoa tarvitsevien osuus, joka kuolee jos sairaalapaikkaa ei ole vapaana"
+
+#~ msgid "Mean number of days of being ill"
+#~ msgstr "Sairausjakson keskimääräinen kesto päivinä"
+
+#~ msgid "Mean number of days of being hospitalized"
+#~ msgstr "Sairaalahoitojakson keskimääräinen kesto päivinä"
+
+#~ msgid "Mean number of days of being in ICU care"
+#~ msgstr "Tehohoitojakson keskimääräinen kesto päivinä"
+
+#~ msgid "Mean number of days in regular hospital care before ICU"
+#~ msgstr "Sairaalahoitojakson keskimääräinen kesto päivinä ennen tehohoitojaksoa"
 

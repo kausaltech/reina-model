@@ -47,7 +47,7 @@ def create_disease(variables):
         val = variables[key]
         if key in ('p_severe', 'p_critical', 'p_icu_death'):
             val = [(age, sev / 100) for age, sev in val]
-        elif key.startswith('p_'):
+        elif key.startswith('p_') or key.startswith('ratio_'):
             val = val / 100
         kwargs[key] = val
 
@@ -199,7 +199,7 @@ def simulate_monte_carlo(seed):
     with allow_set_variable():
         set_variable('random_seed', seed)
         print(seed)
-        df = simulate_individuals()
+        df = simulate_individuals(skip_cache=True)
         df['run'] = seed
 
     return df
@@ -220,7 +220,7 @@ def run_monte_carlo(scenario_name):
 
     print(scenario.id)
     with multiprocessing.Pool(processes=8) as pool:
-        dfs = pool.map(simulate_monte_carlo, range(30))
+        dfs = pool.map(simulate_monte_carlo, range(1000))
 
     df = pd.concat(dfs)
     df.index.name = 'date'
@@ -232,6 +232,12 @@ def run_monte_carlo(scenario_name):
 
 
 if __name__ == '__main__':
+    if False:
+        from variables import allow_set_variable, set_variable, get_variable
+        with allow_set_variable():
+            set_variable('simulation_days', 50)
+            df = simulate_individuals()
+            exit()
     if False:
         from scenarios import SCENARIOS
         for scenario in SCENARIOS:

@@ -241,11 +241,11 @@ def generate_content_rows():
         html.Div(
             dbc.Container(scenarioRows),
             className="bg-gray-400 pb-4"
-            ),
+        ),
         dbc.Container(
             resultRows,
             className="pt-4"
-            ),
+        ),
     ]
     return rows
 
