@@ -2,9 +2,12 @@ import dash
 import time
 from datetime import date, timedelta
 from flask_session import Session
-from flask_babel import Babel, get_locale, lazy_gettext as _
+from flask_babel import Babel, lazy_gettext as _
+import flask
+from flask import session
+from flask import request
 from common import cache
-from common.locale import init_locale
+from common.locale import init_locale, get_active_locale
 import uuid
 import os
 import dash_table
@@ -16,6 +19,7 @@ from threading import Thread
 import multiprocessing
 
 from calc.simulation import simulate_individuals, INTERVENTIONS
+from calc.datasets import get_population_for_area
 from calc import ExecutionInterrupted
 from common import settings
 from variables import set_variable, get_variable, reset_variable, reset_variables
@@ -76,21 +80,26 @@ def interventions_to_rows():
         iv_rows.append(row)
     return iv_rows
 
+
 def render_region_info():
+    from babel.numbers import format_number
+
+    pop = get_population_for_area().sum().sum()
+
     region_card = dbc.CardBody(
         html.Ul([
             html.Li([
-                html.Strong("Region Name: "),
-                html.Span("Helsingin ja Uudenmaan sairaanhoitopiiri"),
+                html.Strong('%s: ' % _("Region Name")),
+                html.Span(get_variable('area_name_long'))
             ]),
             html.Li([
-                html.Strong("Region Population: "),
-                html.Span("1 640 000"),
+                html.Strong('%s: ' % _("Region Population")),
+                html.Span(format_number(pop, locale=get_active_locale())),
             ]),
-        ])
-    , className="px-5"),
+        ]), className="px-5"),
 
     return region_card
+
 
 def render_iv_card():
     ivs = interventions_to_rows()
@@ -169,38 +178,37 @@ def generate_content_rows():
         ]))
 
     scenarioRows.append(dbc.Button(
-        _('⚙ Settings'),
+        '⚙ ' + _('Settings'),
         color="link", className="px-0 mb-1",
         id="settings-collapse-button",
-        )
-    )
+    ))
 
     settingsTabs = dbc.Card([
         dbc.CardHeader(dbc.Tabs(
             [
                 dbc.Tab(label=_("Events (%(num)s)", num=len(ivs)), tab_id="iv-tab"),
-                dbc.Tab(label="Disease Parameters", tab_id="param-tab"), 
-                dbc.Tab(label="Region Details", tab_id="region-tab"), 
+                dbc.Tab(label=_("Disease Parameters"), tab_id="param-tab"),
+                dbc.Tab(label=_("Region Details"), tab_id="region-tab"),
             ],
             id="card-tabs",
             card=True,
             active_tab="iv-tab",
-            )),
+        )),
         dbc.CardBody(html.Div(id="card-content")),
         dbc.CardFooter([
             html.Div(id='simulation-days-placeholder', style=dict(display='none')),
             dbc.Form([
-            dbc.FormGroup([
-                dbc.Label(_('Timeframe'), className="mr-3"),
-                dcc.Dropdown(
-                    id='simulation-days-dropdown',
-                    options=[dict(label=_('%(days)d days', days=x), value=x) for x in (45, 90, 180, 360, 730)],
-                    value=get_variable('simulation_days'),
-                    searchable=False, clearable=False,
-                    style=dict(width='160px'),
-                )
-            ], className="mr-3"),
-            dbc.Button(_('Run simulation'), id='run-simulation', color='primary')
+                dbc.FormGroup([
+                    dbc.Label(_('Timeframe'), className="mr-3"),
+                    dcc.Dropdown(
+                        id='simulation-days-dropdown',
+                        options=[dict(label=_('%(days)d days', days=x), value=x) for x in (45, 90, 180, 360, 730)],
+                        value=get_variable('simulation_days'),
+                        searchable=False, clearable=False,
+                        style=dict(width='160px'),
+                    )
+                ], className="mr-3"),
+                dbc.Button(_('Run simulation'), id='run-simulation', color='primary')
             ], inline=True)
         ])
     ])
@@ -242,16 +250,16 @@ def generate_content_rows():
     return rows
 
 
-def generate_layout():
+def render_page():
     headerRows = []
     settingsRows = []
     contentRows = []
     headerRows.append(dbc.Row([
         dbc.Col([
             html.Div(html.Small([
-                html.A("suomi", href="/fi", className="text-light text-uppercase"),
+                dcc.Link("suomi", id='language-link-fi', href="/fi", className="text-light text-uppercase", refresh=False),
                 html.Span(" | ", className="text-muted"),
-                html.A("English", href="/en", className="text-light text-uppercase"),
+                dcc.Link("English", id='language-link-en', href="/en", className="text-light text-uppercase", refresh=False),
             ]), className="text-right"),
             html.Div(dbc.Badge("v 0.3"), className="text-right"),
             html.Img(src="data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iMjM2IiBoZWlnaHQ9IjkyIiB2aWV3Qm94PSIwIDAgMjM2IDkyIiBmaWxsPSJub25lIiB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciPjxyZWN0IHdpZHRoPSIyMzYiIGhlaWdodD0iOTIiIGZpbGw9IiMzNDNBNDAiLz48ZyBzdHlsZT0ibWl4LWJsZW5kLW1vZGU6c29mdC1saWdodCI+PGNpcmNsZSBjeD0iNDUuNSIgY3k9IjQ2LjUiIHI9IjQ1LjUiIGZpbGw9IiNENEVCRkYiLz48L2c+PGcgc3R5bGU9Im1peC1ibGVuZC1tb2RlOnNvZnQtbGlnaHQiPjxjaXJjbGUgY3g9IjE5MC41IiBjeT0iNDYuNSIgcj0iNDUuNSIgZmlsbD0iI0Q0RUJGRiIvPjwvZz48ZyBzdHlsZT0ibWl4LWJsZW5kLW1vZGU6c29mdC1saWdodCI+PGNpcmNsZSBjeD0iNDYiIGN5PSI0NiIgcj0iMzYiIGZpbGw9IiNDQkUyRjYiLz48L2c+PGcgc3R5bGU9Im1peC1ibGVuZC1tb2RlOnNvZnQtbGlnaHQiPjxjaXJjbGUgY3g9IjE5MCIgY3k9IjQ2IiByPSIzNiIgZmlsbD0iI0NCRTJGNiIvPjwvZz48ZyBzdHlsZT0ibWl4LWJsZW5kLW1vZGU6c29mdC1saWdodCI+PGNpcmNsZSBjeD0iNDUuNSIgY3k9IjQ2LjUiIHI9IjI2LjUiIGZpbGw9IiNDMkQ5RUQiLz48L2c+PGcgc3R5bGU9Im1peC1ibGVuZC1tb2RlOnNvZnQtbGlnaHQiPjxjaXJjbGUgY3g9IjE5MC41IiBjeT0iNDYuNSIgcj0iMjYuNSIgZmlsbD0iI0MyRDlFRCIvPjwvZz48ZyBzdHlsZT0ibWl4LWJsZW5kLW1vZGU6c29mdC1saWdodCI+PGNpcmNsZSBjeD0iNDUuNSIgY3k9IjQ2LjUiIHI9IjEzLjUiIGZpbGw9IiNBQUM1REIiLz48L2c+PGcgc3R5bGU9Im1peC1ibGVuZC1tb2RlOnNvZnQtbGlnaHQiPjxlbGxpcHNlIGN4PSIxOTAiIGN5PSI0Ni41IiByeD0iMTQiIHJ5PSIxMy41IiBmaWxsPSIjQUFDNURCIi8+PC9nPjxnIHN0eWxlPSJtaXgtYmxlbmQtbW9kZTpzb2Z0LWxpZ2h0Ij48Y2lyY2xlIGN4PSIxMTgiIGN5PSI0NiIgcj0iNDYiIGZpbGw9IiNGQ0Q4RDgiLz48L2c+PGcgc3R5bGU9Im1peC1ibGVuZC1tb2RlOnNvZnQtbGlnaHQiPjxjaXJjbGUgY3g9IjExOCIgY3k9IjQ2IiByPSIzNiIgZmlsbD0iI0Y3QjlCOSIvPjwvZz48ZyBzdHlsZT0ibWl4LWJsZW5kLW1vZGU6c29mdC1saWdodCI+PGNpcmNsZSBjeD0iMTE3LjUiIGN5PSI0NS41IiByPSIyNi41IiBmaWxsPSIjRUY5QTlBIi8+PC9nPjxnIHN0eWxlPSJtaXgtYmxlbmQtbW9kZTpzb2Z0LWxpZ2h0Ij48ZWxsaXBzZSBjeD0iMTE4IiBjeT0iNDUuNSIgcng9IjE0IiByeT0iMTMuNSIgZmlsbD0iI0UzN0Q3RCIvPjwvZz48L3N2Zz4=",
@@ -288,15 +296,14 @@ def generate_layout():
     stc = generate_static_content()
 
     return html.Div([
-        html.Script(src='plotly-locale-fi-latest.js'),
         html.Div(
             dbc.Container(headerRows),
             className="bg-dark text-light py-4"
-            ),
+        ),
         html.Div(
             dbc.Container(settingsRows),
             className="bg-gray-400 pt-4 pb-2"
-            ),
+        ),
         html.Div(contentRows),
         dbc.Jumbotron(
             dbc.Container(stc),
@@ -306,7 +313,15 @@ def generate_layout():
     ])
 
 
+def generate_layout():
+    return html.Div([
+        dcc.Location(id='url'),
+        html.Div(render_page(), id='page-content')
+    ])
+
+
 app.layout = generate_layout
+
 
 @app.callback(
     Output("card-content", "children"),
@@ -320,6 +335,7 @@ def tab_content(active_tab):
     if active_tab == "region-tab":
         return render_region_info()
 
+
 @app.callback(
     Output("settings-collapse", "is_open"),
     [Input("settings-collapse-button", "n_clicks")],
@@ -329,6 +345,7 @@ def toggle_iv_collapse(n, is_open):
     if n:
         return not is_open
     return is_open
+
 
 @app.callback(
     Output('day-details-container', 'children'),
@@ -522,6 +539,21 @@ def run_simulation_callback(n_clicks, simulation_days):
         dcc.Interval(id='simulation-output-interval', interval=500, max_intervals=60),
         html.Div(id='simulation-output-results'),
     ]
+
+
+@app.callback(
+    Output('page-content', 'children'),
+    [Input('url', 'pathname')]
+)
+def url_callback(pathname):
+    if pathname in ('/en', '/fi'):
+        if flask.has_request_context():
+            pathname = pathname.strip('/')
+            if session.get('language') != pathname:
+                session['language'] = pathname
+                return render_page()
+
+    raise dash.exceptions.PreventUpdate()
 
 
 if __name__ == '__main__':

@@ -8,6 +8,7 @@ import dash_core_components as dcc
 from utils import deepupdate
 from utils.data import find_consecutive_start
 from utils.colors import GHG_MAIN_SECTOR_COLORS, generate_color_scale
+from common.locale import get_active_locale
 
 
 def make_layout(**kwargs):
@@ -308,6 +309,10 @@ class Graph:
                 responsive=True,
             )
         }
+        locale = get_active_locale()
+        if locale:
+            graph_attrs['config']['locale'] = locale
+
         if self.graph is not None:
             deepupdate(graph_attrs, self.graph)
         graph = dcc.Graph(id='%s-graph' % self.id, className='slider-card__graph', **graph_attrs)

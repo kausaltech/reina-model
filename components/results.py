@@ -45,7 +45,7 @@ def generate_population_traces(df):
         t = dict(
             type='scatter', line=dict(color=THEME_COLORS[color]),
             name=name, x=df.index, y=df[col], mode='lines',
-            hoverformat='%d', hoverlabel=dict(namelength=-1),
+            hovertemplate='%{y:d}', hoverlabel=dict(namelength=-1),
         )
         if col in ('susceptible', 'recovered'):
             t['visible'] = 'legendonly'
@@ -68,7 +68,7 @@ def render_validation_card(df):
         traces.append(dict(
             type='scatter', mode='lines', line=dict(color=COLUMN_COLORS[col_name]),
             name=col[2] + ' ' + _('(simulated)'),
-            x=df.index, y=df[col_name],
+            x=df.index, y=df[col_name], hovertemplate='%{y:d}',
             hoverlabel=dict(namelength=-1),
         ))
         col_name_map = {
@@ -78,7 +78,7 @@ def render_validation_card(df):
         traces.append(dict(
             type='scatter', mode='markers', line=dict(color=COLUMN_COLORS[col_name]),
             name=col[2] + ' ' + _('(real)'),
-            x=det.index, y=det[det_col_name],
+            x=det.index, y=det[det_col_name], hovertemplate='%{y:d}',
             hoverlabel=dict(namelength=-1),
         ))
 
@@ -240,7 +240,7 @@ def render_result_graphs(df):
     for col, name in hc_cols:
         t = dict(
             type='scatter', name=name, x=df.index, y=df[col], mode='lines',
-            hoverlabel=dict(namelength=-1),
+            hovertemplate='%{y:d}', hoverlabel=dict(namelength=-1),
         )
         traces.append(t)
 
@@ -267,7 +267,7 @@ def render_result_graphs(df):
     for col, name in param_cols:
         t = dict(
             type='scatter', name=name, x=df.index, y=df[col], mode='lines',
-            hoverlabel=dict(namelength=-1),
+            hovertemplate='%{y:.2f}', hoverlabel=dict(namelength=-1),
         )
         traces.append(t)
     layout = make_layout(

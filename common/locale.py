@@ -1,6 +1,7 @@
 from plotly import utils as plotly_utils
 from flask_babel.speaklater import LazyString
-from flask import request
+from flask import request, session
+import flask
 
 
 class JSONEncoder(plotly_utils.PlotlyJSONEncoder):
@@ -11,8 +12,9 @@ class JSONEncoder(plotly_utils.PlotlyJSONEncoder):
         return super().default(o)
 
 
-def get_locale():
-    from flask import session
+def get_active_locale():
+    if not flask.has_request_context():
+        return 'fi'
 
     language = session.get('language')
     if language:
@@ -23,4 +25,4 @@ def get_locale():
 def init_locale(babel):
     # Monkeypatch Plotly to accept lazystrings
     plotly_utils.PlotlyJSONEncoder = JSONEncoder
-    babel.localeselector(get_locale)
+    babel.localeselector(get_active_locale)

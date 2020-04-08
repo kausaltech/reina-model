@@ -7,7 +7,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: PROJECT VERSION\n"
 "Report-Msgid-Bugs-To: EMAIL@ADDRESS\n"
-"POT-Creation-Date: 2020-04-07 19:30+0300\n"
+"POT-Creation-Date: 2020-04-08 11:48+0300\n"
 "PO-Revision-Date: 2020-03-29 16:35+0300\n"
 "Last-Translator: FULL NAME <EMAIL@ADDRESS>\n"
 "Language: fi\n"
@@ -18,70 +18,86 @@ msgstr ""
 "Content-Transfer-Encoding: 8bit\n"
 "Generated-By: Babel 2.8.0\n"
 
-#: corona.py:86
+#: corona.py:92
+msgid "Region Name"
+msgstr "Alueen nimi"
+
+#: corona.py:96
+msgid "Region Population"
+msgstr "Alueen väkiluku"
+
+#: corona.py:109
 msgid "Date"
 msgstr "Päivämäärä"
 
-#: corona.py:87
+#: corona.py:110
 msgid "Event"
 msgstr "Tapahtuma"
 
-#: components/params.py:172 corona.py:88
+#: components/params.py:172 corona.py:111
 msgid "Value"
 msgstr "Arvo"
 
-#: corona.py:107
+#: corona.py:128
+msgid "Add a new event: "
+msgstr "Lisää uusi tapahtuma: "
+
+#: corona.py:143
+msgid "value"
+msgstr "arvo"
+
+#: corona.py:146
+msgid "Add"
+msgstr "Lisää"
+
+#: corona.py:152
+msgid "Restore default events"
+msgstr "Palauta oletustapahtumat"
+
+#: corona.py:180
+msgid "Settings"
+msgstr "Asetukset"
+
+#: corona.py:188
 #, python-format
 msgid "Events (%(num)s)"
 msgstr "Tapahtumat (%(num)s)"
 
-#: corona.py:117
-msgid "Restore default events"
-msgstr "Palauta oletustapahtumat"
+#: corona.py:189
+msgid "Disease Parameters"
+msgstr "Taudin parametrit"
 
-#: corona.py:122
-msgid "Add a new event"
-msgstr "Lisää uusi tapahtuma"
+#: corona.py:190
+msgid "Region Details"
+msgstr "Alueen tiedot"
 
-#: corona.py:138
-msgid "value"
-msgstr "arvo"
-
-#: corona.py:141
-msgid "Add"
-msgstr "Lisää"
-
-#: corona.py:172
-msgid "Parameters"
-msgstr "Parametrit"
-
-#: corona.py:187
+#: corona.py:201
 msgid "Timeframe"
 msgstr "Simuloitava aika"
 
-#: corona.py:190
+#: corona.py:204
 #, python-format
 msgid "%(days)d days"
 msgstr "%(days)d päivää"
 
-#: corona.py:196
+#: corona.py:210
 msgid "Run simulation"
 msgstr "Suorita simulaatio"
 
-#: corona.py:201
+#: corona.py:225
 msgid "Outcome"
 msgstr "Tulos"
 
-#: corona.py:252
+#: corona.py:276
 msgid "Scenario"
 msgstr "Skenaario"
 
-#: corona.py:253
+#: corona.py:277
 #, python-format
 msgid "Forecast of the COVID-19 epidemic: %(name)s"
 msgstr "COVID-19-epidemian kehittyminen: %(name)s"
 
-#: corona.py:260
+#: corona.py:284
 msgid "Preset"
 msgstr "Valmiit asetukset"
 
@@ -97,7 +113,7 @@ msgstr "Testataan ainoastaan vakavasti oirehtivat"
 msgid "Test all with symptoms and perform contact tracing with given accuracy"
 msgstr "Testataan kaikki oirehtivat sekä määritetään tartuntaketjut annetulla osumatarkkuudella"
 
-#: calc/simulation.py:25 components/params.py:238 components/results.py:110
+#: calc/simulation.py:25 components/params.py:237 components/results.py:110
 msgid "Limit population mobility"
 msgstr "Rajoitetaan väestön liikkuvuutta"
 
@@ -221,19 +237,19 @@ msgstr "Sairaalahoitojakson keskimääräinen kesto päivinä ennen tehohoitojak
 msgid "Description"
 msgstr "Kuvaus"
 
-#: components/params.py:195
-msgid "Disease parameters"
-msgstr "Taudin parametrit"
-
-#: components/params.py:203
+#: components/params.py:196
 msgid "Restore defaults"
 msgstr "Palauta oletukset"
 
-#: components/params.py:229
+#: components/params.py:202
+msgid "Distributions"
+msgstr "Jakaumat"
+
+#: components/params.py:228
 msgid "Distributions based on model parameters"
 msgstr "Mallin oletusten mukaiset jakaumat"
 
-#: components/params.py:231
+#: components/params.py:230
 msgid "Age of person"
 msgstr "Henkilön ikä"
 
@@ -420,4 +436,13 @@ msgstr "Kuolleiden lukumäärä simulaation päättyessä."
 
 #~ msgid "Recovered (cum.)"
 #~ msgstr "Toipuneet (kum.)"
+
+#~ msgid "Add a new event"
+#~ msgstr "Lisää uusi tapahtuma"
+
+#~ msgid "Parameters"
+#~ msgstr "Parametrit"
+
+#~ msgid "Disease parameters"
+#~ msgstr "Taudin parametrit"
 
