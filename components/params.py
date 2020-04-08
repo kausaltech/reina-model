@@ -22,6 +22,7 @@ SYMPTOM_MAP = {
 }
 
 SYMPTOM_COLOR_MAP = {
+    'ASYMPTOMATIC': 'green',
     'MILD': 'yellow',
     'SEVERE': 'orange',
     'CRITICAL': 'red',
@@ -32,6 +33,7 @@ SYMPTOM_COLOR_MAP = {
 def render_model_param_graphs(age):
     PERIOD_PARAMS = (
         ('incubation_period', _('Incubation period')),
+        ('illness_period', _('Illness period')),
         ('hospitalization_period', _('Duration of regular hospital treatment')),
         ('icu_period', _('Duration of ICU treatment')),
     )
@@ -58,8 +60,10 @@ def render_model_param_graphs(age):
             )
             traces.append(trace)
         else:
-            for severity in ('SEVERE', 'CRITICAL', 'FATAL'):
-                if severity == 'SEVERE' and param == 'icu_period':
+            for severity in ('ASYMPTOMATIC', 'MILD', 'SEVERE', 'CRITICAL', 'FATAL'):
+                if param == 'icu_period' and severity in ('ASYMPTOMATIC', 'MILD', 'SEVERE'):
+                    continue
+                if param == 'hospitalization_period' and severity in ('ASYMPTOMATIC', 'MILD'):
                     continue
                 sample = sample_model_parameters(param, age, severity)
                 sample = sample * 100 / sample.sum()

@@ -751,9 +751,12 @@ cdef class Disease:
         elif person.symptom_severity == SymptomSeverity.SEVERE:
             days = round_to_int(context.random.gamma(self.mean_illness_duration, 0.45))
         else:
+            # FIXME: days = #### Same distribution as infectiousness
             f = context.random.lognormal(0, 0.6)
             f *= self.mean_illness_duration
             days = 1 + <int> f
+            if days > 30:
+                days = 30
 
         return days
 
