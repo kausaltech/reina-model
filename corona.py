@@ -257,9 +257,9 @@ def render_page():
     headerRows.append(dbc.Row([
         dbc.Col([
             html.Div(html.Small([
-                dcc.Link("suomi", id='language-link-fi', href="/fi", className="text-light text-uppercase", refresh=False),
+                dcc.Link("suomi", id='language-link-fi', href=(settings.URL_PREFIX or '/') + 'fi', className="text-light text-uppercase", refresh=False),
                 html.Span(" | ", className="text-muted"),
-                dcc.Link("English", id='language-link-en', href="/en", className="text-light text-uppercase", refresh=False),
+                dcc.Link("English", id='language-link-en', href=(settings.URL_PREFIX or '/') + 'en', className="text-light text-uppercase", refresh=False),
             ]), className="text-right"),
             html.Div(dbc.Badge("v 0.3"), className="text-right"),
             html.Img(src="data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iMjM2IiBoZWlnaHQ9IjkyIiB2aWV3Qm94PSIwIDAgMjM2IDkyIiBmaWxsPSJub25lIiB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciPjxyZWN0IHdpZHRoPSIyMzYiIGhlaWdodD0iOTIiIGZpbGw9IiMzNDNBNDAiLz48ZyBzdHlsZT0ibWl4LWJsZW5kLW1vZGU6c29mdC1saWdodCI+PGNpcmNsZSBjeD0iNDUuNSIgY3k9IjQ2LjUiIHI9IjQ1LjUiIGZpbGw9IiNENEVCRkYiLz48L2c+PGcgc3R5bGU9Im1peC1ibGVuZC1tb2RlOnNvZnQtbGlnaHQiPjxjaXJjbGUgY3g9IjE5MC41IiBjeT0iNDYuNSIgcj0iNDUuNSIgZmlsbD0iI0Q0RUJGRiIvPjwvZz48ZyBzdHlsZT0ibWl4LWJsZW5kLW1vZGU6c29mdC1saWdodCI+PGNpcmNsZSBjeD0iNDYiIGN5PSI0NiIgcj0iMzYiIGZpbGw9IiNDQkUyRjYiLz48L2c+PGcgc3R5bGU9Im1peC1ibGVuZC1tb2RlOnNvZnQtbGlnaHQiPjxjaXJjbGUgY3g9IjE5MCIgY3k9IjQ2IiByPSIzNiIgZmlsbD0iI0NCRTJGNiIvPjwvZz48ZyBzdHlsZT0ibWl4LWJsZW5kLW1vZGU6c29mdC1saWdodCI+PGNpcmNsZSBjeD0iNDUuNSIgY3k9IjQ2LjUiIHI9IjI2LjUiIGZpbGw9IiNDMkQ5RUQiLz48L2c+PGcgc3R5bGU9Im1peC1ibGVuZC1tb2RlOnNvZnQtbGlnaHQiPjxjaXJjbGUgY3g9IjE5MC41IiBjeT0iNDYuNSIgcj0iMjYuNSIgZmlsbD0iI0MyRDlFRCIvPjwvZz48ZyBzdHlsZT0ibWl4LWJsZW5kLW1vZGU6c29mdC1saWdodCI+PGNpcmNsZSBjeD0iNDUuNSIgY3k9IjQ2LjUiIHI9IjEzLjUiIGZpbGw9IiNBQUM1REIiLz48L2c+PGcgc3R5bGU9Im1peC1ibGVuZC1tb2RlOnNvZnQtbGlnaHQiPjxlbGxpcHNlIGN4PSIxOTAiIGN5PSI0Ni41IiByeD0iMTQiIHJ5PSIxMy41IiBmaWxsPSIjQUFDNURCIi8+PC9nPjxnIHN0eWxlPSJtaXgtYmxlbmQtbW9kZTpzb2Z0LWxpZ2h0Ij48Y2lyY2xlIGN4PSIxMTgiIGN5PSI0NiIgcj0iNDYiIGZpbGw9IiNGQ0Q4RDgiLz48L2c+PGcgc3R5bGU9Im1peC1ibGVuZC1tb2RlOnNvZnQtbGlnaHQiPjxjaXJjbGUgY3g9IjExOCIgY3k9IjQ2IiByPSIzNiIgZmlsbD0iI0Y3QjlCOSIvPjwvZz48ZyBzdHlsZT0ibWl4LWJsZW5kLW1vZGU6c29mdC1saWdodCI+PGNpcmNsZSBjeD0iMTE3LjUiIGN5PSI0NS41IiByPSIyNi41IiBmaWxsPSIjRUY5QTlBIi8+PC9nPjxnIHN0eWxlPSJtaXgtYmxlbmQtbW9kZTpzb2Z0LWxpZ2h0Ij48ZWxsaXBzZSBjeD0iMTE4IiBjeT0iNDUuNSIgcng9IjE0IiByeT0iMTMuNSIgZmlsbD0iI0UzN0Q3RCIvPjwvZz48L3N2Zz4=",
@@ -546,9 +546,12 @@ def run_simulation_callback(n_clicks, simulation_days):
     [Input('url', 'pathname')]
 )
 def url_callback(pathname):
-    if pathname in ('/en', '/fi'):
+    if settings.URL_PREFIX:
+        if pathname.startswith(settings.URL_PREFIX):
+            pathname = pathname[len(settings.URL_PREFIX):]
+    pathname = pathname.strip('/')
+    if pathname in ('en', 'fi'):
         if flask.has_request_context():
-            pathname = pathname.strip('/')
             if session.get('language') != pathname:
                 session['language'] = pathname
                 return render_page()
