@@ -204,6 +204,7 @@ def render_disease_params():
                 dbc.Button(
                     _('Distributions'), color="link",
                     id="disease-collapse-button",
+                    className="px-0 mb-4"
                 ),
             ),
             html.Div(id='disease-param-specifics'),

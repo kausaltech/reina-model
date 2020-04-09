@@ -35,13 +35,16 @@ app_kwargs = dict(suppress_callback_exceptions=True)
 if settings.URL_PREFIX:
     app_kwargs['routes_pathname_prefix'] = settings.URL_PREFIX
 
+page_title = 'REINA — Realistic Epidemic Model for COVID-19'
+page_description = 'Simulate how interventions affect the spread of an COVID-19 epidemic using a realistic agent model.'
+
 meta_tags = [
     {
         'name': 'title',
-        'content': 'REINA — Realistic Epidemic Model for COVID-19',
+        'content': page_title,
     }, {
         'name': 'description',
-        'description': 'Simulate how interventions affect the spread of an COVID-19 epidemic using a realistic agent model.'
+        'description': page_description
     }
 ]
 
@@ -52,7 +55,23 @@ if settings.BASE_URL:
     })
     meta_tags.append({
         'property': 'og:image',
-        'content': settings.BASE_URL + '/assets/site.png'
+        'content': settings.BASE_URL + 'assets/site.png'
+    })
+    meta_tags.append({
+        'property': 'og:title',
+        'content': page_title
+    })
+    meta_tags.append({
+        'property': 'og:description',
+        'content': page_description
+    })
+    meta_tags.append({
+        'property': 'twitter:card',
+        'content': 'summary_large_image'
+    })
+    meta_tags.append({
+        'property': 'twitter:image:alt',
+        'content': 'Three blue and two red radiating circles on dark background'
     })
 
 app_kwargs['meta_tags'] = meta_tags
