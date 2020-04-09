@@ -785,6 +785,11 @@ cdef class Disease:
         cdef float sc, cc, fc, val
 
         val = context.random.get()
+        if val < self.p_asymptomatic:
+            return SymptomSeverity.ASYMPTOMATIC
+
+        val = (val - self.p_asymptomatic) / (1 - self.p_asymptomatic)
+
         sc = self.p_severe.get_greatest_lte(person.age)
         cc = self.p_critical.get_greatest_lte(person.age)
         fc = self.p_icu_death.get_greatest_lte(person.age)
@@ -795,9 +800,7 @@ cdef class Disease:
             return SymptomSeverity.CRITICAL
         if val < sc:
             return SymptomSeverity.SEVERE
-        if val < 1 - self.p_asymptomatic:
-            return SymptomSeverity.MILD
-        return SymptomSeverity.ASYMPTOMATIC
+        return SymptomSeverity.MILD
 
 
 cdef class Population:

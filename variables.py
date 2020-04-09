@@ -59,19 +59,20 @@ VARIABLE_DEFAULTS = {
     # is only for severe cases (might apply to e.g. healthcare workers)
     'p_detected_anyway': 25.0,  # %
 
-    # Ratio of all infected people that require hospitalization
+    # Ratio of all symptomatic people that require hospitalization
     # (more than mild symptoms) by age group
+    # Numbers scaled, because source assumes 50% asymptomatic people.
     # Source: https://www.medrxiv.org/content/10.1101/2020.03.09.20033357v1.full.pdf
     'p_severe': [
         [0, 0.0],
-        [10, 0.0408],
-        [20, 1.04],
-        [30, 3.43],
-        [40, 4.25],
-        [50, 8.16],
-        [60, 11.8],
-        [70, 16.6],
-        [80, 18.4]
+        [10, 0.0816],
+        [20, 2.08],
+        [30, 6.86],
+        [40, 8.5],
+        [50, 16.32],
+        [60, 23.6],
+        [70, 33.2],
+        [80, 36.8]
     ],
     # Ratio of hospitalized cases requiring critical (ICU) care
     # Source: https://www.imperial.ac.uk/media/imperial-college/medicine/sph/ide/gida-fellowships/Imperial-College-COVID19-NPI-modelling-16-03-2020.pdf
