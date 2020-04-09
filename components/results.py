@@ -331,36 +331,26 @@ def render_indicators(df):
     icu_cap = ((df['available_icu_units'] / df['total_icu_units']) < 0.1).sum()
     dead = df['dead'].dropna().iloc[-1]
 
-    # Indicator Placemarkers TODO: Map to data
-    cols = []
-    cols.append(dbc.Col(
-        dbc.Card(
-            dbc.CardBody([
-                html.H6(_('Restriction Day Index')),
-                html.P('%d' % rdays, className="display-4 text-primary mb-1"),
-                html.Small(_('''The cumulative sum of daily percentages of mobility restrictions. The index can be used as a rough indicator of harmful psychological, social and economic effects. A higher index means more severe effects.''')),
-            ], style=dict(minHeight='280px'))
-        ), width=dict(size=4))
-    )
-    cols.append(dbc.Col(
-        dbc.Card(
-            dbc.CardBody([
-                html.H6(_('Days ICU Capacity Exceeded')),
-                html.P('%d' % icu_cap, className="display-4 text-primary mb-1"),
-                html.Small(str(_("Number of days that ICU units had less than 10%% of capacity left.")).replace('%%', '%')),
-            ], style=dict(minHeight='280px'))
-        ), width=dict(size=4))
-    )
-    cols.append(dbc.Col(
-        dbc.Card(
-            dbc.CardBody([
-                html.H6(_('Fatalities')),
-                html.P('%d' % dead, className="display-4 text-primary mb-1"),
-                html.Small(_("Total number of deaths at the end of simulation.")),
-            ], style=dict(minHeight='280px'))
-        ), width=dict(size=4))
-    )
-    return dbc.Row(cols, className='mb-4')
+    deck = []
+    deck.append(dbc.Card(
+        dbc.CardBody([
+            html.H6(_('Restriction Day Index')),
+            html.P('%d' % rdays, className="display-4 text-primary mb-1"),
+            html.Small(_('''The cumulative sum of daily percentages of mobility restrictions. The index can be used as a rough indicator of harmful psychological, social and economic effects. A higher index means more severe effects.''')),
+        ])))
+    deck.append(dbc.Card(
+        dbc.CardBody([
+            html.H6(_('Days ICU Capacity Exceeded')),
+            html.P('%d' % icu_cap, className="display-4 text-primary mb-1"),
+            html.Small(str(_("Number of days that ICU units had less than 10%% of capacity left.")).replace('%%', '%')),
+        ])))
+    deck.append(dbc.Card(
+        dbc.CardBody([
+            html.H6(_('Fatalities')),
+            html.P('%d' % dead, className="display-4 text-primary mb-1"),
+            html.Small(_("Total number of deaths at the end of simulation.")),
+        ])))
+    return dbc.CardDeck(deck, className='mb-4')
 
 
 def render_results(df):
