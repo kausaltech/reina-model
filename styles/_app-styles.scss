@@ -150,6 +150,6 @@ body, html {
 }
 
 // PLOTLY OVERRIDE: Align x-axis tick label to the right side of tick 
-#simulation-output-results .xaxislayer-above .xtick text {
+#simulation-results-container .xaxislayer-above .xtick text {
   text-anchor: start;
 }
