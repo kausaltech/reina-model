@@ -295,6 +295,10 @@ def render_page():
     headerRows = []
     settingsRows = []
     contentRows = []
+    traffic_alert = None
+    if settings.TRAFFIC_WARNING:
+        traffic_alert = dbc.Alert("HUOM: Suuren yhtäaikaisen käyttäjämäärän takia palvelu saattaa toimia hitaasti tai osa simulaatiotoiminnallisuuksista on pois käytöstä.", color="danger", className="mt-4 mb-0")
+
     headerRows.append(dbc.Row([
         dbc.Col([
             html.Div(html.Small([
@@ -307,7 +311,7 @@ def render_page():
             className="mb-3"),
             html.H1("REINA", className="font-weight-bold", style=dict(letterSpacing=".2em")),
             html.H6("Realistic Epidemic Interaction Network Agent Model"),
-            dbc.Alert("HUOM: Suuren yhtäaikaisen käyttäjämäärän takia osa simulaatiotoiminnallisuuksista on valitettavasti toistaiseksi pois käytöstä.", color="danger", className="mt-4 mb-0"),
+            traffic_alert,
         ], className='mb-4'),
     ], className='mt-4'))
 
@@ -389,6 +393,7 @@ def toggle_iv_collapse(n, is_open):
     return is_open
 
 
+"""
 @app.callback(
     Output('day-details-container', 'children'),
     [Input('population-graph', 'clickData')]
@@ -396,6 +401,7 @@ def toggle_iv_collapse(n, is_open):
 def show_day_details(data):
     print(data)
     return html.Div()
+"""
 
 
 @app.callback(
@@ -569,6 +575,9 @@ def run_simulation_callback(n_clicks, simulation_days):
     if df is not None:
         return render_results(df)
 
+    if settings.RESTRICT_TO_PRESET_SCENARIOS:
+        return [html.Div('Palvelussa ruuhkaa, osa simulaatiotoiminnallisuuksista on pois käytöstä')]
+
     existing_thread_id = session.get('thread_id', None)
     if existing_thread_id:
         cache.set('thread-%s-kill' % existing_thread_id, True)
@@ -591,6 +600,7 @@ def url_callback(pathname):
     if settings.URL_PREFIX:
         if pathname.startswith(settings.URL_PREFIX):
             pathname = pathname[len(settings.URL_PREFIX):]
+    pathname = pathname or ''
     pathname = pathname.strip('/')
     if pathname in ('en', 'fi'):
         if flask.has_request_context():
