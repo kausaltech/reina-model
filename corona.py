@@ -307,6 +307,7 @@ def render_page():
             className="mb-3"),
             html.H1("REINA", className="font-weight-bold", style=dict(letterSpacing=".2em")),
             html.H6("Realistic Epidemic Interaction Network Agent Model"),
+            dbc.Alert("HUOM: Suuren yhtäaikaisen käyttäjämäärän takia osa simulaatiotoiminnallisuuksista on valitettavasti toistaiseksi pois käytöstä.", color="danger", className="mt-4 mb-0"),
         ], className='mb-4'),
     ], className='mt-4'))
 
