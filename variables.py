@@ -26,7 +26,7 @@ VARIABLE_DEFAULTS = {
     # Overall chance to become infected after being exposed.
     # This is modified by viral load of the infector, which
     # depends on the day of the illness.
-    'p_infection': 28.0,  # %
+    'p_infection': 29.0,  # %
 
     # Chance to die after regular hospital care
     'p_hospital_death': 0.0,  # %
@@ -54,10 +54,6 @@ VARIABLE_DEFAULTS = {
 
     'ratio_of_duration_before_hospitalisation': 30.0,  # %
     'ratio_of_duration_in_ward': 15.0,  # %
-
-    # Chance to be detected if showing mild symptoms but testing
-    # is only for severe cases (might apply to e.g. healthcare workers)
-    'p_detected_anyway': 25.0,  # %
 
     # Ratio of all symptomatic people that require hospitalization
     # (more than mild symptoms) by age group
@@ -89,7 +85,7 @@ VARIABLE_DEFAULTS = {
     ],
     'interventions': [
         ['test-all-with-symptoms', '2020-02-20'],
-        ['test-only-severe-symptoms', '2020-03-15'],
+        ['test-only-severe-symptoms', '2020-03-15', 25],
 
         # ['limit-mass-gatherings', '2020-03-12', 50],
 

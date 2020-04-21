@@ -354,6 +354,10 @@ cdef void person_advance(Person *self, Context context) nogil:
     self.other_people_exposed_today = 0
 
     if self.state == PersonState.INCUBATION:
+        # If we were infected before in the iteration loop, we wait until
+        # tomorrow before we start advancing in the illness.
+        if self.day_of_infection == context.day:
+            return
         person_expose_others(self, context)
         if self.days_left > 0:
             self.days_left -= 1
@@ -407,7 +411,7 @@ cdef class HealthcareSystem:
     cdef list testing_queue
     cdef openmp.omp_lock_t lock
 
-    def __init__(self, beds, icu_units, p_detected_anyway):
+    def __init__(self, beds, icu_units):
         self.beds = beds
         self.icu_units = icu_units
         self.available_beds = beds
@@ -415,7 +419,7 @@ cdef class HealthcareSystem:
         self.testing_mode = TestingMode.NO_TESTING
         self.testing_queue = []
         self.tests_run_per_day = 0
-        self.p_detected_anyway = p_detected_anyway
+        self.p_detected_anyway = 0
         self.p_successful_tracing = 1.0
         openmp.omp_init_lock(&self.lock)
 
@@ -515,9 +519,12 @@ cdef class HealthcareSystem:
         self.available_beds -= 1
         return True
 
-    def set_testing_mode(self, mode, p_successful_tracing=1.0):
+    def set_testing_mode(self, mode, p=1.0):
         self.testing_mode = mode
-        self.p_successful_tracing = p_successful_tracing
+        if mode == TestingMode.ALL_WITH_SYMPTOMS_CT:
+            self.p_successful_tracing = p
+        elif mode == TestingMode.ONLY_SEVERE_SYMPTOMS:
+            self.p_detected_anyway = p
 
     cdef bint is_detected(self, Person *person, Context context) nogil:
         # Person needs to have viral load in order to be detected
@@ -1038,7 +1045,7 @@ cdef class Context:
             self.hc.set_testing_mode(TestingMode.ALL_WITH_SYMPTOMS)
         elif name == 'test-only-severe-symptoms':
             # Test only those who show severe or critical symptoms
-            self.hc.set_testing_mode(TestingMode.ONLY_SEVERE_SYMPTOMS)
+            self.hc.set_testing_mode(TestingMode.ONLY_SEVERE_SYMPTOMS, value / 100.0)
         elif name == 'test-with-contact-tracing':
             # Test only those who show severe or critical symptoms
             self.hc.set_testing_mode(TestingMode.ALL_WITH_SYMPTOMS_CT, value / 100.0)

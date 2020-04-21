@@ -20,7 +20,7 @@ class Intervention:
 
 INTERVENTIONS = [
     Intervention('test-all-with-symptoms', _('Test all with symptoms')),
-    Intervention('test-only-severe-symptoms', _('Test people only with severe symptoms')),
+    Intervention('test-only-severe-symptoms', _('Test people only with severe symptoms, given percentage of mild cases are detected'), '%'),
     Intervention('test-with-contact-tracing', _('Test all with symptoms and perform contact tracing with given accuracy'), '%'),
     Intervention('limit-mobility', _('Limit population mobility'), '%'),
     # Intervention('limit-mass-gatherings', _('Limit mass gatherings'), _('max. contacts')),
@@ -58,7 +58,7 @@ def create_disease(variables):
 @calcfunc(
     variables=list(model.DISEASE_PARAMS) + [
         'simulation_days', 'interventions', 'start_date',
-        'hospital_beds', 'icu_units', 'p_detected_anyway',
+        'hospital_beds', 'icu_units',
         'random_seed',
     ],
     funcs=[get_contacts_for_country],
@@ -81,7 +81,6 @@ def simulate_individuals(variables, step_callback=None):
     pop = model.Population(age_counts, list(avg_contacts_per_day.items()))
     hc = model.HealthcareSystem(
         beds=hc_cap[0], icu_units=hc_cap[1],
-        p_detected_anyway=variables['p_detected_anyway'] / 100
     )
     disease = create_disease(variables)
     context = model.Context(pop, hc, disease, start_date=variables['start_date'], random_seed=variables['random_seed'])
@@ -149,7 +148,6 @@ def simulate_individuals(variables, step_callback=None):
 
 @calcfunc(
     variables=list(model.DISEASE_PARAMS) + [
-        'p_detected_anyway',
         'sample_limit_mobility',
     ],
     funcs=[get_contacts_for_country]
@@ -160,7 +158,6 @@ def sample_model_parameters(what, age, severity=None, variables=None):
     pop = model.Population(age_counts, list(avg_contacts_per_day.items()))
     hc = model.HealthcareSystem(
         beds=0, icu_units=0,
-        p_detected_anyway=variables['p_detected_anyway'] / 100
     )
     disease = create_disease(variables)
     context = model.Context(pop, hc, disease, start_date='2020-01-01')
