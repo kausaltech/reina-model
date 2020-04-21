@@ -8,7 +8,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: PROJECT VERSION\n"
 "Report-Msgid-Bugs-To: EMAIL@ADDRESS\n"
-"POT-Creation-Date: 2020-04-08 19:30+0300\n"
+"POT-Creation-Date: 2020-04-21 22:07+0300\n"
 "PO-Revision-Date: YEAR-MO-DA HO:MI+ZONE\n"
 "Last-Translator: FULL NAME <EMAIL@ADDRESS>\n"
 "Language-Team: LANGUAGE <LL@li.org>\n"
@@ -17,86 +17,86 @@ msgstr ""
 "Content-Transfer-Encoding: 8bit\n"
 "Generated-By: Babel 2.8.0\n"
 
-#: corona.py:92
+#: corona.py:134
 msgid "Region Name"
 msgstr ""
 
-#: corona.py:96
+#: corona.py:138
 msgid "Region Population"
 msgstr ""
 
-#: corona.py:110
+#: corona.py:152
 msgid "Date"
 msgstr ""
 
-#: corona.py:111
+#: corona.py:153
 msgid "Event"
 msgstr ""
 
-#: components/params.py:175 corona.py:112
+#: components/params.py:175 corona.py:154
 msgid "Value"
 msgstr ""
 
-#: corona.py:129
+#: corona.py:171
 msgid "Add a new event: "
 msgstr ""
 
-#: corona.py:144
+#: corona.py:186
 msgid "value"
 msgstr ""
 
-#: corona.py:147
+#: corona.py:189
 msgid "Add"
 msgstr ""
 
-#: corona.py:153
+#: corona.py:195
 msgid "Restore default events"
 msgstr ""
 
-#: corona.py:181
+#: corona.py:223
 msgid "Settings"
 msgstr ""
 
-#: corona.py:189
+#: corona.py:231
 #, python-format
 msgid "Events (%(num)s)"
 msgstr ""
 
-#: corona.py:190
+#: corona.py:232
 msgid "Disease Parameters"
 msgstr ""
 
-#: corona.py:191
+#: corona.py:233
 msgid "Region Details"
 msgstr ""
 
-#: corona.py:202
+#: corona.py:244
 msgid "Timeframe"
 msgstr ""
 
-#: corona.py:205
+#: corona.py:247
 #, python-format
 msgid "%(days)d days"
 msgstr ""
 
-#: corona.py:211
+#: corona.py:253
 msgid "Run simulation"
 msgstr ""
 
-#: corona.py:226
+#: corona.py:268
 msgid "Outcome"
 msgstr ""
 
-#: corona.py:276
+#: corona.py:323
 msgid "Scenario"
 msgstr ""
 
-#: corona.py:277
+#: corona.py:324
 #, python-format
 msgid "Forecast of the COVID-19 epidemic: %(name)s"
 msgstr ""
 
-#: corona.py:284
+#: corona.py:331
 msgid "Preset"
 msgstr ""
 
@@ -112,7 +112,7 @@ msgstr ""
 msgid "Test all with symptoms and perform contact tracing with given accuracy"
 msgstr ""
 
-#: calc/simulation.py:25 components/params.py:240 components/results.py:110
+#: calc/simulation.py:25 components/params.py:241 components/results.py:110
 msgid "Limit population mobility"
 msgstr ""
 
@@ -248,11 +248,11 @@ msgstr ""
 msgid "Distributions"
 msgstr ""
 
-#: components/params.py:231
+#: components/params.py:232
 msgid "Distributions based on model parameters"
 msgstr ""
 
-#: components/params.py:233
+#: components/params.py:234
 msgid "Age of person"
 msgstr ""
 
@@ -329,11 +329,11 @@ msgid "Reproductive number (Rₜ)"
 msgstr ""
 
 #: components/results.py:262
-msgid "Infection fatality ratio (IFR, %"
+msgid "Infection fatality ratio (IFR, %)"
 msgstr ""
 
 #: components/results.py:263
-msgid "Case fatality ratio (CFR, %"
+msgid "Case fatality ratio (CFR, %)"
 msgstr ""
 
 #: components/results.py:274
@@ -344,30 +344,30 @@ msgstr ""
 msgid "Simulation result data"
 msgstr ""
 
-#: components/results.py:339
+#: components/results.py:337
 msgid "Restriction Day Index"
 msgstr ""
 
-#: components/results.py:341
+#: components/results.py:339
 msgid ""
 "The cumulative sum of daily percentages of mobility restrictions. The index can be used as a rough indicator of "
 "harmful psychological, social and economic effects. A higher index means more severe effects."
 msgstr ""
 
-#: components/results.py:348
+#: components/results.py:343
 msgid "Days ICU Capacity Exceeded"
 msgstr ""
 
-#: components/results.py:350
+#: components/results.py:345
 #, python-format
 msgid "Number of days that ICU units had less than 10%% of capacity left."
 msgstr ""
 
-#: components/results.py:357
+#: components/results.py:349
 msgid "Fatalities"
 msgstr ""
 
-#: components/results.py:359
+#: components/results.py:351
 msgid "Total number of deaths at the end of simulation."
 msgstr ""
 
