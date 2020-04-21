@@ -259,8 +259,8 @@ def render_result_graphs(df):
 
     param_cols = (
         ('r', _('Reproductive number (Rₜ)')),
-        ('ifr', _('Infection fatality ratio (IFR, %')),
-        ('cfr', _('Case fatality ratio (CFR, %')),
+        ('ifr', _('Infection fatality ratio (IFR, %)')),
+        ('cfr', _('Case fatality ratio (CFR, %)')),
     )
     card = GraphCard('params', graph=dict(config=dict(responsive=False)))
     traces = []

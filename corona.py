@@ -10,6 +10,7 @@ from common import cache
 from common.locale import init_locale, get_active_locale
 import uuid
 import os
+import sys
 import dash_table
 import dash_core_components as dcc
 import dash_html_components as html
@@ -615,4 +616,7 @@ if __name__ == '__main__':
     # Write the process pid to a file for easier profiling with py-spy
     with open('.corona.pid', 'w') as pid_file:
         pid_file.write(str(os.getpid()))
-    app.run_server(debug=True, port=8123)
+    kwargs = {}
+    if '--externally-visible' in sys.argv:
+        kwargs['host'] = '0.0.0.0'
+    app.run_server(debug=True, port=8123, **kwargs)

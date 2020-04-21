@@ -45,6 +45,23 @@ Or visualize using Dash:
 python -m corona
 ```
 
+## Installing and running with Docker
+
+Alternatively, you can run Reina with [Docker](https://www.docker.com/).
+To do so, run:
+
+```
+docker-compose up
+```
+
+The first time you run it, it will build the container for Reina, which takes some time. Once it's done, Reina Dash visualization is available at localhost:8123.
+
+While the container is running, you can run the simulation like this:
+
+```
+docker exec -ti reina python -m calc.simulation
+```
+
 ## Development
 
 ### Localisation

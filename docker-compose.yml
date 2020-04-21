@@ -1,0 +1,16 @@
+version: '3'
+services:
+    reina:
+        build:
+            context: .
+        container_name: reina
+        restart: unless-stopped
+        environment:
+            - REDIS_URL=redis://redis:6379
+        ports:
+            - "127.0.0.1:8123:8123"
+        volumes:
+            - .:/app
+    redis:
+        image: redis
+        restart: unless-stopped
