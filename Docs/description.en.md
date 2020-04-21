@@ -88,9 +88,9 @@ experiment how tuning the parameters changes the outcome of the simulation.
 
 You may contact the authors by sending an email to [reina@kausal.tech](mailto:reina@kausal.tech).
 
-Jouni T. Tuomisto, Finnish Institute for Health and Welfare, Kuopio, Finland
-
 Juha Yrjölä, Kausal Ltd, Helsinki, Finland
+
+Jouni T. Tuomisto, University of Eastern Finland, Kuopio, Finland
 
 Mikko Kolehmainen, University of Eastern Finland, Kuopio, Finland
 
