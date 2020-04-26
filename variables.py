@@ -9,7 +9,7 @@ from contextlib import contextmanager
 VARIABLE_DEFAULTS = {
     'area_name': 'HUS',
     'area_name_long': 'Helsingin ja Uudenmaan sairaanhoitopiiri',
-    'country': 'Finland',
+    'country': 'FI',
     'max_age': 100,
     'simulation_days': 365,
     'start_date': '2020-02-18',
@@ -26,7 +26,7 @@ VARIABLE_DEFAULTS = {
     # Overall chance to become infected after being exposed.
     # This is modified by viral load of the infector, which
     # depends on the day of the illness.
-    'p_infection': 29.0,  # %
+    'p_infection': 30.0,  # %
 
     # Chance to die after regular hospital care
     'p_hospital_death': 0.0,  # %
@@ -94,6 +94,7 @@ VARIABLE_DEFAULTS = {
         ['limit-mobility', '2020-03-20', 30],
         ['limit-mobility', '2020-03-22', 35],
         ['limit-mobility', '2020-03-28', 50],
+        ['limit-mobility', '2020-04-05', 55],
 
         ['build-new-icu-units', '2020-04-30', 150],
         ['build-new-icu-units', '2020-05-30', 150],
@@ -185,6 +186,13 @@ def reset_variables():
             del session[var_name]
     else:
         _variable_overrides.clear()
+
+
+def copy_variables():
+    out = {}
+    for var_name in VARIABLE_DEFAULTS.keys():
+        out[var_name] = get_variable(var_name)
+    return out
 
 
 @contextmanager

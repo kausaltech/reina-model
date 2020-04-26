@@ -4,8 +4,7 @@ from datetime import date, timedelta
 from flask_session import Session
 from flask_babel import Babel, lazy_gettext as _
 import flask
-from flask import session
-from flask import request
+from flask import session, request
 from common import cache
 from common.locale import init_locale, get_active_locale
 import uuid
@@ -21,6 +20,7 @@ import multiprocessing
 
 from calc.simulation import simulate_individuals, INTERVENTIONS
 from calc.datasets import get_population_for_area
+from calc.utils import generate_cache_key
 from calc import ExecutionInterrupted
 from common import settings
 from variables import set_variable, get_variable, reset_variable, reset_variables
@@ -421,6 +421,8 @@ def show_day_details(data):
 def interventions_callback(ts, reset_clicks, add_intervention_clicks, rows, new_date, new_id, new_val):
     ctx = dash.callback_context
     is_reset = False
+    changed = False
+
     if ctx.triggered:
         c_id = ctx.triggered[0]['prop_id'].split('.')[0]
         if reset_clicks is not None and c_id == 'interventions-reset-defaults':
@@ -446,15 +448,19 @@ def interventions_callback(ts, reset_clicks, add_intervention_clicks, rows, new_
             else:
                 raise dash.exceptions.PreventUpdate()
 
+            changed = True
             rows.append(dict(name=new_id, date=d.isoformat(), value=new_val))
+        if c_id == 'interventions-table':
+            changed = True
 
-    if not is_reset:
+    if not is_reset and changed:
         ivs = []
         for row in sorted(rows, key=lambda x: x['date']):
             val = row['value']
             if isinstance(val, str):
                 val = int(val)
             ivs.append([row['name'], row['date'], val])
+
         set_variable('interventions', ivs)
 
     rows = interventions_to_rows()
@@ -479,18 +485,18 @@ class SimulationThread(multiprocessing.Process):
 
         process_pool[self.ident] = self
 
+        func_hash = generate_cache_key(simulate_individuals, var_store=self.variables)
+
         self.last_results = None
-        print('%s: run process' % self.uuid)
+        print('%s: run process (func hash %s)' % (self.uuid, func_hash))
 
         def step_callback(df, force=False):
             now = time.time()
             if force or self.last_results is None or now - self.last_results > 0.5:
-                cache.set('thread-%s-results' % self.uuid, df, timeout=30)
-                print('%s: step callback' % self.uuid)
+                print('%s: set results to %s' % (self.uuid, func_hash))
+                cache.set('%s-results' % func_hash, df, timeout=30)
                 self.last_results = now
 
-            if cache.get('thread-%s-kill' % self.uuid):
-                return False
             return True
 
         try:
@@ -501,7 +507,7 @@ class SimulationThread(multiprocessing.Process):
             print('%s: computation finished' % self.uuid)
             step_callback(df, force=True)
 
-        cache.set('thread-%s-finished' % self.uuid, True)
+        cache.set('%s-finished' % func_hash, True)
         print('%s: process finished' % self.uuid)
 
         del process_pool[self.ident]
@@ -511,31 +517,29 @@ class SimulationThread(multiprocessing.Process):
     [
         Output('simulation-output-results', 'children'),
         Output('simulation-output-interval', 'disabled'),
-        Output('simulation-output-interval', 'interval'),
     ], [Input('simulation-output-interval', 'n_intervals')]
 )
 def update_simulation_results(n_intervals):
-    from flask import session
-
     thread_id = session.get('thread_id', None)
     if thread_id is None:
         raise dash.exceptions.PreventUpdate()
 
-    df = cache.get('thread-%s-results' % thread_id)
+    func_hash = generate_cache_key(simulate_individuals)
+    cache_key = '%s-results' % func_hash
+    df = cache.get(cache_key)
     if df is None:
+        print('%s: no results' % func_hash)
         raise dash.exceptions.PreventUpdate()
 
-    if cache.get('thread-%s-finished' % thread_id):
+    if cache.get('%s-finished' % func_hash):
         # When the computation thread is finished, stop polling.
         print('thread finished, disabling')
         disabled = True
-        interval = 5000
     else:
         print('thread not finished, updating')
         disabled = False
-        interval = 500
     out = render_results(df)
-    return [out, disabled, interval]
+    return [out, disabled]
 
 
 @app.callback(
@@ -564,10 +568,8 @@ def select_scenario(preset_scenario):
     ],
 )
 def run_simulation_callback(n_clicks, simulation_days):
-    from flask import session
-    from common import cache
-
     print('run simulation (days %d)' % simulation_days)
+    print(generate_cache_key(simulate_individuals))
     set_variable('simulation_days', simulation_days)
     if n_clicks:
         set_variable('random_seed', n_clicks)

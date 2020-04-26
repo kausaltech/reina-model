@@ -45,25 +45,15 @@ def get_contacts_for_country(variables):
 
     df = pd.read_csv(f, header=0)
     df = df[df.country == variables['country']].drop(columns='country')
-    df = df[df.type == 'all'].drop(columns='type')
 
-    df = df.set_index(['age of contact'])
-    df.columns.name = 'age group of participant'
+    df['place_type'] = df['place_type'].map(lambda x: x.replace('cnt_', '').replace('otherplace', 'other'))
+    s = '-%d' % max_age
+    df['participant_age'] = df['participant_age'].map(lambda x: x.replace('+', s))
+    last_col = [x for x in df.columns if '+' in x]
+    assert len(last_col) == 1
+    df = df.rename(columns={last_col[0]: last_col[0].replace('+', s)})
 
-    df = df.sum(axis=0)
-
-    ages = []
-    counts = []
-    for age_group, count in df.items():
-        if age_group == '70+':
-            start, end = 70, variables['max_age']
-        else:
-            start, end = map(int, age_group.split('-'))
-        for age in range(start, end + 1):
-            ages.append(age)
-            counts.append(count)
-
-    return pd.Series(counts, index=ages)
+    return df
 
 
 CASES_FNAME = get_root_path() + '/data/hosp_cases_hus.csv'

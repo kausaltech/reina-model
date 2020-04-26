@@ -44,11 +44,31 @@ cdef enum PersonState:
 cdef enum SimulationProblem:
     NO_PROBLEMOS
     TOO_MANY_INFECTEES
+    TOO_MANY_CONTACTS
     HOSPITAL_ACCOUNTING_FAILURE
     NEGATIVE_CONTACTS
     MALLOC_FAILURE
     OTHER_FAILURE
     WRONG_STATE
+
+
+cdef enum ContactPlace:
+    HOME
+    WORK
+    SCHOOL
+    TRANSPORT
+    LEISURE
+    OTHER
+
+
+CONTACT_PLACE_TO_STR = {
+    HOME: 'home',
+    WORK: 'work',
+    SCHOOL: 'school',
+    TRANSPORT: 'transport',
+    LEISURE: 'leisure',
+    OTHER: 'other',
+}
 
 
 STATE_TO_STR = {
@@ -72,6 +92,7 @@ STR_TO_SEVERITY = {val: key for key, val in SEVERITY_TO_STR.items()}
 PROBLEM_TO_STR = {
     SimulationProblem.NO_PROBLEMOS: 'No problemos',
     SimulationProblem.TOO_MANY_INFECTEES: 'Too many infectees',
+    SimulationProblem.TOO_MANY_CONTACTS: 'Too many contacts',
     SimulationProblem.HOSPITAL_ACCOUNTING_FAILURE: 'Hospital accounting failure',
     SimulationProblem.NEGATIVE_CONTACTS: 'Negative number of contacts',
     SimulationProblem.MALLOC_FAILURE: 'Malloc failure',
@@ -79,11 +100,13 @@ PROBLEM_TO_STR = {
     SimulationProblem.WRONG_STATE: 'Wrong state',
 }
 
+
 class SimulationFailed(Exception):
     pass
 
 
 DEF MAX_INFECTEES = 64
+DEF MAX_CONTACTS = 128
 
 
 cdef struct Person:
@@ -99,6 +122,11 @@ cdef struct Person:
     int32 *infectees
 
     openmp.omp_lock_t lock
+
+
+cdef struct Contact:
+    int32 person_idx
+    ContactPlace place
 
 
 cdef void person_init(Person *self, int32 idx, uint8 age) nogil:
@@ -201,38 +229,14 @@ cdef bint person_expose(Person *self, Context context, Person *source) nogil:
     return False
 
 
-"""
-cdef inline DailyContacts * _get_daily_contacts(Person *self) nogil:
-    cdef DailyContacts *dc
-    cdef int min_idx, i
-
-    min_idx = 0
-    for i in range(DAILY_CONTACTS_DAYS):
-        dc = self.daily_contacts[i]
-        if dc == NULL:
-            min_idx = i
-            break
-        if self.daily_contacts[min_idx].day < dc.day:
-            min_idx = i
-
-    dc = self.daily_contacts[min_idx]
-    if dc == NULL:
-        dc = <DailyContacts *> malloc(sizeof(DailyContacts))
-        if dc == NULL:
-            return NULL
-        self.daily_contacts[min_idx] = dc
-
-    return dc
-"""
-
-@cython.cdivision(True)
 cdef void person_expose_others(Person *self, Context context) nogil:
-    cdef Person *people = context.people
+    cdef Contact[MAX_CONTACTS] contacts
+    cdef Person *people = context.pop.people
     cdef int32 *infectees
     cdef int nr_contacts, exposee_idx, total, i
     cdef Person *target
 
-    nr_contacts = context.disease.people_exposed(self, context)
+    nr_contacts = context.disease.get_exposed_people(self, contacts, context)
     self.other_people_exposed_today = nr_contacts
     if nr_contacts == 0:
         return
@@ -243,10 +247,16 @@ cdef void person_expose_others(Person *self, Context context) nogil:
     if nr_contacts > self.max_contacts_per_day:
         self.max_contacts_per_day = nr_contacts
 
+    self.other_people_exposed_today = nr_contacts
+
     infectees = self.infectees
     for i in range(nr_contacts):
-        exposee_idx = context.random.getint() % context.total_people
+        exposee_idx = contacts[i].person_idx
         target = &people[exposee_idx]
+
+        # with gil:
+        #     print('%s\n-> %s' % (person_str(self), person_str(target)))
+
         if person_expose(target, context, self):
             if infectees != NULL:
                 if self.other_people_infected >= MAX_INFECTEES:
@@ -411,10 +421,10 @@ cdef class HealthcareSystem:
     cdef list testing_queue
     cdef openmp.omp_lock_t lock
 
-    def __init__(self, beds, icu_units):
-        self.beds = beds
+    def __init__(self, hospital_beds, icu_units):
+        self.beds = hospital_beds
         self.icu_units = icu_units
-        self.available_beds = beds
+        self.available_beds = hospital_beds
         self.available_icu_units = icu_units
         self.testing_mode = TestingMode.NO_TESTING
         self.testing_queue = []
@@ -424,7 +434,7 @@ cdef class HealthcareSystem:
         openmp.omp_init_lock(&self.lock)
 
     cdef bint queue_for_testing(self, int person_idx, Context context, float p_success) nogil:
-        cdef Person *p = context.people + person_idx
+        cdef Person *p = context.pop.people + person_idx
         if p.state == PersonState.DEAD or p.was_detected or p.queued_for_testing:
             return False
 
@@ -439,8 +449,13 @@ cdef class HealthcareSystem:
                 context.trace('added to test queue', person_idx=person_idx)
         return True
 
+    cdef bint should_trace_contacts(self, Context context) nogil:
+        if self.testing_mode == TestingMode.ALL_WITH_SYMPTOMS_CT:
+            return True
+        return False
+
     cdef void perform_contact_tracing(self, int person_idx, Context context, int level) nogil:
-        cdef Person *p = context.people + person_idx
+        cdef Person *p = context.pop.people + person_idx
         cdef int infectee_idx
         if level > 1:
             return
@@ -468,7 +483,7 @@ cdef class HealthcareSystem:
 
         # Run tests
         for idx in queue:
-            person = context.people + idx
+            person = context.pop.people + idx
             if not person.queued_for_testing:
                 raise Exception()
             person.queued_for_testing = 0
@@ -688,7 +703,7 @@ cdef class Disease:
         return context.random.chance(chance)
 
 
-    cdef int people_exposed(self, Person *person, Context context) nogil:
+    cdef int get_exposed_people(self, Person *person, Contact *contacts, Context context) nogil:
         # Detected people are quarantined
         if person.was_detected:
             return 0
@@ -698,14 +713,14 @@ cdef class Disease:
             return 0
 
         if person.state == PersonState.INCUBATION:
-            return context.pop.contacts_per_day(person, context)
+            return context.pop.get_contacts(person, contacts, context)
         elif person.state == PersonState.ILLNESS:
             # Asymptomatic people infect others without knowing it
             if person.symptom_severity == SymptomSeverity.ASYMPTOMATIC:
-                return context.pop.contacts_per_day(person, context)
+                return context.pop.get_contacts(person, contacts, context)
             else:
                 # People with mild or more severe symptoms restrict their movement
-                return context.pop.contacts_per_day(person, context, factor=0.5, limit=5)
+                return context.pop.get_contacts(person, contacts, context, factor=0.5, limit=5)
 
         return 0
 
@@ -810,17 +825,160 @@ cdef class Disease:
         return SymptomSeverity.MILD
 
 
+cdef struct ContactProbability:
+    ContactPlace place
+    int contact_age_min, contact_age_max
+    double cum_p
+
+
+cdef struct AgeContactProbabilities:
+    ContactProbability *probabilities
+    int count
+
+
+cdef class ContactMatrix:
+    cdef object contact_df  # pandas.DataFrame
+    cdef double[::1] nr_contacts_by_age
+    cdef AgeContactProbabilities *p_by_age
+    cdef int nr_ages
+
+    def __init__(self, contacts_per_day, nr_ages):
+        cdef int age
+
+        self.nr_contacts_by_age = np.zeros(nr_ages, dtype=np.double)
+        self.contact_df = contacts_per_day.copy(deep=True)
+        self.nr_ages = nr_ages
+
+        cdef AgeContactProbabilities *acp
+        self.p_by_age = <AgeContactProbabilities *> PyMem_Malloc(nr_ages * sizeof(AgeContactProbabilities))
+
+        s = self.contact_df.groupby('participant_age').size()
+        for (age_min, age_max), count in s.items():
+            for age in range(age_min, age_max + 1):
+                acp = self.p_by_age + age
+                acp.count = count
+                acp.probabilities = <ContactProbability *> PyMem_Malloc(acp.count * sizeof(ContactProbability))
+
+        self.generate_probability_matrix()
+
+    def generate_probability_matrix(self):
+        cdef int age, i
+        cdef AgeContactProbabilities *acp
+        cdef ContactProbability *cp
+
+        for age in range(self.nr_ages):
+            acp = self.p_by_age + age
+            acp.count = 0
+
+        df = self.contact_df
+
+        total_contacts = df.groupby('participant_age')['contacts'].sum()
+        for (age_min, age_max), count in total_contacts.items():
+            for age in range(age_min, age_max + 1):
+                self.nr_contacts_by_age[age] = count
+
+        df = df.set_index(['place_type', 'participant_age', 'contact_age']).sort_index()
+        df = df.unstack('participant_age')
+        df.columns = df.columns.droplevel(0)
+
+        df = df.divide(total_contacts, axis=1).cumsum()
+
+        str_to_place = {val: key for key, val in CONTACT_PLACE_TO_STR.items()}
+
+        for col in df.columns:
+            age_min, age_max = col
+            s = df[col]
+            for (place, (contact_age_min, contact_age_max)), cum_p in s.items():
+                for age in range(age_min, age_max + 1):
+                    acp = self.p_by_age + age
+                    cp = acp.probabilities + acp.count
+                    cp.place = str_to_place[place]
+                    cp.contact_age_min = contact_age_min
+                    cp.contact_age_max = contact_age_max
+                    cp.cum_p = cum_p
+                    acp.count += 1
+
+    def __dealloc__(self):
+        cdef AgeContactProbabilities *acp
+        cdef int i
+
+        for i in range(self.nr_ages):
+            acp = self.p_by_age + i
+            PyMem_Free(acp.probabilities)
+
+        PyMem_Free(self.p_by_age)
+
+    cdef ContactProbability * get_one_contact(self, Person *person, Context context) nogil:
+        cdef AgeContactProbabilities *acp
+        cdef ContactProbability *cp
+        cdef double p
+        cdef int age, i
+
+        acp = self.p_by_age + person.age
+        p = context.random.get()
+        for i in range(acp.count):
+            cp = acp.probabilities + i
+            if p < cp.cum_p:
+                return cp
+
+        context.problem = SimulationProblem.OTHER_FAILURE
+        return NULL
+
+    @cython.cdivision(True)
+    cdef int get_nr_contacts(self, Person *person, Context context, float factor, int limit) nogil:
+        cdef float f
+
+        f = context.random.lognormal(0, 0.5) * self.nr_contacts_by_age[person.age]
+        f *= factor
+        if f < 1:
+            f = 1
+        cdef int nr_contacts = <int> f - 1
+
+        if nr_contacts > limit:
+            nr_contacts = limit
+
+        return nr_contacts
+
+
 cdef class Population:
+    # Agents
+    cdef Person *people
+    cdef int total_people
+
+    # Indexes
+    cdef int32[::1] people_sorted_by_age
+    cdef int32[::1] age_start
+
+    # Stats
     cdef int[::1] infected, detected, all_detected, all_infected, hospitalized, \
         in_icu, dead, susceptible, recovered
-    cdef ClassedValues avg_contacts_per_day
+    cdef int nr_ages
+
+    cdef ContactMatrix contact_matrix
+
+    # Effects of interventions
     cdef int limit_mass_gatherings
     cdef float population_mobility_factor
 
-    def __init__(self, age_counts, avg_contacts_per_day):
-        nr_ages = len(age_counts)
+    def __init__(self, age_structure, contacts_per_day):
+        self.nr_ages = age_structure.index.max() + 1
 
-        self.susceptible = np.array(age_counts, dtype=np.int32)
+        age_counts = np.empty(self.nr_ages, dtype=np.int32)
+        for age, count in age_structure.items():
+            age_counts[age] = count
+
+        self.limit_mass_gatherings = 0
+        self.population_mobility_factor = 1.0
+
+        self._init_stats(age_counts)
+        self._create_agents(age_counts)
+
+        self.contact_matrix = ContactMatrix(contacts_per_day, self.nr_ages)
+
+    def _init_stats(self, age_counts):
+        cdef int nr_ages = self.nr_ages
+
+        self.susceptible = age_counts
         self.infected = np.zeros(nr_ages, dtype=np.int32)
         self.detected = np.zeros(nr_ages, dtype=np.int32)
         self.all_detected = np.zeros(nr_ages, dtype=np.int32)
@@ -829,26 +987,88 @@ cdef class Population:
         self.hospitalized = np.zeros(nr_ages, dtype=np.int32)
         self.in_icu = np.zeros(nr_ages, dtype=np.int32)
         self.dead = np.zeros(nr_ages, dtype=np.int32)
-        self.avg_contacts_per_day = ClassedValues(avg_contacts_per_day)
-        self.limit_mass_gatherings = 0
-        self.population_mobility_factor = 1.0
 
+    cdef void _free_people(self) nogil:
+        cdef Person * p
 
-    cdef int contacts_per_day(self, Person *person, Context context, float factor=1.0, int limit=100) nogil:
+        for i in range(self.total_people):
+            p = &self.people[i]
+            person_dealloc(p)
+
+    def __dealloc__(self):
+        self._free_people()
+        PyMem_Free(self.people)
+
+    cdef _create_agents(self, age_counts):
+        cdef int idx, person_idx, age
+        cdef Person * p
+        cdef cnp.ndarray[int] people_idx
+
+        total = 0
+        for age, count in enumerate(age_counts):
+            total += count
+
+        self.people_sorted_by_age = np.empty(total, dtype=np.int32)
+        self.age_start = np.empty(self.nr_ages, dtype=np.int32)
+
+        # Initialize list of people in random order
+        people_idx = np.array(np.arange(0, total), dtype='i')
+        np.random.shuffle(people_idx)
+
+        people = <Person *> PyMem_Malloc(total * sizeof(Person))
+        idx = 0
+        for age, count in enumerate(age_counts):
+            self.age_start[age] = idx
+            for i in range(count):
+                person_idx = people_idx[idx]
+                p = people + person_idx
+                person_init(p, person_idx, age)
+                self.people_sorted_by_age[idx] = person_idx
+                idx += 1
+        self.total_people = total
+        self.people = people
+
+    @cython.cdivision(True)
+    cdef Person * get_random_person(self, Context context) nogil:
+        cdef int idx = context.random.getint() % self.total_people
+        return self.people + idx
+
+    @cython.cdivision(True)
+    cdef int get_contacts(self, Person *person, Contact *contacts, Context context, float factor=1.0, int limit=100) nogil:
         # Contacts per day follows a lognormal distribution with
         # mean at `avg_contacts_per_day`.
         cdef float f = factor * self.population_mobility_factor
-        f *= context.random.lognormal(0, 0.5) * self.avg_contacts_per_day.get_greatest_lte(person.age)
-        if f < 1:
-            f = 1
-        cdef int contacts = <int> f - 1
 
-        if self.limit_mass_gatherings:
-            if contacts > self.limit_mass_gatherings:
-                contacts = self.limit_mass_gatherings
-        if contacts > limit:
-            contacts = limit
-        return contacts
+        if self.limit_mass_gatherings and self.limit_mass_gatherings < limit:
+            limit = self.limit_mass_gatherings
+
+        cdef int nr_contacts
+
+        nr_contacts = self.contact_matrix.get_nr_contacts(person, context, f, limit)
+        if nr_contacts > MAX_CONTACTS:
+            context.problem = SimulationProblem.TOO_MANY_CONTACTS
+            return 0
+
+        cdef Contact *c
+        cdef ContactProbability *cp
+        cdef int i, person_idx, idx_start, idx_end
+        for i in range(nr_contacts):
+            cp = self.contact_matrix.get_one_contact(person, context)
+            if cp == NULL:
+                continue
+            idx_start = self.age_start[cp.contact_age_min]
+            if cp.contact_age_max < self.nr_ages - 1:
+                idx_end = self.age_start[cp.contact_age_max + 1]
+            else:
+                idx_end = self.total_people
+
+            person_idx = self.people_sorted_by_age[idx_start + context.random.getint() % (idx_end - idx_start)]
+
+            c = contacts + i
+            c.person_idx = person_idx
+            c.place = cp.place
+
+        return nr_contacts
 
     cdef void infect(self, Person * person) nogil:
         age = person.age
@@ -907,22 +1127,21 @@ cdef class Context:
     cdef SimulationProblem problem
     cdef Person * problem_person
     cdef int day
-    cdef Person * people
-    cdef int total_people
     cdef list interventions
     cdef str start_date
     cdef int total_infections, total_infectors, exposed_per_day
     cdef float cross_border_mobility_factor
 
-    def __init__(self, Population pop, HealthcareSystem hc, Disease disease, str start_date, int random_seed=4321):
+    def __init__(self, population_params, healthcare_params, disease_params, str start_date, int random_seed=4321):
         self.random = RandomPool(random_seed)
-        self.create_population(pop.susceptible)
 
         self.problem = SimulationProblem.NO_PROBLEMOS
         self.problem_person = NULL
-        self.pop = pop
-        self.hc = hc
-        self.disease = disease
+
+        self.pop = Population(**population_params)
+        self.disease = Disease(**disease_params)
+        self.hc = HealthcareSystem(**healthcare_params)
+
         self.start_date = start_date
         self.day = 0
         self.interventions = []
@@ -933,6 +1152,7 @@ cdef class Context:
         self.total_infections = 0
         self.exposed_per_day = 0
 
+
     cdef void set_problem(self, SimulationProblem problem, Person *p = NULL) nogil:
         self.problem = problem
         self.problem_person = p
@@ -942,7 +1162,7 @@ cdef class Context:
         cdef Person *p
 
         if person_idx >= 0:
-            person = self.people + person_idx
+            person = self.pop.people + person_idx
             ps = '[' + person_name(person) + '] '
         else:
             ps = ''
@@ -965,42 +1185,6 @@ cdef class Context:
             value = 0
         self.interventions.append(Intervention(day, name, value))
 
-    cdef void _free_people(self) nogil:
-        cdef Person * p
-
-        for i in range(self.total_people):
-            p = &self.people[i]
-            person_dealloc(p)
-
-    def __dealloc__(self):
-        self._free_people()
-        PyMem_Free(self.people)
-
-    cdef inline Person * get_random_person(self):
-        return self.people + (self.random.getint() % self.total_people)
-
-    cdef create_population(self, age_counts):
-        cdef int idx
-        cdef Person * p
-        cdef cnp.ndarray[int] people_idx
-
-        total = 0
-        for age, count in enumerate(age_counts):
-            total += count
-
-        # Initialize list of people in random order
-        people_idx = np.array(np.arange(0, total), dtype='i')
-        np.random.shuffle(people_idx)
-
-        people = <Person *> PyMem_Malloc(total * sizeof(Person))
-        idx = 0
-        for age, count in enumerate(age_counts):
-            for i in range(count):
-                p = people + people_idx[idx]
-                person_init(p, people_idx[idx], age)
-                idx += 1
-        self.total_people = total
-        self.people = people
 
     def generate_state(self):
         p = self.pop
@@ -1035,8 +1219,7 @@ cdef class Context:
         cdef Person * person
 
         for i in range(count):
-            idx = self.random.getint() % self.total_people
-            person = self.people + idx
+            person = self.pop.get_random_person(self)
             person_infect(person, self)
 
     def apply_intervention(self, name, value):
@@ -1075,10 +1258,7 @@ cdef class Context:
         for i in range(count):
             pass
 
-    cdef inline void _process_person(self, int idx) nogil:
-        cdef Person * person
-
-        person = self.people + idx
+    cdef inline void _process_person(self, Person *person) nogil:
         if person.state in (PersonState.RECOVERED, PersonState.DEAD) and not person.included_in_totals:
             self.total_infectors += 1
             self.total_infections += person.other_people_infected
@@ -1093,13 +1273,16 @@ cdef class Context:
 
     @cython.cdivision(True)
     cdef void _iterate_people(self) nogil:
-        cdef int total_people = self.total_people
+        cdef int total_people = self.pop.total_people
+        cdef Person *people = self.pop.people
         cdef int i, start_idx, person_idx
+        cdef Person *person
 
         start_idx = self.random.getint() % total_people
         for i in range(total_people):
             person_idx = (start_idx + i) % total_people
-            self._process_person(person_idx)
+            person = people + person_idx
+            self._process_person(person)
 
     cdef void _iterate(self):
         for intervention in self.interventions:
@@ -1132,7 +1315,7 @@ cdef class Context:
         cdef int i
 
         for i in range(self.total_people):
-            p = self.people + i
+            p = self.pop.people + i
             if p.state == state:
                 print(person_str(p, self.day))
 
@@ -1148,7 +1331,7 @@ cdef class Context:
             print()
 
         for i in range(self.total_people):
-            p = self.people + i
+            p = self.pop.people + i
             mc[i] = p.max_contacts_per_day
         print('Max. contacts per day:')
         for c1, c2 in pd.Series(mc).value_counts().sort_index().items():
@@ -1156,7 +1339,7 @@ cdef class Context:
 
     cpdef sample(self, str what, int age, str severity=None):
         cdef int sample_size = 10000
-        cdef Person p = self.people[0]
+        cdef Person p = self.pop.people[0]
         cdef cnp.ndarray[int] out
         cdef int i
 
@@ -1179,11 +1362,13 @@ cdef class Context:
             ret = np.rec.fromarrays((days, vals), names=('day', 'val'))
             return ret
 
+        cdef Contact contacts[MAX_CONTACTS]
+
         out = np.empty(sample_size, dtype='i')
         with nogil:
             if what == 'contacts_per_day':
                 for i in range(sample_size):
-                    out[i] = self.pop.contacts_per_day(&p, self)
+                    out[i] = self.pop.get_contacts(&p, contacts, self)
             elif what == 'symptom_severity':
                 for i in range(sample_size):
                     out[i] = self.disease.get_symptom_severity(&p, self)

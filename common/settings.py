@@ -22,8 +22,8 @@ REDIS_URL = os.getenv('REDIS_URL', None)
 URL_PREFIX = os.getenv('URL_PREFIX', None)
 BASE_URL = os.getenv('BASE_URL', None)
 
-TRAFFIC_WARNING = os.getenv('TRAFFIC_WARNING', False)
-RESTRICT_TO_PRESET_SCENARIOS = os.getenv('RESTRICT_TO_PRESET_SCENARIOS', False)
+TRAFFIC_WARNING = os.getenv('TRAFFIC_WARNING', '').lower() in ('1', 'yes', 'true')
+RESTRICT_TO_PRESET_SCENARIOS = os.getenv('RESTRICT_TO_PRESET_SCENARIOS', '').lower() in ('1', 'yes', 'true')
 
 
 def get_cache_config():

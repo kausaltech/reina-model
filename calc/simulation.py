@@ -41,7 +41,7 @@ STATE_ATTRS = [
 ]
 
 
-def create_disease(variables):
+def create_disease_params(variables):
     kwargs = {}
     for key in model.DISEASE_PARAMS:
         val = variables[key]
@@ -51,8 +51,31 @@ def create_disease(variables):
             val = val / 100
         kwargs[key] = val
 
-    disease = model.Disease.from_variables(kwargs)
-    return disease
+    return kwargs
+
+
+@calcfunc(
+    funcs=[get_contacts_for_country]
+)
+def get_nr_of_contacts():
+    df = get_contacts_for_country()
+    df = df.drop(columns='place_type').groupby('participant_age').sum()
+    s = df.sum(axis=1)
+    idx = list(s.index.map(lambda x: tuple([int(y) for y in x.split('-')])))
+    s.index = idx
+    return s.sort_index()
+
+
+@calcfunc(
+    funcs=[get_contacts_for_country]
+)
+def get_contacts_per_day():
+    df = get_contacts_for_country()
+    df = pd.melt(df, id_vars=['place_type', 'participant_age'], var_name='contact_age', value_name='contacts')
+    df['participant_age'] = df['participant_age'].map(lambda x: tuple([int(y) for y in x.split('-')]))
+    df['contact_age'] = df['contact_age'].map(lambda x: tuple([int(y) for y in x.split('-')]))
+
+    return df
 
 
 @calcfunc(
@@ -61,29 +84,27 @@ def create_disease(variables):
         'hospital_beds', 'icu_units',
         'random_seed',
     ],
-    funcs=[get_contacts_for_country],
+    funcs=[get_contacts_per_day, get_population_for_area],
     filedeps=[model.__file__],
 )
 def simulate_individuals(variables, step_callback=None):
     pc = PerfCounter()
 
-    df = get_population_for_area().sum(axis=1)
-    ages = df.index.values
-    counts = df.values
-    avg_contacts_per_day = get_contacts_for_country()
-    hc_cap = (variables['hospital_beds'], variables['icu_units'])
-
-    max_age = max(ages)
-    age_counts = np.array(np.zeros(max_age + 1, dtype=np.int32))
-    for age, count in zip(ages, counts):
-        age_counts[age] = count
-
-    pop = model.Population(age_counts, list(avg_contacts_per_day.items()))
-    hc = model.HealthcareSystem(
-        beds=hc_cap[0], icu_units=hc_cap[1],
+    age_structure = get_population_for_area().sum(axis=1)
+    pop_params = dict(
+        age_structure=age_structure,
+        contacts_per_day=get_contacts_per_day(),
     )
-    disease = create_disease(variables)
-    context = model.Context(pop, hc, disease, start_date=variables['start_date'], random_seed=variables['random_seed'])
+
+    hc_params = dict(hospital_beds=variables['hospital_beds'], icu_units=variables['icu_units'])
+    disease_params = create_disease_params(variables)
+    context = model.Context(
+        population_params=pop_params,
+        healthcare_params=hc_params,
+        disease_params=disease_params,
+        start_date=variables['start_date'],
+        random_seed=variables['random_seed']
+    )
     start_date = date.fromisoformat(variables['start_date'])
 
     for iv in variables['interventions']:
@@ -111,21 +132,21 @@ def simulate_individuals(variables, step_callback=None):
 
         rec['us_per_infected'] = pc.measure() * 1000 / rec['infected'] if rec['infected'] else 0
 
-        """
-        dead = context.get_population_stats('dead')
-        all_infected = context.get_population_stats('all_infected')
-        age_groups = pd.interval_range(0, 100, freq=10, closed='left')
-        s = pd.Series(dead)
-        dead_by_age = s.groupby(pd.cut(s.index, age_groups)).sum()
-        dead_by_age.name = 'dead'
-        s = pd.Series(all_infected)
-        infected_by_age = s.groupby(pd.cut(s.index, age_groups)).sum()
+        if False:
+            dead = context.get_population_stats('dead')
+            all_infected = context.get_population_stats('all_infected')
+            age_groups = pd.interval_range(0, 100, freq=10, closed='left')
+            s = pd.Series(dead)
+            dead_by_age = s.groupby(pd.cut(s.index, age_groups)).sum()
+            dead_by_age.name = 'dead'
+            s = pd.Series(all_infected)
+            infected_by_age = s.groupby(pd.cut(s.index, age_groups)).sum()
+            print(infected_by_age)
 
-        zdf = pd.DataFrame(dead_by_age)
-        zdf['infected'] = infected_by_age
-        zdf['ifr'] = zdf.dead.divide(zdf.infected.replace(0, np.inf)) * 100
-        print(zdf)
-        """
+            zdf = pd.DataFrame(dead_by_age)
+            zdf['infected'] = infected_by_age
+            zdf['ifr'] = zdf.dead.divide(zdf.infected.replace(0, np.inf)) * 100
+            #print(zdf)
 
         d = start_date + timedelta(days=day)
         df.loc[d] = rec
@@ -148,19 +169,27 @@ def simulate_individuals(variables, step_callback=None):
 
 @calcfunc(
     variables=list(model.DISEASE_PARAMS) + [
-        'sample_limit_mobility',
+        'sample_limit_mobility', 'max_age',
     ],
-    funcs=[get_contacts_for_country]
+    funcs=[get_contacts_for_country],
+    filedeps=[model.__file__],
 )
 def sample_model_parameters(what, age, severity=None, variables=None):
-    avg_contacts_per_day = get_contacts_for_country()
-    age_counts = [1]
-    pop = model.Population(age_counts, list(avg_contacts_per_day.items()))
-    hc = model.HealthcareSystem(
-        beds=0, icu_units=0,
+    max_age = variables['max_age']
+    age_structure = pd.Series([1] * (max_age + 1), index=range(0, max_age + 1))
+    pop_params = dict(
+        age_structure=age_structure,
+        contacts_per_day=get_contacts_per_day(),
     )
-    disease = create_disease(variables)
-    context = model.Context(pop, hc, disease, start_date='2020-01-01')
+    hc_params = dict(hospital_beds=0, icu_units=0)
+    disease_params = create_disease_params(variables)
+    context = model.Context(
+        population_params=pop_params,
+        healthcare_params=hc_params,
+        disease_params=disease_params,
+        start_date='2020-01-01',
+    )
+
     if variables['sample_limit_mobility'] != 0:
         context.apply_intervention('limit-mobility', variables['sample_limit_mobility'])
 
@@ -243,11 +272,14 @@ if __name__ == '__main__':
             last = df[df.date == df.date.max()]
             print(last.dead.describe(percentiles=[.25, .5, .75]))
         exit()
+
     if False:
-        sample_model_parameters('icu_period', 50, 'CRITICAL')
+        sample_model_parameters('contacts_per_day', 50)
         exit()
 
     if True:
+        from variables import allow_set_variable, set_variable
+
         header = '%-12s' % 'day'
         for attr in POP_ATTRS + STATE_ATTRS + ['us_per_infected']:
             header += '%15s' % attr
@@ -268,7 +300,9 @@ if __name__ == '__main__':
             print(s)
             return True
 
-        simulate_individuals(step_callback=step_callback, skip_cache=True)
+        with allow_set_variable():
+            set_variable('simulation_days', 15)
+            simulate_individuals(step_callback=step_callback, skip_cache=True)
 
     if False:
         from variables import allow_set_variable, set_variable, get_variable

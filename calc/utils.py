@@ -2,7 +2,6 @@ import importlib
 import hashlib
 import os
 import json
-import inspect
 from functools import wraps
 
 from variables import get_variable
@@ -60,7 +59,9 @@ def _hash_funcs(funcs):
     return m.hexdigest()
 
 
-def _calculate_cache_key(func, hash_data, var_store):
+def generate_cache_key(func, var_store=None):
+    hash_data = _get_func_hash_data(func, None)
+
     funcs = hash_data['funcs']
     variables = hash_data['variables']
     var_data = json.dumps({x: get_variable(x, var_store=var_store) for x in variables}, sort_keys=True)
@@ -115,8 +116,7 @@ def calcfunc(variables=None, datasets=None, funcs=None, filedeps=None):
                 pc = PerfCounter('%s.%s' % (func.__module__, func.__name__))
                 pc.display('enter')
 
-            hash_data = _get_func_hash_data(func, None)
-            cache_key = _calculate_cache_key(func, hash_data, var_store=var_store)
+            cache_key = generate_cache_key(func, var_store=var_store)
 
             assert 'variables' not in kwargs
             assert 'datasets' not in kwargs
@@ -165,7 +165,7 @@ def calcfunc(variables=None, datasets=None, funcs=None, filedeps=None):
                 pc.display('func ret')
             if should_cache_func:
                 assert ret is not None
-                cache.set(cache_key, ret, timeout=4*3600)
+                cache.set(cache_key, ret, timeout=3600)
 
             return ret
 
