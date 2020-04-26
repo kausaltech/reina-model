@@ -24,3 +24,4 @@ cython
 werkzeug<1.0
 futures<3.2.0
 faker
+-e git+https://github.com/numpy/numpy.git@078ac01a85c4db46e7f148829c2e0d0e0f30c36f#egg=numpy

@@ -4,67 +4,61 @@
 #
 #    pip-compile
 #
+-e git+https://github.com/numpy/numpy.git@078ac01a85c4db46e7f148829c2e0d0e0f30c36f#egg=numpy  # via -r requirements.in
 appdirs==1.4.3            # via quilt
 babel==2.8.0              # via flask-babel
-backports.functools-lru-cache==1.6.1  # via matplotlib
-certifi==2019.11.28       # via requests
+certifi==2020.4.5.1       # via requests
 chardet==3.0.4            # via requests
 click==7.1.1              # via flask
 colour==0.1.5             # via -r requirements.in
 cycler==0.10.0            # via matplotlib
-cython==0.29.15           # via -r requirements.in
+cython==0.29.16           # via -r requirements.in
 dash-archer==0.1.0        # via -r requirements.in
-dash-bootstrap-components==0.9.1  # via -r requirements.in
-dash-core-components==1.8.1  # via -r requirements.in, dash
+dash-bootstrap-components==0.9.2  # via -r requirements.in
+dash-core-components==1.9.1  # via -r requirements.in, dash
 dash-daq==0.4.0           # via -r requirements.in
-dash-html-components==1.0.2  # via -r requirements.in, dash
-dash-table==4.6.1         # via -r requirements.in, dash
-dash==1.9.1               # via -r requirements.in, dash-bootstrap-components, dash-daq
-dash_renderer==1.2.4      # via dash
-Faker==4.0.2
+dash-html-components==1.0.3  # via -r requirements.in, dash
+dash-table==4.6.2         # via -r requirements.in, dash
+dash==1.11.0              # via -r requirements.in, dash-bootstrap-components, dash-daq
+dash_renderer==1.4.0      # via dash
+faker==4.0.3              # via -r requirements.in
 fastparquet==0.3.3        # via -r requirements.in
 flask-babel==1.0.0        # via -r requirements.in
 flask-caching==1.8.0      # via -r requirements.in
 flask-compress==1.4.0     # via dash
 flask-session==0.3.1      # via -r requirements.in
-flask==1.1.1              # via dash, flask-babel, flask-caching, flask-compress, flask-session
-funcsigs==1.0.2           # via numba, pint
+flask==1.1.2              # via dash, flask-babel, flask-caching, flask-compress, flask-session
 future==0.18.2            # via dash, quilt
-futures==3.1.1            # via -r requirements.in, pyarrow
-gunicorn==19.10.0         # via -r requirements.in
+futures==3.1.1            # via -r requirements.in
+gunicorn==20.0.4          # via -r requirements.in
 idna==2.9                 # via requests
 itsdangerous==1.1.0       # via flask
-jinja2==2.11.1            # via flask, flask-babel
-kiwisolver==1.1.0         # via matplotlib
-llvmlite==0.31.0          # via numba
+jinja2==2.11.2            # via flask, flask-babel
+kiwisolver==1.2.0         # via matplotlib
+llvmlite==0.32.0          # via numba
 markupsafe==1.1.1         # via jinja2
-matplotlib==2.2.5         # via -r requirements.in
-numba==0.47.0             # via -r requirements.in, fastparquet
--e git+https://github.com/numpy/numpy.git@078ac01a85c4db46e7f148829c2e0d0e0f30c36f#egg=numpy
+matplotlib==3.2.1         # via -r requirements.in
+numba==0.49.0             # via -r requirements.in, fastparquet
 packaging==20.3           # via quilt
-pandas==0.24.2            # via -r requirements.in, fastparquet, quilt
-pathlib2==2.3.5           # via quilt
-pint==0.9                 # via -r requirements.in
-plotly==4.5.4             # via dash
-pyarrow==0.16.0           # via quilt
-pyparsing==2.4.6          # via matplotlib, packaging
-python-dateutil==2.8.1    # via matplotlib, pandas
-python-dotenv==0.12.0     # via -r requirements.in
-pytz==2019.3              # via babel, flask-babel, matplotlib, pandas
+pandas==1.0.3             # via -r requirements.in, fastparquet, quilt
+pint==0.11                # via -r requirements.in
+plotly==4.6.0             # via dash
+pyarrow==0.17.0           # via quilt
+pyparsing==2.4.7          # via matplotlib, packaging
+python-dateutil==2.8.1    # via faker, matplotlib, pandas
+python-dotenv==0.13.0     # via -r requirements.in
+pytz==2019.3              # via babel, flask-babel, pandas
 pyyaml==5.3.1             # via quilt
 quilt==2.9.15             # via -r requirements.in
 redis==3.4.1              # via -r requirements.in
 requests==2.23.0          # via quilt
 retrying==1.3.3           # via plotly
-scandir==1.10.0           # via pathlib2
-scipy==1.2.3              # via -r requirements.in
-singledispatch==3.4.0.3   # via numba
-six==1.14.0               # via cycler, fastparquet, matplotlib, packaging, pathlib2, plotly, pyarrow, python-dateutil, quilt, retrying, singledispatch, thrift
-subprocess32==3.5.4       # via matplotlib
+scipy==1.4.1              # via -r requirements.in
+six==1.14.0               # via cycler, fastparquet, packaging, plotly, python-dateutil, quilt, retrying, thrift
+text-unidecode==1.3       # via faker
 thrift==0.13.0            # via fastparquet
-tqdm==4.43.0              # via quilt
-typing==3.7.4.1           # via python-dotenv
-urllib3==1.25.8           # via requests
+tqdm==4.45.0              # via quilt
+urllib3==1.25.9           # via requests
 werkzeug==0.16.1          # via -r requirements.in, flask
 xlrd==1.2.0               # via quilt
 
