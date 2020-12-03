@@ -1,14 +1,21 @@
-import json
-import flask
 import hashlib
-from flask import session
+import json
+import os
 from contextlib import contextmanager
 
+import flask
+from flask import session
+
+LONG_AREA_NAMES = {
+    'HUS': 'Helsingin ja Uudenmaan sairaanhoitopiiri',
+    'Varsinais-Suomi': 'Varsinais-Suomen sairaanhoitopiiri'
+}
+_default_area_name = os.getenv('AREA_NAME', 'HUS')
 
 # Variables
 VARIABLE_DEFAULTS = {
-    'area_name': 'HUS',
-    'area_name_long': 'Helsingin ja Uudenmaan sairaanhoitopiiri',
+    'area_name': _default_area_name,
+    'area_name_long': LONG_AREA_NAMES[_default_area_name],
     'country': 'FI',
     'max_age': 100,
     'simulation_days': 365,

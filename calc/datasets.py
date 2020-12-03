@@ -1,5 +1,7 @@
 import pandas as pd
-from utils import get_root_path
+
+from utils import add_root_path, get_root_path
+
 from . import calcfunc
 
 
@@ -56,19 +58,22 @@ def get_contacts_for_country(variables):
     return df
 
 
-CASES_FNAME = get_root_path() + '/data/hosp_cases_hus.csv'
-
+CASES_FNAME = add_root_path('data/hosp_cases_hus.csv')
+AREA_CASEFILES = {
+    'HUS': add_root_path('data/hosp_cases_hus.csv'),
+    'Varsinais-Suomi': add_root_path('data/hosp_cases_varsinais-suomi.csv')
+}
 
 @calcfunc(
     variables=['area_name'],
-    filedeps=[CASES_FNAME]
+    filedeps=list(AREA_CASEFILES.values())
 )
 def get_detected_cases(variables):
     area_name = variables['area_name']
-    assert area_name == 'HUS'
+    assert area_name in AREA_CASEFILES
 
-    f = open(CASES_FNAME, 'r')
-    df = pd.read_csv(f, header=0)
+    casefile = AREA_CASEFILES[area_name]
+    df = pd.read_csv(casefile, header=0)
     df['date'] = pd.to_datetime(df['date']).dt.date
     df = df.set_index('date')
     return df
@@ -79,7 +84,7 @@ def get_detected_cases(variables):
     ratio = ratio.iloc[-1]
     df = df[df.district == area_name].drop(columns='district')
 
-    f = open(get_root_path() + '/data/hospitalizations_fin.csv', 'r')
+    f = add_root_path('data/hospitalizations_fin.csv')
     hdf = pd.read_csv(f, header=0).set_index('date')
     hdf = (hdf * ratio).dropna().astype(int)
     df['hospitalized'] = hdf['hospitalized']
