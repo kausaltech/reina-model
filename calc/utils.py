@@ -1,15 +1,14 @@
-import importlib
 import hashlib
-import os
+import importlib
 import json
+import os
 from functools import wraps
 
-from variables import get_variable
-from utils.quilt import load_datasets
-from utils.perf import PerfCounter
-
 from common import cache
+from variables import get_variable
 
+from utils.perf import PerfCounter
+from utils.quilt import load_datasets
 
 _dataset_cache = {}
 

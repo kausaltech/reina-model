@@ -25,3 +25,10 @@ def deepupdate(target, src):
 
 def get_root_path():
     return os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+
+def add_root_path(filename: str) -> str:
+    """
+    Add the root path of the program to the filename given as parameter
+    """
+    filename = filename.lstrip("/")
+    return os.path.join(get_root_path(), filename)
