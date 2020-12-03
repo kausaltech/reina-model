@@ -58,7 +58,6 @@ def get_contacts_for_country(variables):
     return df
 
 
-CASES_FNAME = add_root_path('data/hosp_cases_hus.csv')
 AREA_CASEFILES = {
     'HUS': add_root_path('data/hosp_cases_hus.csv'),
     'Varsinais-Suomi': add_root_path('data/hosp_cases_varsinais-suomi.csv')
