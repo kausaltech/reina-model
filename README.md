@@ -62,7 +62,7 @@ While the container is running, you can run the simulation like this:
 docker exec -ti reina python -m calc.simulation
 ```
 
-## Configuring the hospital district
+## Configuring the hospital district and start date
 
 Currently, Reina supports Helsinki and Uusimaa district (HUS) and Varsinais-Suomi hospital district out of the box. By default, it's configured to run for HUS, but you can set
 the district as Varsinais-Suomi by setting the environment variable AREA_NAME as follows:
@@ -72,6 +72,11 @@ AREA_NAME=Varsinais-Suomi
 
 If you're running your setup via docker-compose, you can set the environment variable
 in `.env` file in the project root directory and it will work directly.
+
+The start date of the simulation can likewise be configured with environment variable:
+```
+START_DATE=2020-11-01
+```
 
 ## Development
 
