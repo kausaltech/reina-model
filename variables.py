@@ -1,3 +1,5 @@
+
+import datetime
 import hashlib
 import json
 import os
@@ -10,16 +12,35 @@ LONG_AREA_NAMES = {
     'HUS': 'Helsingin ja Uudenmaan sairaanhoitopiiri',
     'Varsinais-Suomi': 'Varsinais-Suomen sairaanhoitopiiri'
 }
-_default_area_name = os.getenv('AREA_NAME', 'HUS')
+_area_name = os.getenv('AREA_NAME', 'HUS')
+_start_date = os.getenv('START_DATE', '2020-08-01')
+
+def days_after(iso_datestr: str, days: int):
+    """
+    Returns a date string that represent a date that is number of
+    days after or before the date string that is given as first parameter
+
+    >>> days_after('2020-01-01', 3)
+    '2020-01-04'
+
+    >>> days_after('2020-01-01', -1)
+    '2019-12-31'
+
+    >>> days_after('2020-01-01', 0)
+    '2020-01-01'
+    """
+    date = datetime.date.fromisoformat(iso_datestr)
+    result_date = date + datetime.timedelta(days=days)
+    return result_date.isoformat()
 
 # Variables
 VARIABLE_DEFAULTS = {
-    'area_name': _default_area_name,
-    'area_name_long': LONG_AREA_NAMES[_default_area_name],
+    'area_name': _area_name,
+    'area_name_long': LONG_AREA_NAMES[_area_name],
     'country': 'FI',
     'max_age': 100,
     'simulation_days': 365,
-    'start_date': '2020-02-18',
+    'start_date': _start_date,
     'hospital_beds': 2600,
     'icu_units': 300,
 
@@ -90,30 +111,31 @@ VARIABLE_DEFAULTS = {
         [70, 43.2],
         [80, 70.9]
     ],
+
     'interventions': [
-        ['test-all-with-symptoms', '2020-02-20'],
-        ['test-only-severe-symptoms', '2020-03-15', 25],
+        ['test-all-with-symptoms', days_after(_start_date, 2)],
+        ['test-only-severe-symptoms', days_after(_start_date, 26), 25],
 
-        # ['limit-mass-gatherings', '2020-03-12', 50],
+        # ['limit-mass-gatherings', days_after(_start_date, 23), 50],
 
-        ['limit-mobility', '2020-03-12', 10],
-        ['limit-mobility', '2020-03-17', 20],
-        ['limit-mobility', '2020-03-20', 30],
-        ['limit-mobility', '2020-03-22', 35],
-        ['limit-mobility', '2020-03-28', 50],
-        ['limit-mobility', '2020-04-05', 55],
+        ['limit-mobility', days_after(_start_date, 23), 10],
+        ['limit-mobility', days_after(_start_date, 28), 20],
+        ['limit-mobility', days_after(_start_date, 31), 30],
+        ['limit-mobility', days_after(_start_date, 33), 35],
+        ['limit-mobility', days_after(_start_date, 39), 50],
+        ['limit-mobility', days_after(_start_date, 47), 55],
 
-        ['build-new-icu-units', '2020-04-30', 150],
-        ['build-new-icu-units', '2020-05-30', 150],
+        ['build-new-icu-units', days_after(_start_date, 72), 150],
+        ['build-new-icu-units', days_after(_start_date, 102), 150],
 
         # FIXME: Fully remove import interventions
-        ['import-infections', '2020-02-22', 5],
-        ['import-infections', '2020-03-05', 20],
-        ['import-infections', '2020-03-07', 120],
-        ['import-infections', '2020-03-09', 120],
-        ['import-infections', '2020-03-11', 80],
-        ['import-infections', '2020-03-13', 20],
-        ['import-infections', '2020-03-15', 20],
+        ['import-infections', days_after(_start_date, 4), 5],
+        ['import-infections', days_after(_start_date, 16), 20],
+        ['import-infections', days_after(_start_date, 18), 120],
+        ['import-infections', days_after(_start_date, 20), 120],
+        ['import-infections', days_after(_start_date, 22), 80],
+        ['import-infections', days_after(_start_date, 24), 20],
+        ['import-infections', days_after(_start_date, 26), 20],
     ],
 
     'preset_scenario': 'default',
