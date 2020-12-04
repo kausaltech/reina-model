@@ -6,16 +6,30 @@ from contextlib import contextmanager
 import flask
 from flask import session
 
-LONG_AREA_NAMES = {
-    'HUS': 'Helsingin ja Uudenmaan sairaanhoitopiiri',
-    'Varsinais-Suomi': 'Varsinais-Suomen sairaanhoitopiiri'
+VARIABLE_OVERRIDE_SETS = {
+    'turku': {
+        'area_name': 'Varsinais-Suomi',
+        'area_name_long': 'Varsinais-Suomen sairaanhoitopiiri',
+        'start_date': '2020-09-01',
+        'interventions': [
+            ['import-infections', '2020-09-01', 200],
+            ['test-with-contact-tracing', '2020-09-01', 60],  # 60% efficiency
+            ['limit-mobility', '2020-09-01', 30],
+        ]
+    },
 }
-_default_area_name = os.getenv('AREA_NAME', 'HUS')
+_variable_override_set = os.getenv('VARIABLE_OVERRIDE_SET')
+if _variable_override_set:
+    assert _variable_override_set in VARIABLE_OVERRIDE_SETS
+
 
 # Variables
+#
+# Default variables are per-instance and can be configured using
+# VARIABLE_OVERRIDE_SET.
 VARIABLE_DEFAULTS = {
-    'area_name': _default_area_name,
-    'area_name_long': LONG_AREA_NAMES[_default_area_name],
+    'area_name': 'HUS',
+    'area_name_long': 'Helsingin ja Uudenmaan sairaanhoitopiiri',
     'country': 'FI',
     'max_age': 100,
     'simulation_days': 365,
@@ -123,8 +137,11 @@ VARIABLE_DEFAULTS = {
     # Used for Monte Carlo simulation
     'random_seed': 0
 }
+if _variable_override_set:
+    VARIABLE_DEFAULTS.update(VARIABLE_OVERRIDE_SETS[_variable_override_set])
 
 
+# Variable overrides that are set later programmatically
 _variable_overrides = {}
 
 # Make a hash of the default variables so that when they change,
