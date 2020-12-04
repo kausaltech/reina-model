@@ -1,14 +1,14 @@
 import multiprocessing
 from dataclasses import dataclass
-from calc import calcfunc, ExecutionInterrupted
+from datetime import date, timedelta
+
 import numpy as np
 import pandas as pd
-from flask_babel import lazy_gettext as _
-
+from calc import ExecutionInterrupted, calcfunc
+from calc.datasets import get_contacts_for_country, get_population_for_area
 from cythonsim import model
+from flask_babel import lazy_gettext as _
 from utils.perf import PerfCounter
-from calc.datasets import get_population_for_area, get_contacts_for_country
-from datetime import date, timedelta
 
 
 @dataclass
@@ -122,7 +122,6 @@ def simulate_individuals(variables, step_callback=None):
         columns=POP_ATTRS + STATE_ATTRS + ['us_per_infected'],
         index=pd.date_range(start_date, periods=days)
     )
-
     for day in range(days):
         s = context.generate_state()
 
@@ -149,7 +148,7 @@ def simulate_individuals(variables, step_callback=None):
             #print(zdf)
 
         d = start_date + timedelta(days=day)
-        df.loc[d] = rec
+        df.loc[d.isoformat()] = rec
 
         if step_callback is not None:
             ret = step_callback(df)

@@ -1,6 +1,5 @@
 pandas
 scipy
-quilt
 dash
 dash-html-components
 dash-core-components
@@ -13,15 +12,13 @@ Flask-Babel
 gunicorn
 matplotlib
 python-dotenv
-pint
-dash-archer
 redis
 colour
-numba
 fastparquet
 cython
-# workarounds below
-werkzeug<1.0
-futures<3.2.0
 faker
--e git+https://github.com/numpy/numpy.git@078ac01a85c4db46e7f148829c2e0d0e0f30c36f#egg=numpy
+xlrd
+# workarounds below
+werkzeug
+futures
+# -e git+https://github.com/numpy/numpy.git@078ac01a85c4db46e7f148829c2e0d0e0f30c36f#egg=numpy

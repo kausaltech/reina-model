@@ -5,10 +5,8 @@ import os
 from functools import wraps
 
 from common import cache
-from variables import get_variable
-
 from utils.perf import PerfCounter
-from utils.quilt import load_datasets
+from variables import get_variable
 
 _dataset_cache = {}
 
