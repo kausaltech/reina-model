@@ -841,6 +841,7 @@ cdef class ContactMatrix:
     cdef double[::1] nr_contacts_by_age
     cdef AgeContactProbabilities *p_by_age
     cdef int nr_ages
+    cdef float mobility_factor
 
     def __init__(self, contacts_per_day, nr_ages):
         cdef int age
@@ -848,6 +849,7 @@ cdef class ContactMatrix:
         self.nr_contacts_by_age = np.zeros(nr_ages, dtype=np.double)
         self.contact_df = contacts_per_day.copy(deep=True)
         self.nr_ages = nr_ages
+        self.mobility_factor = 1.0
 
         cdef AgeContactProbabilities *acp
         self.p_by_age = <AgeContactProbabilities *> PyMem_Malloc(nr_ages * sizeof(AgeContactProbabilities))
@@ -908,6 +910,10 @@ cdef class ContactMatrix:
 
         PyMem_Free(self.p_by_age)
 
+    def set_mobility_factor(self, factor):
+        self.mobility_factor = factor
+        self.generate_probability_matrix()
+
     cdef ContactProbability * get_one_contact(self, Person *person, Context context) nogil:
         cdef AgeContactProbabilities *acp
         cdef ContactProbability *cp
@@ -929,7 +935,7 @@ cdef class ContactMatrix:
         cdef float f
 
         f = context.random.lognormal(0, 0.5) * self.nr_contacts_by_age[person.age]
-        f *= factor
+        f *= factor * self.mobility_factor
         if f < 1:
             f = 1
         cdef int nr_contacts = <int> f - 1
@@ -958,7 +964,6 @@ cdef class Population:
 
     # Effects of interventions
     cdef int limit_mass_gatherings
-    cdef float population_mobility_factor
 
     def __init__(self, age_structure, contacts_per_day):
         self.nr_ages = age_structure.index.max() + 1
@@ -968,7 +973,6 @@ cdef class Population:
             age_counts[age] = count
 
         self.limit_mass_gatherings = 0
-        self.population_mobility_factor = 1.0
 
         self._init_stats(age_counts)
         self._create_agents(age_counts)
@@ -1035,16 +1039,13 @@ cdef class Population:
 
     @cython.cdivision(True)
     cdef int get_contacts(self, Person *person, Contact *contacts, Context context, float factor=1.0, int limit=100) nogil:
-        # Contacts per day follows a lognormal distribution with
-        # mean at `avg_contacts_per_day`.
-        cdef float f = factor * self.population_mobility_factor
-
         if self.limit_mass_gatherings and self.limit_mass_gatherings < limit:
             limit = self.limit_mass_gatherings
 
         cdef int nr_contacts
-
-        nr_contacts = self.contact_matrix.get_nr_contacts(person, context, f, limit)
+        # Contacts per day follows a lognormal distribution with
+        # mean at `avg_contacts_per_day`.
+        nr_contacts = self.contact_matrix.get_nr_contacts(person, context, factor, limit)
         if nr_contacts > MAX_CONTACTS:
             context.problem = SimulationProblem.TOO_MANY_CONTACTS
             return 0
@@ -1203,7 +1204,7 @@ cdef class Context:
             r=r,
             exposed_per_day=self.exposed_per_day,
             tests_run_per_day=self.hc.tests_run_per_day,
-            mobility_limitation=1 - self.pop.population_mobility_factor,
+            mobility_limitation=1 - self.pop.contact_matrix.mobility_factor,
         )
         return s
 
@@ -1248,7 +1249,7 @@ cdef class Context:
         elif name == 'limit-mass-gatherings':
             self.pop.limit_mass_gatherings = value
         elif name == 'limit-mobility':
-            self.pop.population_mobility_factor = (100 - value) / 100.0
+            self.pop.contact_matrix.set_mobility_factor((100 - value) / 100.0)
         else:
             raise Exception()
 
