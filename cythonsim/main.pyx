@@ -3,20 +3,21 @@
 # cython: wraparound=False
 # cython: profile=False
 
-import numpy as np
-import pandas as pd
 from collections import namedtuple
 from datetime import date, timedelta
+
+import numpy as np
+import pandas as pd
 from cython.parallel import prange
 from faker.providers.person.fi_FI import Provider as NameProvider
 
 cimport cython
 cimport openmp
-from cpython.mem cimport PyMem_Malloc, PyMem_Free
-from libc.stdlib cimport malloc, free
+from cpython.mem cimport PyMem_Malloc, PyMem_Free  # isort:skip
+from libc.stdlib cimport malloc, free  # isort:skip
 cimport numpy as cnp
 
-from cythonsim.simrandom cimport RandomPool
+from cythonsim.simrandom cimport RandomPool  # isort:skip
 
 ctypedef int int32
 ctypedef unsigned char uint8
