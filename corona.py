@@ -1,33 +1,34 @@
-import dash
-import time
-from datetime import date, timedelta
-from flask_session import Session
-from flask_babel import Babel, lazy_gettext as _
-import flask
-from flask import session, request
-from common import cache
-from common.locale import init_locale, get_active_locale
-import uuid
+import multiprocessing
 import os
 import sys
-import dash_table
+import time
+import uuid
+from datetime import date, timedelta
+from threading import Thread
+
+import dash
+import dash_bootstrap_components as dbc
 import dash_core_components as dcc
 import dash_html_components as html
-import dash_bootstrap_components as dbc
+import dash_table
+import flask
 from dash.dependencies import Input, Output, State
-from threading import Thread
-import multiprocessing
+from flask import request, session
+from flask_babel import Babel
+from flask_babel import lazy_gettext as _
+from flask_session import Session
 
-from calc.simulation import simulate_individuals, INTERVENTIONS
-from calc.datasets import get_population_for_area
-from calc.utils import generate_cache_key
 from calc import ExecutionInterrupted
-from common import settings
-from variables import set_variable, get_variable, reset_variable, reset_variables
+from calc.datasets import get_population_for_area
+from calc.simulation import INTERVENTIONS, simulate_individuals
+from calc.utils import generate_cache_key
+from common import cache, settings
+from common.locale import get_active_locale, init_locale
+from components.params import register_params_callbacks, render_disease_params
+from components.results import register_results_callbacks, render_results
 from scenarios import SCENARIOS
-from components.results import render_results, register_results_callbacks
-from components.params import render_disease_params, register_params_callbacks
-
+from variables import (get_variable, reset_variable, reset_variables,
+                       set_variable)
 
 os.environ['DASH_PRUNE_ERRORS'] = 'False'
 os.environ['DASH_SILENCE_ROUTES_LOGGING'] = 'False'
@@ -331,13 +332,14 @@ def render_page():
                 dbc.Label(_('Preset'), className="mr-3"),
                 dcc.Dropdown(
                 id='preset-scenario-selector',
-                options=[{'label': s.get_name(), 'value': s.id} for s in SCENARIOS],
+                options=[{'label': s.get_name(), 'value': s.id} for s in SCENARIOS[0:1]],
                 value=scenario_id,
                 style=dict(width="300px"),
             )],
             ), inline=True)
         ], md=12),
     ]))
+
     contentRows.append(html.Div(id='main-content-container'))
 
     stc = generate_static_content()
