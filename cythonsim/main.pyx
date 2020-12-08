@@ -872,7 +872,10 @@ cdef class ContactMatrix:
             acp = self.p_by_age + age
             acp.count = 0
 
-        df = self.contact_df
+        df = self.contact_df.copy()
+
+        # df.loc[df.place_type != 'home', 'contacts'] *= self.mobility_factor
+        df['contacts'] *= self.mobility_factor
 
         total_contacts = df.groupby('participant_age')['contacts'].sum()
         for (age_min, age_max), count in total_contacts.items():
@@ -935,7 +938,7 @@ cdef class ContactMatrix:
         cdef float f
 
         f = context.random.lognormal(0, 0.5) * self.nr_contacts_by_age[person.age]
-        f *= factor * self.mobility_factor
+        f *= factor
         if f < 1:
             f = 1
         cdef int nr_contacts = <int> f - 1
