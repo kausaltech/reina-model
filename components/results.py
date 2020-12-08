@@ -1,22 +1,22 @@
-from itertools import groupby
 from dataclasses import dataclass
-import numpy as np
-from datetime import timedelta, date
-from dash_table.Format import Format, Scheme
+from datetime import date, timedelta
+from itertools import groupby
+
 import dash_bootstrap_components as dbc
 import dash_html_components as html
 import dash_table
+import numpy as np
 import pandas as pd
 from dash.dependencies import Input, Output, State
+from dash_table.Format import Format, Scheme
 from flask_babel import lazy_gettext as _
 
-from components.cards import GraphCard
-from components.graphs import make_layout
 from calc.datasets import get_detected_cases
 from calc.simulation import INTERVENTIONS
+from components.cards import GraphCard
+from components.graphs import make_layout
 from utils.colors import THEME_COLORS
 from variables import get_variable
-
 
 COLUMN_COLORS = {
     'all_detected': THEME_COLORS['teal'],

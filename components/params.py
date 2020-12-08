@@ -1,17 +1,16 @@
-from flask_babel import lazy_gettext as _
 import dash
+import dash_bootstrap_components as dbc
+import dash_core_components as dcc
 import dash_html_components as html
 import dash_table
-import dash_core_components as dcc
-from dash.dependencies import Input, Output, State
-import dash_bootstrap_components as dbc
 import plotly.graph_objects as go
+from dash.dependencies import Input, Output, State
+from flask_babel import lazy_gettext as _
 
 from calc.simulation import sample_model_parameters
-from components.graphs import make_layout
 from components.cards import GraphCard
-from variables import set_variable, get_variable, reset_variable
-
+from components.graphs import make_layout
+from variables import get_variable, reset_variable, set_variable
 
 SYMPTOM_MAP = {
     'ASYMPTOMATIC': _('Asymptomatic'),
