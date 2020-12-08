@@ -47,7 +47,17 @@ VARIABLE_DEFAULTS = {
     # Overall chance to become infected after being exposed.
     # This is modified by viral load of the infector, which
     # depends on the day of the illness.
-    'p_infection': 30.0,  # %
+    'p_infection': [
+        [0, 15.0],
+        [10, 20.0],
+        [20, 35.0],
+        [30, 35.0],
+        [40, 35.0],
+        [50, 35.0],
+        [60, 45.0],
+        [70, 50.0],
+        [80, 90.0],
+    ],
 
     # Chance to die after regular hospital care
     'p_hospital_death': 0.0,  # %

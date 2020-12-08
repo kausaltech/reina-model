@@ -4,10 +4,11 @@ from datetime import date, timedelta
 
 import numpy as np
 import pandas as pd
+from flask_babel import lazy_gettext as _
+
 from calc import ExecutionInterrupted, calcfunc
 from calc.datasets import get_contacts_for_country, get_population_for_area
 from cythonsim import model
-from flask_babel import lazy_gettext as _
 from utils.perf import PerfCounter
 
 
@@ -45,7 +46,7 @@ def create_disease_params(variables):
     kwargs = {}
     for key in model.DISEASE_PARAMS:
         val = variables[key]
-        if key in ('p_severe', 'p_critical', 'p_icu_death'):
+        if key in ('p_infection', 'p_severe', 'p_critical', 'p_icu_death'):
             val = [(age, sev / 100) for age, sev in val]
         elif key.startswith('p_') or key.startswith('ratio_'):
             val = val / 100
@@ -96,6 +97,8 @@ def simulate_individuals(variables, step_callback=None):
         contacts_per_day=get_contacts_per_day(),
     )
 
+    df = get_contacts_per_day()
+
     hc_params = dict(hospital_beds=variables['hospital_beds'], icu_units=variables['icu_units'])
     disease_params = create_disease_params(variables)
     context = model.Context(
@@ -134,17 +137,30 @@ def simulate_individuals(variables, step_callback=None):
         if False:
             dead = context.get_population_stats('dead')
             all_infected = context.get_population_stats('all_infected')
-            age_groups = pd.interval_range(0, 100, freq=10, closed='left')
+            detected = context.get_population_stats('all_detected')
+
+            age_groups = pd.interval_range(0, 80, freq=10, closed='left')
+            age_groups = age_groups.append(pd.Index([pd.Interval(80, 100, closed='left')]))
+
             s = pd.Series(dead)
             dead_by_age = s.groupby(pd.cut(s.index, age_groups)).sum()
             dead_by_age.name = 'dead'
+
             s = pd.Series(all_infected)
             infected_by_age = s.groupby(pd.cut(s.index, age_groups)).sum()
-            print(infected_by_age)
+            infected_by_age.scenario_name = 'infected'
 
-            zdf = pd.DataFrame(dead_by_age)
-            zdf['infected'] = infected_by_age
-            zdf['ifr'] = zdf.dead.divide(zdf.infected.replace(0, np.inf)) * 100
+            s = pd.Series(detected)
+            detected_by_age = s.groupby(pd.cut(s.index, age_groups)).sum()
+            detected_by_age.name = 'detected'
+
+            print(dead_by_age / sum(dead_by_age) * 100)
+            print(infected_by_age / sum(infected_by_age) * 100)
+            print(detected_by_age / sum(detected_by_age) * 100)
+
+            #zdf = pd.DataFrame(dead_by_age)
+            #zdf['infected'] = infected_by_age
+            #zdf['ifr'] = zdf.dead.divide(zdf.infected.replace(0, np.inf)) * 100
             #print(zdf)
 
         d = start_date + timedelta(days=day)
@@ -300,7 +316,7 @@ if __name__ == '__main__':
             return True
 
         with allow_set_variable():
-            set_variable('simulation_days', 15)
+            set_variable('simulation_days', 180)
             simulate_individuals(step_callback=step_callback, skip_cache=True)
 
     if False:

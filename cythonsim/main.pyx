@@ -636,7 +636,7 @@ DISEASE_PARAMS = (
 )
 
 cdef class Disease:
-    cdef float p_infection, p_asymptomatic, p_hospital_death
+    cdef float p_asymptomatic, p_hospital_death
     cdef float p_icu_death_no_beds, p_hospital_death_no_beds
     cdef float mean_incubation_duration
     cdef float mean_duration_from_onset_to_death
@@ -644,6 +644,7 @@ cdef class Disease:
     cdef float ratio_of_duration_before_hospitalisation
     cdef float ratio_of_duration_in_ward
 
+    cdef ClassedValues p_infection
     cdef ClassedValues p_severe
     cdef ClassedValues p_critical
     cdef ClassedValues infectiousness_over_time
@@ -656,7 +657,6 @@ cdef class Disease:
         mean_duration_from_onset_to_death, mean_duration_from_onset_to_recovery,
         ratio_of_duration_before_hospitalisation, ratio_of_duration_in_ward,
     ):
-        self.p_infection = p_infection
         self.p_asymptomatic = p_asymptomatic
 
         self.p_hospital_death = p_hospital_death
@@ -669,6 +669,7 @@ cdef class Disease:
         self.ratio_of_duration_in_ward = ratio_of_duration_in_ward
         self.ratio_of_duration_before_hospitalisation = ratio_of_duration_before_hospitalisation
 
+        self.p_infection = ClassedValues(p_infection)
         self.p_severe = ClassedValues(p_severe)
         self.p_critical = ClassedValues(p_critical)
         self.infectiousness_over_time = ClassedValues(INFECTIOUSNESS_OVER_TIME)
@@ -681,10 +682,8 @@ cdef class Disease:
             args.append(variables[name])
         return cls(*args)
 
-
     cdef float get_infectiousness_over_time(self, int day) nogil:
-        return self.infectiousness_over_time.get(day, 0) * self.p_infection
-
+        return self.infectiousness_over_time.get(day, 0)
 
     cdef float get_source_infectiousness(self, Person *source) nogil:
         cdef int day
@@ -695,14 +694,14 @@ cdef class Disease:
             day = source.day_of_illness
         else:
             return 0
-        return self.infectiousness_over_time.get(day, 0) * self.p_infection
-
+        return self.infectiousness_over_time.get(day, 0)
 
     cdef bint did_infect(self, Person *person, Context context, Person *source) nogil:
         cdef float chance = self.get_source_infectiousness(source)
-        # FIXME: Smaller chance for asymptomatic people?
-        return context.random.chance(chance)
+        cdef float p_infection = self.p_infection.get_greatest_lte(person.age)
 
+        # FIXME: Smaller chance for asymptomatic people?
+        return context.random.chance(chance * p_infection)
 
     cdef int get_exposed_people(self, Person *person, Contact *contacts, Context context) nogil:
         # Detected people are quarantined

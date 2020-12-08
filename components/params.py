@@ -144,7 +144,7 @@ def render_model_param_graphs(age):
 
 DISEASE_PARAMS = (
     ('p_asymptomatic', _('Ratio of all infected people who remain asymptomatic'), '%',),
-    ('p_infection', _('Probability of becoming infected after being exposed'), '%',),
+    # ('p_infection', _('Probability of becoming infected after being exposed'), '%',),
     ('p_hospital_death_no_beds', _('Probability of dying if severe symptoms and no hospital beds are available'), '%'),
     ('p_icu_death_no_beds', _('Probability of dying if no ICU units are available'), '%'),
     ('mean_incubation_duration', _('Mean incubation period length'), _('days')),
