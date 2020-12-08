@@ -55,8 +55,8 @@ VARIABLE_DEFAULTS = {
         [40, 35.0],
         [50, 35.0],
         [60, 45.0],
-        [70, 50.0],
-        [80, 90.0],
+        [70, 60.0],
+        [80, 95.0],
     ],
 
     # Chance to die after regular hospital care
@@ -70,8 +70,8 @@ VARIABLE_DEFAULTS = {
         [40, 50.0],
         [50, 50.0],
         [60, 50.0],
-        [70, 50.0],
-        [80, 50.0]
+        [70, 70.0],
+        [80, 80.0]
     ],
     # Chance to die if no hospital beds are available (but not
     # needing ICU care)
@@ -90,17 +90,29 @@ VARIABLE_DEFAULTS = {
     # (more than mild symptoms) by age group
     # Numbers scaled, because source assumes 50% asymptomatic people.
     # Source: https://www.medrxiv.org/content/10.1101/2020.03.09.20033357v1.full.pdf
+    #'p_severe': [
+    #    [0, 0.0],
+    #    [10, 0.0816],
+    #    [20, 2.08],
+    #    [30, 6.86],
+    #    [40, 8.5],
+    #    [50, 16.32],
+    #    [60, 23.6],
+    #    [70, 33.2],
+    #    [80, 36.8]
+    #],
     'p_severe': [
         [0, 0.0],
         [10, 0.0816],
-        [20, 2.08],
-        [30, 6.86],
-        [40, 8.5],
-        [50, 16.32],
-        [60, 23.6],
-        [70, 33.2],
-        [80, 36.8]
+        [20, 2.08 / 2],
+        [30, 6.86 / 2],
+        [40, 8.5 / 2],
+        [50, 16.32 / 2],
+        [60, 23.6 / 2],
+        [70, 33.2 / 2],
+        [80, 36.8],
     ],
+
     # Ratio of hospitalized cases requiring critical (ICU) care
     # Source: https://www.imperial.ac.uk/media/imperial-college/medicine/sph/ide/gida-fellowships/Imperial-College-COVID19-NPI-modelling-16-03-2020.pdf
     'p_critical': [
@@ -118,7 +130,7 @@ VARIABLE_DEFAULTS = {
         ['test-all-with-symptoms', '2020-02-20'],
         ['test-only-severe-symptoms', '2020-03-15', 25],
         ['test-with-contact-tracing', '2020-07-01', 40],
-        ['test-with-contact-tracing', '2020-10-01', 40],
+        ['test-with-contact-tracing', '2020-10-01', 30],
 
         # ['limit-mass-gatherings', '2020-03-12', 50],
 
@@ -130,8 +142,10 @@ VARIABLE_DEFAULTS = {
         ['limit-mobility', '2020-04-05', 55],
         ['limit-mobility', '2020-06-20', 65],
         ['limit-mobility', '2020-08-15', 25],
-        ['limit-mobility', '2020-09-01', 15],
-        ['limit-mobility', '2020-10-15', 25],
+        ['limit-mobility', '2020-09-01', 20],
+        ['limit-mobility', '2020-09-15', 25],
+        ['limit-mobility', '2020-10-01', 30],
+        ['limit-mobility', '2020-10-15', 35],
 
         # FIXME: Fully remove import interventions
         ['import-infections', '2020-02-22', 5],
