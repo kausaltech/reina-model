@@ -1214,6 +1214,8 @@ cdef class Context:
             return np.array(self.pop.dead)
         if what == 'all_infected':
             return np.array(self.pop.all_infected)
+        if what == 'all_detected':
+            return np.array(self.pop.all_detected)
         raise Exception()
 
     def infect_people(self, count):
