@@ -117,6 +117,8 @@ VARIABLE_DEFAULTS = {
     'interventions': [
         ['test-all-with-symptoms', '2020-02-20'],
         ['test-only-severe-symptoms', '2020-03-15', 25],
+        ['test-with-contact-tracing', '2020-07-01', 40],
+        ['test-with-contact-tracing', '2020-10-01', 40],
 
         # ['limit-mass-gatherings', '2020-03-12', 50],
 
@@ -126,9 +128,10 @@ VARIABLE_DEFAULTS = {
         ['limit-mobility', '2020-03-22', 35],
         ['limit-mobility', '2020-03-28', 50],
         ['limit-mobility', '2020-04-05', 55],
-
-        ['build-new-icu-units', '2020-04-30', 150],
-        ['build-new-icu-units', '2020-05-30', 150],
+        ['limit-mobility', '2020-06-20', 65],
+        ['limit-mobility', '2020-08-15', 25],
+        ['limit-mobility', '2020-09-01', 15],
+        ['limit-mobility', '2020-10-15', 25],
 
         # FIXME: Fully remove import interventions
         ['import-infections', '2020-02-22', 5],
