@@ -15,7 +15,7 @@ python-dotenv
 redis
 colour
 fastparquet
-cython
+cython>=3.0.0a6
 faker
 xlrd
 # workarounds below
