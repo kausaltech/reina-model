@@ -15,7 +15,10 @@ VARIABLE_OVERRIDE_SETS = {
             ['import-infections', '2020-09-01', 200],
             ['test-with-contact-tracing', '2020-09-01', 60],  # 60% efficiency
             ['limit-mobility', '2020-09-01', 30],
-        ]
+        ],
+        'incubating_at_simulation_start': 50,
+        'ill_at_simulation_start': 200,
+        'recovered_at_simulation_start': 1000,
     },
 }
 _variable_override_set = os.getenv('VARIABLE_OVERRIDE_SET')
@@ -75,6 +78,10 @@ VARIABLE_DEFAULTS = {
 
     'ratio_of_duration_before_hospitalisation': 30.0,  # %
     'ratio_of_duration_in_ward': 15.0,  # %
+
+    'incubating_at_simulation_start': 0,
+    'ill_at_simulation_start': 0,
+    'recovered_at_simulation_start': 0,
 
     # Ratio of all symptomatic people that require hospitalization
     # (more than mild symptoms) by age group

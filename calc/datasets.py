@@ -1,3 +1,5 @@
+from dataclasses import dataclass
+
 import pandas as pd
 
 from utils import add_root_path, get_root_path
@@ -77,24 +79,81 @@ def get_detected_cases(variables):
     df = df.set_index('date')
     return df
 
-    cdf = df[['district', 'confirmed']].reset_index().set_index(['date', 'district']).unstack('district')
-    cdf['total'] = cdf.sum(axis=1)
-    ratio = cdf[('confirmed', area_name)] / cdf['total']
-    ratio = ratio.iloc[-1]
-    df = df[df.district == area_name].drop(columns='district')
 
-    f = add_root_path('data/hospitalizations_fin.csv')
-    hdf = pd.read_csv(f, header=0).set_index('date')
-    hdf = (hdf * ratio).dropna().astype(int)
-    df['hospitalized'] = hdf['hospitalized']
-    df['in_icu'] = hdf['in_icu']
-    df = df.dropna()
 
-    return df
+@dataclass
+class InitialPopulationCondition:
+    dead: int = 0
+    in_icu: int = 0
+    in_ward: int = 0
+    confirmed_cases: int = 0
+    infected_cases: int = 0
+    incubating: int = 0
+    ill: int = 0
+    recovered: int = 0
+
+    def were_incubating(self):
+        """
+        The number of people who contracted the virus at some point before simulation start
+        """
+        return sum([self.dead, self.recovered, self.in_icu, self.in_ward, self.ill, self.incubating])
+
+    def recovered_without_illness(self):
+        return self.were_incubating() - self.were_ill()
+
+    def were_ill(self):
+        """
+        The number of people who contracted the virus and became ill at some point
+        before simulation start
+        """
+        return sum([self.dead, self.recovered, self.in_icu, self.in_ward, self.ill])
+
+
+
+@calcfunc(
+    variables=['area_name', 'start_date', 'incubating_at_simulation_start',
+               'ill_at_simulation_start', 'recovered_at_simulation_start'],
+    filedeps=list(AREA_CASEFILES.values())
+)
+def get_initial_population_condition(variables) -> InitialPopulationCondition:
+    area_name = variables['area_name']
+    assert area_name in AREA_CASEFILES
+
+    start_date = variables['start_date']
+
+    casefile = AREA_CASEFILES[area_name]
+    df = pd.read_csv(casefile, header=0, index_col=0)
+    try:
+        ds = df.loc[start_date]
+    except ValueError:
+        print(f"Date {start_date} not found in {casefile} casefile,"
+              " using zero infections for initial epidemic conditions")
+        return InitialPopulationCondition()
+
+    # These numbers we get from casefile
+    dead = ds.at['dead']
+    in_icu = ds['in_icu']
+    in_ward = ds['in_ward']
+    confirmed_cases = ds['confirmed']
+
+    # These numbers are unmeasured and unmeasurable, they are given to simulation as
+    # variables
+    incubating = variables['incubating_at_simulation_start']
+    ill = variables['ill_at_simulation_start']
+    recovered = variables['recovered_at_simulation_start']
+
+    return InitialPopulationCondition(
+        dead=dead, in_icu=in_icu, in_ward=in_ward,
+        confirmed_cases=confirmed_cases,
+        ill=ill, incubating=incubating, recovered=recovered)
+
+
+
 
 
 if __name__ == '__main__':
-    get_detected_cases()
+    ic = get_initial_population_condition()
+    print(ic)
     exit()
 
     f = open(get_root_path() + '/data/hospitalizations_fin.csv', 'r')

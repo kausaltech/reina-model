@@ -4,10 +4,13 @@ from datetime import date, timedelta
 
 import numpy as np
 import pandas as pd
-from calc import ExecutionInterrupted, calcfunc
-from calc.datasets import get_contacts_for_country, get_population_for_area
 from cythonsim import model
 from flask_babel import lazy_gettext as _
+
+from calc import ExecutionInterrupted, calcfunc
+from calc.datasets import (get_contacts_for_country,
+                           get_initial_population_condition,
+                           get_population_for_area)
 from utils.perf import PerfCounter
 
 
@@ -90,10 +93,13 @@ def get_contacts_per_day():
 def simulate_individuals(variables, step_callback=None):
     pc = PerfCounter()
 
+
     age_structure = get_population_for_area().sum(axis=1)
+    ipc = get_initial_population_condition()
     pop_params = dict(
         age_structure=age_structure,
         contacts_per_day=get_contacts_per_day(),
+        initial_population_condition=ipc
     )
 
     hc_params = dict(hospital_beds=variables['hospital_beds'], icu_units=variables['icu_units'])
