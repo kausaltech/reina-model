@@ -1072,6 +1072,16 @@ cdef class Population:
             # the rest recovered on their own at some point
             person_recover(person, context)
 
+        for i in range(100):
+            self.all_detected[i] = 0
+        for i in range(ipc.confirmed_cases):
+            # let's just spread these along all age groups
+            # the age distribution of detected cases is not in any case used
+            # at the moment.
+            age = (100 + i) % 100
+            print("adding detected", i)
+            self.all_detected[age] += 1
+
     @cython.cdivision(True)
     cdef Person * get_random_person(self, Context context) nogil:
         cdef int idx = context.random.getint() % self.total_people
