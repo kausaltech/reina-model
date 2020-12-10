@@ -125,7 +125,7 @@ def get_initial_population_condition(variables) -> InitialPopulationCondition:
     df = pd.read_csv(casefile, header=0, index_col=0)
     try:
         ds = df.loc[start_date]
-    except ValueError:
+    except (ValueError, KeyError) as e:
         print(f"Date {start_date} not found in {casefile} casefile,"
               " using zero infections for initial epidemic conditions")
         return InitialPopulationCondition()

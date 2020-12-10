@@ -10,7 +10,7 @@ cachelib==0.1.1           # via flask-session
 click==7.1.2              # via flask
 colour==0.1.5             # via -r requirements.in
 cycler==0.10.0            # via matplotlib
-cython==0.29.21           # via -r requirements.in
+cython==3.0a6             # via -r requirements.in
 dash-bootstrap-components==0.10.7  # via -r requirements.in
 dash-core-components==1.13.0  # via -r requirements.in, dash
 dash-daq==0.5.0           # via -r requirements.in
@@ -18,6 +18,7 @@ dash-html-components==1.1.1  # via -r requirements.in, dash
 dash-table==4.11.0        # via -r requirements.in, dash
 dash==1.17.0              # via -r requirements.in, dash-bootstrap-components, dash-daq
 dash_renderer==1.8.3      # via dash
+faker==5.0.1              # via -r requirements.in
 fastparquet==0.4.1        # via -r requirements.in
 flask-babel==2.0.0        # via -r requirements.in
 flask-caching==1.9.0      # via -r requirements.in
@@ -40,15 +41,17 @@ pandas==1.1.4             # via -r requirements.in, fastparquet
 pillow==8.0.1             # via matplotlib
 plotly==4.13.0            # via dash
 pyparsing==2.4.7          # via matplotlib, packaging
-python-dateutil==2.8.1    # via matplotlib, pandas
+python-dateutil==2.8.1    # via faker, matplotlib, pandas
 python-dotenv==0.15.0     # via -r requirements.in
 pytz==2020.4              # via babel, flask-babel, pandas
 redis==3.5.3              # via -r requirements.in
 retrying==1.3.3           # via plotly
 scipy==1.5.4              # via -r requirements.in
 six==1.15.0               # via cycler, fastparquet, plotly, python-dateutil, retrying, thrift
+text-unidecode==1.3       # via faker
 thrift==0.13.0            # via fastparquet
 werkzeug==1.0.1           # via -r requirements.in, flask
+xlrd==1.2.0               # via -r requirements.in
 
 # The following packages are considered to be unsafe in a requirements file:
 # setuptools

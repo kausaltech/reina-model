@@ -10,15 +10,48 @@ VARIABLE_OVERRIDE_SETS = {
     'turku': {
         'area_name': 'Varsinais-Suomi',
         'area_name_long': 'Varsinais-Suomen sairaanhoitopiiri',
-        'start_date': '2020-09-01',
+        'hospital_beds': 900,
+        'icu_units': 55,
+        # 'start_date': '2020-09-01',
         'interventions': [
-            ['test-with-contact-tracing', '2020-09-01', 60],  # 60% efficiency
-            ['limit-mobility', '2020-09-01', 30],
-        ],
+            ['test-all-with-symptoms', '2020-02-20'],
+            ['test-only-severe-symptoms', '2020-03-15', 25],
+            ['test-with-contact-tracing', '2020-07-01', 40],
+            ['test-with-contact-tracing', '2020-09-01', 40],
+            ['test-with-contact-tracing', '2020-11-01', 30],
+            ['test-with-contact-tracing', '2020-11-15', 25],
 
-        'incubating_at_simulation_start': 150,
-        'ill_at_simulation_start': 50,
-        'recovered_at_simulation_start': 1000,
+            ['limit-mobility', '2020-03-12', 20],
+            ['limit-mobility', '2020-03-17', 30],
+            ['limit-mobility', '2020-03-20', 40],
+            ['limit-mobility', '2020-03-22', 55],
+            ['limit-mobility', '2020-03-28', 60],
+            ['limit-mobility', '2020-04-05', 60],
+            ['limit-mobility', '2020-06-20', 65],
+            ['limit-mobility', '2020-08-15', 30],
+            ['limit-mobility', '2020-09-01', 30],
+            ['limit-mobility', '2020-09-15', 35],
+            ['limit-mobility', '2020-10-01', 40],
+            ['limit-mobility', '2020-10-15', 40],
+
+            ['import-infections', '2020-02-22', 5],
+            ['import-infections', '2020-03-05', 5],
+            ['import-infections', '2020-03-07', 5],
+            ['import-infections', '2020-03-09', 5],
+            ['import-infections', '2020-03-11', 5],
+            ['import-infections', '2020-07-01', 15],
+            ['import-infections', '2020-08-01', 25],
+            ['import-infections', '2020-09-01', 20],
+            ['import-infections', '2020-09-15', 15],
+            ['import-infections', '2020-10-01', 15],
+            #['import-infections', '2020-10-15', 10],
+            #['import-infections', '2020-11-01', 5],
+        ],
+        # Commenting these away for now, until we decide on whether to use
+        # setting initial state or interventions to set state for start date
+        #'incubating_at_simulation_start': 150,
+        #'ill_at_simulation_start': 50,
+        #'recovered_at_simulation_start': 1000
     },
 }
 _variable_override_set = os.getenv('VARIABLE_OVERRIDE_SET')
@@ -35,7 +68,7 @@ VARIABLE_DEFAULTS = {
     'area_name_long': 'Helsingin ja Uudenmaan sairaanhoitopiiri',
     'country': 'FI',
     'max_age': 100,
-    'simulation_days': 365,
+    'simulation_days': 395,
     'start_date': '2020-02-18',
     'hospital_beds': 2600,
     'icu_units': 300,
@@ -50,7 +83,17 @@ VARIABLE_DEFAULTS = {
     # Overall chance to become infected after being exposed.
     # This is modified by viral load of the infector, which
     # depends on the day of the illness.
-    'p_infection': 30.0,  # %
+    'p_infection': [
+        [0, 15.0],
+        [10, 20.0],
+        [20, 35.0],
+        [30, 35.0],
+        [40, 35.0],
+        [50, 35.0],
+        [60, 45.0],
+        [70, 60.0],
+        [80, 95.0],
+    ],
 
     # Chance to die after regular hospital care
     'p_hospital_death': 0.0,  # %
@@ -63,8 +106,8 @@ VARIABLE_DEFAULTS = {
         [40, 50.0],
         [50, 50.0],
         [60, 50.0],
-        [70, 50.0],
-        [80, 50.0]
+        [70, 70.0],
+        [80, 80.0]
     ],
     # Chance to die if no hospital beds are available (but not
     # needing ICU care)
@@ -87,17 +130,29 @@ VARIABLE_DEFAULTS = {
     # (more than mild symptoms) by age group
     # Numbers scaled, because source assumes 50% asymptomatic people.
     # Source: https://www.medrxiv.org/content/10.1101/2020.03.09.20033357v1.full.pdf
+    #'p_severe': [
+    #    [0, 0.0],
+    #    [10, 0.0816],
+    #    [20, 2.08],
+    #    [30, 6.86],
+    #    [40, 8.5],
+    #    [50, 16.32],
+    #    [60, 23.6],
+    #    [70, 33.2],
+    #    [80, 36.8]
+    #],
     'p_severe': [
         [0, 0.0],
         [10, 0.0816],
-        [20, 2.08],
-        [30, 6.86],
-        [40, 8.5],
-        [50, 16.32],
-        [60, 23.6],
-        [70, 33.2],
-        [80, 36.8]
+        [20, 2.08 / 2],
+        [30, 6.86 / 2],
+        [40, 8.5 / 2],
+        [50, 16.32 / 2],
+        [60, 23.6 / 2],
+        [70, 33.2 / 2],
+        [80, 36.8],
     ],
+
     # Ratio of hospitalized cases requiring critical (ICU) care
     # Source: https://www.imperial.ac.uk/media/imperial-college/medicine/sph/ide/gida-fellowships/Imperial-College-COVID19-NPI-modelling-16-03-2020.pdf
     'p_critical': [
@@ -114,6 +169,8 @@ VARIABLE_DEFAULTS = {
     'interventions': [
         ['test-all-with-symptoms', '2020-02-20'],
         ['test-only-severe-symptoms', '2020-03-15', 25],
+        ['test-with-contact-tracing', '2020-07-01', 40],
+        ['test-with-contact-tracing', '2020-10-01', 30],
 
         # ['limit-mass-gatherings', '2020-03-12', 50],
 
@@ -123,9 +180,12 @@ VARIABLE_DEFAULTS = {
         ['limit-mobility', '2020-03-22', 35],
         ['limit-mobility', '2020-03-28', 50],
         ['limit-mobility', '2020-04-05', 55],
-
-        ['build-new-icu-units', '2020-04-30', 150],
-        ['build-new-icu-units', '2020-05-30', 150],
+        ['limit-mobility', '2020-06-20', 65],
+        ['limit-mobility', '2020-08-15', 25],
+        ['limit-mobility', '2020-09-01', 20],
+        ['limit-mobility', '2020-09-15', 25],
+        ['limit-mobility', '2020-10-01', 30],
+        ['limit-mobility', '2020-10-15', 35],
 
         # FIXME: Fully remove import interventions
         ['import-infections', '2020-02-22', 5],

@@ -3,20 +3,21 @@
 # cython: wraparound=False
 # cython: profile=False
 
-import numpy as np
-import pandas as pd
 from collections import namedtuple
 from datetime import date, timedelta
+
+import numpy as np
+import pandas as pd
 from cython.parallel import prange
 from faker.providers.person.fi_FI import Provider as NameProvider
 
 cimport cython
 cimport openmp
-from cpython.mem cimport PyMem_Malloc, PyMem_Free
-from libc.stdlib cimport malloc, free
+from cpython.mem cimport PyMem_Malloc, PyMem_Free  # isort:skip
+from libc.stdlib cimport malloc, free  # isort:skip
 cimport numpy as cnp
 
-from cythonsim.simrandom cimport RandomPool
+from cythonsim.simrandom cimport RandomPool  # isort:skip
 
 ctypedef int int32
 ctypedef unsigned char uint8
@@ -635,7 +636,7 @@ DISEASE_PARAMS = (
 )
 
 cdef class Disease:
-    cdef float p_infection, p_asymptomatic, p_hospital_death
+    cdef float p_asymptomatic, p_hospital_death
     cdef float p_icu_death_no_beds, p_hospital_death_no_beds
     cdef float mean_incubation_duration
     cdef float mean_duration_from_onset_to_death
@@ -643,6 +644,7 @@ cdef class Disease:
     cdef float ratio_of_duration_before_hospitalisation
     cdef float ratio_of_duration_in_ward
 
+    cdef ClassedValues p_infection
     cdef ClassedValues p_severe
     cdef ClassedValues p_critical
     cdef ClassedValues infectiousness_over_time
@@ -655,7 +657,6 @@ cdef class Disease:
         mean_duration_from_onset_to_death, mean_duration_from_onset_to_recovery,
         ratio_of_duration_before_hospitalisation, ratio_of_duration_in_ward,
     ):
-        self.p_infection = p_infection
         self.p_asymptomatic = p_asymptomatic
 
         self.p_hospital_death = p_hospital_death
@@ -668,6 +669,7 @@ cdef class Disease:
         self.ratio_of_duration_in_ward = ratio_of_duration_in_ward
         self.ratio_of_duration_before_hospitalisation = ratio_of_duration_before_hospitalisation
 
+        self.p_infection = ClassedValues(p_infection)
         self.p_severe = ClassedValues(p_severe)
         self.p_critical = ClassedValues(p_critical)
         self.infectiousness_over_time = ClassedValues(INFECTIOUSNESS_OVER_TIME)
@@ -680,10 +682,8 @@ cdef class Disease:
             args.append(variables[name])
         return cls(*args)
 
-
     cdef float get_infectiousness_over_time(self, int day) nogil:
-        return self.infectiousness_over_time.get(day, 0) * self.p_infection
-
+        return self.infectiousness_over_time.get(day, 0)
 
     cdef float get_source_infectiousness(self, Person *source) nogil:
         cdef int day
@@ -694,14 +694,14 @@ cdef class Disease:
             day = source.day_of_illness
         else:
             return 0
-        return self.infectiousness_over_time.get(day, 0) * self.p_infection
-
+        return self.infectiousness_over_time.get(day, 0)
 
     cdef bint did_infect(self, Person *person, Context context, Person *source) nogil:
         cdef float chance = self.get_source_infectiousness(source)
-        # FIXME: Smaller chance for asymptomatic people?
-        return context.random.chance(chance)
+        cdef float p_infection = self.p_infection.get_greatest_lte(person.age)
 
+        # FIXME: Smaller chance for asymptomatic people?
+        return context.random.chance(chance * p_infection)
 
     cdef int get_exposed_people(self, Person *person, Contact *contacts, Context context) nogil:
         # Detected people are quarantined
@@ -841,6 +841,7 @@ cdef class ContactMatrix:
     cdef double[::1] nr_contacts_by_age
     cdef AgeContactProbabilities *p_by_age
     cdef int nr_ages
+    cdef float mobility_factor
 
     def __init__(self, contacts_per_day, nr_ages):
         cdef int age
@@ -848,6 +849,7 @@ cdef class ContactMatrix:
         self.nr_contacts_by_age = np.zeros(nr_ages, dtype=np.double)
         self.contact_df = contacts_per_day.copy(deep=True)
         self.nr_ages = nr_ages
+        self.mobility_factor = 1.0
 
         cdef AgeContactProbabilities *acp
         self.p_by_age = <AgeContactProbabilities *> PyMem_Malloc(nr_ages * sizeof(AgeContactProbabilities))
@@ -870,7 +872,10 @@ cdef class ContactMatrix:
             acp = self.p_by_age + age
             acp.count = 0
 
-        df = self.contact_df
+        df = self.contact_df.copy()
+
+        # df.loc[df.place_type != 'home', 'contacts'] *= self.mobility_factor
+        df['contacts'] *= self.mobility_factor
 
         total_contacts = df.groupby('participant_age')['contacts'].sum()
         for (age_min, age_max), count in total_contacts.items():
@@ -907,6 +912,10 @@ cdef class ContactMatrix:
             PyMem_Free(acp.probabilities)
 
         PyMem_Free(self.p_by_age)
+
+    def set_mobility_factor(self, factor):
+        self.mobility_factor = factor
+        self.generate_probability_matrix()
 
     cdef ContactProbability * get_one_contact(self, Person *person, Context context) nogil:
         cdef AgeContactProbabilities *acp
@@ -958,7 +967,6 @@ cdef class Population:
 
     # Effects of interventions
     cdef int limit_mass_gatherings
-    cdef float population_mobility_factor
 
     def __init__(self, age_structure, contacts_per_day):
         self.nr_ages = age_structure.index.max() + 1
@@ -968,7 +976,6 @@ cdef class Population:
             age_counts[age] = count
 
         self.limit_mass_gatherings = 0
-        self.population_mobility_factor = 1.0
 
         self._init_stats(age_counts)
         self._create_agents(age_counts)
@@ -1094,16 +1101,13 @@ cdef class Population:
 
     @cython.cdivision(True)
     cdef int get_contacts(self, Person *person, Contact *contacts, Context context, float factor=1.0, int limit=100) nogil:
-        # Contacts per day follows a lognormal distribution with
-        # mean at `avg_contacts_per_day`.
-        cdef float f = factor * self.population_mobility_factor
-
         if self.limit_mass_gatherings and self.limit_mass_gatherings < limit:
             limit = self.limit_mass_gatherings
 
         cdef int nr_contacts
-
-        nr_contacts = self.contact_matrix.get_nr_contacts(person, context, f, limit)
+        # Contacts per day follows a lognormal distribution with
+        # mean at `avg_contacts_per_day`.
+        nr_contacts = self.contact_matrix.get_nr_contacts(person, context, factor, limit)
         if nr_contacts > MAX_CONTACTS:
             context.problem = SimulationProblem.TOO_MANY_CONTACTS
             return 0
@@ -1266,7 +1270,7 @@ cdef class Context:
             r=r,
             exposed_per_day=self.exposed_per_day,
             tests_run_per_day=self.hc.tests_run_per_day,
-            mobility_limitation=1 - self.pop.population_mobility_factor,
+            mobility_limitation=1 - self.pop.contact_matrix.mobility_factor,
         )
         return s
 
@@ -1275,6 +1279,8 @@ cdef class Context:
             return np.array(self.pop.dead)
         if what == 'all_infected':
             return np.array(self.pop.all_infected)
+        if what == 'all_detected':
+            return np.array(self.pop.all_detected)
         raise Exception()
 
     def infect_people(self, count):
@@ -1311,7 +1317,7 @@ cdef class Context:
         elif name == 'limit-mass-gatherings':
             self.pop.limit_mass_gatherings = value
         elif name == 'limit-mobility':
-            self.pop.population_mobility_factor = (100 - value) / 100.0
+            self.pop.contact_matrix.set_mobility_factor((100 - value) / 100.0)
         else:
             raise Exception()
 
