@@ -1033,7 +1033,8 @@ cdef class Population:
 
         i_incubating = ipc.incubating
         i_recovered_without_symptoms = i_incubating + ipc.recovered_without_illness()
-        i_dead = i_recovered_without_symptoms + ipc.dead
+        i_ill_at_home = i_recovered_without_symptoms + ipc.ill
+        i_dead = i_ill_at_home + ipc.dead
         i_in_icu = i_dead + ipc.in_icu
         i_in_ward = i_in_icu + ipc.in_ward
 
@@ -1053,8 +1054,13 @@ cdef class Population:
             # Everyone from this point on became ill
             person_become_ill(person, context)
 
+            if i < i_ill_at_home:
+                # these people are ill in the beginning of simulation,
+                # but not hospitalized
+                continue
+
             if i < i_dead:
-                # some of them didn't make it
+                # these people didn't make it
                 person_die(person, context)
                 continue
 
@@ -1079,7 +1085,6 @@ cdef class Population:
             # the age distribution of detected cases is not in any case used
             # at the moment.
             age = (100 + i) % 100
-            print("adding detected", i)
             self.all_detected[age] += 1
 
     @cython.cdivision(True)
