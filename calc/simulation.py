@@ -93,7 +93,6 @@ def get_contacts_per_day():
 def simulate_individuals(variables, step_callback=None):
     pc = PerfCounter()
 
-
     age_structure = get_population_for_area().sum(axis=1)
     ipc = get_initial_population_condition()
     pop_params = dict(

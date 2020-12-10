@@ -12,12 +12,12 @@ VARIABLE_OVERRIDE_SETS = {
         'area_name_long': 'Varsinais-Suomen sairaanhoitopiiri',
         'start_date': '2020-09-01',
         'interventions': [
-            ['import-infections', '2020-09-01', 200],
             ['test-with-contact-tracing', '2020-09-01', 60],  # 60% efficiency
             ['limit-mobility', '2020-09-01', 30],
         ],
-        'incubating_at_simulation_start': 50,
-        'ill_at_simulation_start': 200,
+
+        'incubating_at_simulation_start': 150,
+        'ill_at_simulation_start': 50,
         'recovered_at_simulation_start': 1000,
     },
 }
