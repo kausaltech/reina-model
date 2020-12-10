@@ -92,6 +92,10 @@ class InitialPopulationCondition:
     ill: int = 0
     recovered: int = 0
 
+    def has_initial_state(self):
+        return (self.dead or self.in_icu or self.in_ward or self.confirmed_cases
+                or self.infected_cases or self.incubating or self.ill or self.recovered)
+
     def were_incubating(self):
         """
         The number of people who contracted the virus at some point before simulation start

@@ -608,7 +608,7 @@ cdef class ClassedValues:
         return default
 
     cdef float get_greatest_lte(self, int kls) nogil:
-        """Returns the greatest value less-than-or-equal to the given class""" 
+        """Returns the greatest value less-than-or-equal to the given class"""
         cdef int idx = 0
         cdef float last
 
@@ -1216,7 +1216,7 @@ cdef class Context:
         self.total_infections = 0
         self.exposed_per_day = 0
 
-        if ipc:
+        if ipc and ipc.has_initial_state():
             self.pop.set_initial_state(ipc, self)
 
 
