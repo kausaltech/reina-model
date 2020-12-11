@@ -1049,6 +1049,9 @@ cdef class Population:
             person = self.get_random_person(context)
             # to start with, take all people who were infected at some point
             # at simulation start time and infect them.
+            # TODO: We want to scatter the infection progression, not have
+            # everyone who is ill or incubating at simulation start to be at
+            # the first day.
             person_infect(person, context)
 
             if i < i_incubating:
@@ -1090,7 +1093,9 @@ cdef class Population:
         for i in range(ipc.confirmed_cases):
             # let's just spread these along all age groups
             # the age distribution of detected cases is not in any case used
-            # at the moment.
+            # in UI. TODO: for model validation, we need the age distribution.
+            # We'd need to get case data for simulation start date
+            # to set this correctly
             age = (100 + i) % 100
             self.all_detected[age] += 1
 
