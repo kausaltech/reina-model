@@ -1,3 +1,5 @@
+from pprint import pprint
+
 from gql import Client, gql
 from gql.transport.requests import RequestsHTTPTransport
 
@@ -6,6 +8,66 @@ transport = RequestsHTTPTransport(url="http://localhost:5000/graphql")
 
 # Create a GraphQL client using the defined transport
 client = Client(transport=transport, fetch_schema_from_transport=True)
+
+if False:
+    validation_metrics_query = gql("""
+        query {
+            validationMetrics {
+                dates
+                metrics {
+                    id
+                    values
+                }
+            }
+        }
+    """)
+
+    result = client.execute(validation_metrics_query)
+    print(result)
+    exit()
+
+
+if False:
+    available_interventions_query = gql("""
+        query {
+            availableInterventions {
+                type
+                parameters {
+                    id
+                    description
+                    required
+                    ... on InterventionChoiceParameter {
+                        choices
+                        labels
+                    }
+                    ... on InterventionIntParameter {
+                        minValue
+                        maxValue
+                    }
+                }
+            }
+        }
+    """)
+
+    result = client.execute(available_interventions_query)
+    pprint(result)
+    exit()
+
+
+if True:
+    get_interventions_query = gql("""
+        query {
+            activeInterventions {
+                id
+                type
+                date
+            }
+        }
+    """)
+    result = client.execute(get_interventions_query)
+    print(result)
+    exit()
+
 
 start_sim = gql("""
     mutation {

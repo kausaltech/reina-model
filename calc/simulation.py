@@ -2,15 +2,14 @@ import multiprocessing
 from dataclasses import dataclass
 from datetime import date, timedelta
 
-import numpy as np
 import pandas as pd
-from cythonsim import model
 from flask_babel import lazy_gettext as _
 
 from calc import ExecutionInterrupted, calcfunc
 from calc.datasets import (get_contacts_for_country,
                            get_initial_population_condition,
                            get_population_for_area)
+from cythonsim import model
 from utils.perf import PerfCounter
 
 

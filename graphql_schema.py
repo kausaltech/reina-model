@@ -1,29 +1,15 @@
 import uuid
 
-from graphene import (ID, Boolean, Enum, Field, Float, Int, Interface, List,
-                      Mutation, ObjectType, Schema, String)
+from flask import session
+from graphene import (ID, Boolean, Enum, Field, Float, InputObjectType, Int,
+                      Interface, List, Mutation, ObjectType, Schema, String)
 from graphql import GraphQLError
 
 from calc.datasets import get_detected_cases
-from calc.simulation import simulate_individuals
+from calc.interventions import INTERVENTIONS, ChoiceParameter, IntParameter
 from common import cache
-from flask import session
 from simulation_thread import SimulationThread
 from variables import get_variable
-
-
-class ParameterCategory(Enum):
-    DISEASE = 1
-
-
-class Parameter(ObjectType):
-    identifier = ID(required=True)
-    category = ParameterCategory()
-
-
-class Intervention(Interface):
-    id = ID(required=True)
-    date = String(required=True)
 
 
 class ContactPlace(Enum):
@@ -35,36 +21,42 @@ class ContactPlace(Enum):
     OTHER = 6
 
 
-class LimitMobilityIntervention(ObjectType):
-    value = Int(required=True)
-    min_age = Int()
-    max_age = Int()
-    contact_place = Field(ContactPlace)
+InterventionType = Enum('InverventionType', [
+    (iv.type.upper().replace('-', '_'), iv.type) for iv in INTERVENTIONS
+])
+
+
+class InterventionParameter(Interface):
+    id = ID()
+    description = String()
+    required = Boolean()
+
+
+class InterventionChoiceParameter(ObjectType):
+    choices = List(String)
+    labels = List(String)
+    value = String()
 
     class Meta:
-        interfaces = (Intervention,)
+        interfaces = (InterventionParameter,)
 
 
-class ImportInfectionsIntervention(ObjectType):
-    amount = Int(required=True)
-
-    class Meta:
-        interfaces = (Intervention,)
-
-
-class TestingStrategy(Enum):
-    NO_TESTING = 0
-    ONLY_SEVERE_SYMPTOMS = 1
-    ALL_WITH_SYMPTOMS = 2
-    CONTACT_TRACING = 3
-
-
-class TestingStrategyIntervention(ObjectType):
-    strategy = Field(TestingStrategy, required=True)
-    efficiency = Int()
+class InterventionIntParameter(ObjectType):
+    min_value = Int()
+    max_value = Int()
+    value = Int()
+    unit = String()
 
     class Meta:
-        interfaces = (Intervention,)
+        interfaces = (InterventionParameter,)
+
+
+class Intervention(ObjectType):
+    id = ID()
+    date = String()
+    description = String()
+    type = InterventionType()
+    parameters = List(InterventionParameter)
 
 
 class Metric(ObjectType):
@@ -85,38 +77,48 @@ class SimulationResults(ObjectType):
 
 
 class Query(ObjectType):
-    parameters = List(Parameter)
-    interventions = List(Intervention)
+    available_interventions = List(Intervention)
+    active_interventions = List(Intervention)
     simulation_results = Field(SimulationResults, run_id=ID(required=True))
     validation_metrics = Field(DailyMetrics)
+    area_name = String(required=True)
+    area_name_long = String(required=True)
 
-    def resolve_interventions(query, info):
+    def resolve_available_interventions(query, info):
+        out = []
+        for iv in INTERVENTIONS:
+            params = []
+            iv_params = iv.parameters or []
+            for p in iv_params:
+                if isinstance(p, IntParameter):
+                    params.append(InterventionIntParameter(
+                        id=p.id, description=p.label, required=p.required,
+                        min_value=p.min_value,
+                        max_value=p.max_value,
+                        unit=p.unit
+                    ))
+                elif isinstance(p, ChoiceParameter):
+                    choices = [c.id for c in p.choices]
+                    labels = [str(c.label) for c in p.choices]
+                    params.append(InterventionChoiceParameter(
+                        id=p.id, description=p.label, required=p.required,
+                        choices=choices, labels=labels
+                    ))
+                else:
+                    raise Exception('Unknown parameter type')
+
+            out.append(Intervention(
+                type=iv.type, description=iv.label, parameters=params
+            ))
+
+        return out
+
+    def resolve_active_interventions(query, info):
         interventions = get_variable('interventions')
         out = []
         for idx, iv in enumerate(interventions):
-            if iv[0] == 'limit-mobility':
-                out.append(LimitMobilityIntervention(id=idx, date=iv[1], value=iv[2]))
-            elif iv[0] == 'import-infections':
-                out.append(ImportInfectionsIntervention(id=idx, date=iv[1], amount=iv[2]))
-            elif iv[0] == 'import-infections':
-                out.append(ImportInfectionsIntervention(id=idx, date=iv[1], amount=iv[2]))
-            elif iv[0] == 'test-all-with-symptoms':
-                out.append(TestingStrategyIntervention(
-                    id=idx, date=iv[1],
-                    strategy=TestingStrategy.ALL_WITH_SYMPTOMS,
-                ))
-            elif iv[0] == 'test-only-severe-symptoms':
-                out.append(TestingStrategyIntervention(
-                    id=idx, date=iv[1],
-                    strategy=TestingStrategy.ONLY_SEVERE_SYMPTOMS,
-                    efficiency=iv[2],
-                ))
-            elif iv[0] == 'test-with-contact-tracing':
-                out.append(TestingStrategyIntervention(
-                    id=idx, date=iv[1],
-                    strategy=TestingStrategy.CONTACT_TRACING,
-                    efficiency=iv[2]
-                ))
+            obj = Intervention(id=idx, type=iv[0], date=iv[1])
+            out.append(obj)
 
         return out
 
@@ -160,10 +162,24 @@ class RunSimulation(Mutation):
         return dict(run_id=run_id)
 
 
+class InterventionInput(InputObjectType):
+    date = String()
+    parameters = List(InterventionParameter)
+
+
+class AddIntervention(Mutation):
+    class Arguments:
+        intervention = InterventionInput(required=True)
+
+    def mutate(root, info, intervention):
+        return
+
+
 class RootMutation(ObjectType):
     run_simulation = RunSimulation.Field()
+    # add_intervention = AddIntervention.Field()
 
 
 schema = Schema(query=Query, mutation=RootMutation, types=[
-    LimitMobilityIntervention, TestingStrategyIntervention, ImportInfectionsIntervention
+    InterventionChoiceParameter, InterventionIntParameter
 ])
