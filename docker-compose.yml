@@ -35,6 +35,8 @@ services:
         # does for reina-model, so we're setting it explicitly here.
         env_file:
             - .env
+        environment:
+            - SERVER_GRAPHQL_ENDPOINT=http://reina-model:5000/graphql
         volumes:
             - ../reina-ui:/app
             - node_modules:/app/node_modules
