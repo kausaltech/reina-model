@@ -24,8 +24,9 @@ fastparquet==0.4.1        # via -r requirements.in
 flask-babel==2.0.0        # via -r requirements.in
 flask-caching==1.9.0      # via -r requirements.in
 flask-compress==1.8.0     # via dash
+flask-cors==3.0.9         # via -r requirements.in
 flask-session==0.3.2      # via -r requirements.in
-flask==1.1.2              # via dash, flask-babel, flask-caching, flask-compress, flask-session, graphql-server
+flask==1.1.2              # via dash, flask-babel, flask-caching, flask-compress, flask-cors, flask-session, graphql-server
 future==0.18.2            # via dash
 futures==3.1.1            # via -r requirements.in
 gql==3.0.0a5              # via -r requirements.in
@@ -55,7 +56,7 @@ pytz==2020.4              # via babel, flask-babel, pandas
 redis==3.5.3              # via -r requirements.in
 retrying==1.3.3           # via plotly
 scipy==1.5.4              # via -r requirements.in
-six==1.15.0               # via cycler, fastparquet, plotly, python-dateutil, retrying, thrift
+six==1.15.0               # via cycler, fastparquet, flask-cors, plotly, python-dateutil, retrying, thrift
 text-unidecode==1.3       # via faker
 thrift==0.13.0            # via fastparquet
 typing-extensions==3.7.4.3  # via graphql-server
