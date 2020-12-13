@@ -608,7 +608,7 @@ cdef class ClassedValues:
         return default
 
     cdef float get_greatest_lte(self, int kls) nogil:
-        """Returns the greatest value less-than-or-equal to the given class""" 
+        """Returns the greatest value less-than-or-equal to the given class"""
         cdef int idx = 0
         cdef float last
 
@@ -1035,6 +1035,70 @@ cdef class Population:
         self.total_people = total
         self.people = people
 
+    def set_initial_state(self, ipc, Context context):
+        cdef Person * person
+
+        i_incubating = ipc.incubating
+        i_recovered_without_symptoms = i_incubating + ipc.recovered_without_illness()
+        i_ill_at_home = i_recovered_without_symptoms + ipc.ill
+        i_dead = i_ill_at_home + ipc.dead
+        i_in_icu = i_dead + ipc.in_icu
+        i_in_ward = i_in_icu + ipc.in_ward
+
+        for i in range(ipc.were_incubating()):
+            person = self.get_random_person(context)
+            # to start with, take all people who were infected at some point
+            # at simulation start time and infect them.
+            # TODO: We want to scatter the infection progression, not have
+            # everyone who is ill or incubating at simulation start to be at
+            # the first day.
+            person_infect(person, context)
+
+            if i < i_incubating:
+                # these people have no symptoms yet
+                continue
+            if i < i_recovered_without_symptoms:
+                person_recover(person, context)
+                continue
+
+            # Everyone from this point on became ill
+            person_become_ill(person, context)
+
+            if i < i_ill_at_home:
+                # these people are ill in the beginning of simulation,
+                # but not hospitalized
+                continue
+
+            if i < i_dead:
+                # these people didn't make it
+                person_die(person, context)
+                continue
+
+            if i < i_in_icu:
+                # these people are in icu at simulation start
+                person_hospitalize(person, context)
+                person_transfer_to_icu(person, context)
+                continue
+
+            if i < i_in_ward:
+                # these people are in hospital but not icu at simulation start
+                person_hospitalize(person, context)
+                continue
+
+            # the rest recovered on their own at some point
+            person_recover(person, context)
+
+        for i in range(100):
+            self.all_detected[i] = 0
+        for i in range(ipc.confirmed_cases):
+            # let's just spread these along all age groups
+            # the age distribution of detected cases is not in any case used
+            # in UI. TODO: for model validation, we need the age distribution.
+            # We'd need to get case data for simulation start date
+            # to set this correctly
+            age = (100 + i) % 100
+            self.all_detected[age] += 1
+
     @cython.cdivision(True)
     cdef Person * get_random_person(self, Context context) nogil:
         cdef int idx = context.random.getint() % self.total_people
@@ -1142,6 +1206,7 @@ cdef class Context:
         self.problem = SimulationProblem.NO_PROBLEMOS
         self.problem_person = NULL
 
+        ipc = population_params.pop('initial_population_condition', None)
         self.pop = Population(**population_params)
         self.disease = Disease(**disease_params)
         self.hc = HealthcareSystem(**healthcare_params)
@@ -1155,6 +1220,9 @@ cdef class Context:
         self.total_infectors = 0
         self.total_infections = 0
         self.exposed_per_day = 0
+
+        if ipc and ipc.has_initial_state():
+            self.pop.set_initial_state(ipc, self)
 
 
     cdef void set_problem(self, SimulationProblem problem, Person *p = NULL) nogil:

@@ -4,11 +4,13 @@ from datetime import date, timedelta
 
 import numpy as np
 import pandas as pd
+from cythonsim import model
 from flask_babel import lazy_gettext as _
 
 from calc import ExecutionInterrupted, calcfunc
-from calc.datasets import get_contacts_for_country, get_population_for_area
-from cythonsim import model
+from calc.datasets import (get_contacts_for_country,
+                           get_initial_population_condition,
+                           get_population_for_area)
 from utils.perf import PerfCounter
 
 
@@ -92,9 +94,11 @@ def simulate_individuals(variables, step_callback=None):
     pc = PerfCounter()
 
     age_structure = get_population_for_area().sum(axis=1)
+    ipc = get_initial_population_condition()
     pop_params = dict(
         age_structure=age_structure,
         contacts_per_day=get_contacts_per_day(),
+        initial_population_condition=ipc
     )
 
     df = get_contacts_per_day()
@@ -235,7 +239,7 @@ def sample_model_parameters(what, age, severity=None, variables=None):
 
 @calcfunc(funcs=[simulate_individuals])
 def simulate_monte_carlo(seed):
-    from variables import allow_set_variable, set_variable, get_variable
+    from variables import allow_set_variable, get_variable, set_variable
 
     with allow_set_variable():
         set_variable('random_seed', seed)
@@ -274,7 +278,7 @@ def run_monte_carlo(scenario_name):
 
 if __name__ == '__main__':
     if False:
-        from variables import allow_set_variable, set_variable, get_variable
+        from variables import allow_set_variable, get_variable, set_variable
         with allow_set_variable():
             set_variable('simulation_days', 50)
             df = simulate_individuals()
@@ -320,7 +324,8 @@ if __name__ == '__main__':
             simulate_individuals(step_callback=step_callback, skip_cache=True)
 
     if False:
-        from variables import allow_set_variable, set_variable, get_variable
+        from variables import allow_set_variable, get_variable, set_variable
+
         from calc.datasets import get_detected_cases
 
         with allow_set_variable():
