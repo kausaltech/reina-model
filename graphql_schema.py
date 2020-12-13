@@ -4,6 +4,7 @@ from graphene import (ID, Boolean, Enum, Field, Float, Int, Interface, List,
                       Mutation, ObjectType, Schema, String)
 from graphql import GraphQLError
 
+from calc.datasets import get_detected_cases
 from calc.simulation import simulate_individuals
 from common import cache
 from flask import session
@@ -21,6 +22,7 @@ class Parameter(ObjectType):
 
 
 class Intervention(Interface):
+    id = ID(required=True)
     date = String(required=True)
 
 
@@ -70,43 +72,48 @@ class Metric(ObjectType):
     values = List(Float, required=True)
 
 
+class DailyMetrics(ObjectType):
+    dates = List(String)
+    metrics = List(Metric)
+
+
 class SimulationResults(ObjectType):
     run_id = ID(required=True)
     finished = Boolean(required=True)
     end_date = String(required=True)
-    dates = List(String)
-    metrics = List(Metric)
+    predicted_metrics = Field(DailyMetrics, required=True)
 
 
 class Query(ObjectType):
     parameters = List(Parameter)
     interventions = List(Intervention)
     simulation_results = Field(SimulationResults, run_id=ID(required=True))
+    validation_metrics = Field(DailyMetrics)
 
     def resolve_interventions(query, info):
         interventions = get_variable('interventions')
         out = []
-        for iv in interventions:
+        for idx, iv in enumerate(interventions):
             if iv[0] == 'limit-mobility':
-                out.append(LimitMobilityIntervention(date=iv[1], value=iv[2]))
+                out.append(LimitMobilityIntervention(id=idx, date=iv[1], value=iv[2]))
             elif iv[0] == 'import-infections':
-                out.append(ImportInfectionsIntervention(date=iv[1], amount=iv[2]))
+                out.append(ImportInfectionsIntervention(id=idx, date=iv[1], amount=iv[2]))
             elif iv[0] == 'import-infections':
-                out.append(ImportInfectionsIntervention(date=iv[1], amount=iv[2]))
+                out.append(ImportInfectionsIntervention(id=idx, date=iv[1], amount=iv[2]))
             elif iv[0] == 'test-all-with-symptoms':
                 out.append(TestingStrategyIntervention(
-                    date=iv[1],
+                    id=idx, date=iv[1],
                     strategy=TestingStrategy.ALL_WITH_SYMPTOMS,
                 ))
             elif iv[0] == 'test-only-severe-symptoms':
                 out.append(TestingStrategyIntervention(
-                    date=iv[1],
+                    id=idx, date=iv[1],
                     strategy=TestingStrategy.ONLY_SEVERE_SYMPTOMS,
                     efficiency=iv[2],
                 ))
             elif iv[0] == 'test-with-contact-tracing':
                 out.append(TestingStrategyIntervention(
-                    date=iv[1],
+                    id=idx, date=iv[1],
                     strategy=TestingStrategy.CONTACT_TRACING,
                     efficiency=iv[2]
                 ))
@@ -131,21 +138,19 @@ class Query(ObjectType):
 
         return SimulationResults(finished=finished, dates=dates, metrics=metrics)
 
-
-class InitializeSession(Mutation):
-    id = ID(required=True)
-
-    def mutate(root, info):
-        return dict(id=uuid.uuid4().hex)
+    def resolve_validation_metrics(query, info):
+        df = get_detected_cases()
+        dates = df.index.astype(str).values
+        metrics = []
+        for col in df.columns:
+            metrics.append(Metric(id=col, values=df[col].to_numpy()))
+        return DailyMetrics(dates=dates, metrics=metrics)
 
 
 class RunSimulation(Mutation):
-    class Arguments:
-        session_id = ID(required=True)
-
     run_id = ID(required=True)
 
-    def mutate(root, info, session_id):
+    def mutate(root, info):
         thread = SimulationThread(variables=session.copy())
         run_id = thread.cache_key
         thread.start()
@@ -153,7 +158,6 @@ class RunSimulation(Mutation):
 
 
 class RootMutation(ObjectType):
-    initialize_session = InitializeSession.Field()
     run_simulation = RunSimulation.Field()
 
 
