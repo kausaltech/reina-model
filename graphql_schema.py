@@ -23,11 +23,14 @@ class InterventionParameter(Interface):
     required = Boolean()
 
 
-class InterventionChoiceParameter(ObjectType):
-    choices = List(String)
-    labels = List(String)
-    choice = String()
+class Choice(ObjectType):
+    id = ID()
     label = String()
+
+
+class InterventionChoiceParameter(ObjectType):
+    choices = List(Choice, required=True)
+    choice = Field(Choice)
 
     class Meta:
         interfaces = (InterventionParameter,)
@@ -81,12 +84,15 @@ def iv_to_graphql_obj(iv, obj_id=None):
                 value=getattr(p, 'value', None),
             ))
         elif isinstance(p, ChoiceParameter):
-            choices = [c.id for c in p.choices]
-            labels = [str(c.label) for c in p.choices]
+            choices = [Choice(id=c.id, label=c.label) for c in p.choices]
+            value = getattr(p, 'value', None)
+            if value is not None:
+                choice = next(c for c in choices if c.id == value)
+            else:
+                choice = None
             params.append(InterventionChoiceParameter(
                 id=p.id, description=p.label, required=p.required,
-                choices=choices, labels=labels, choice=getattr(p, 'value', None),
-                label=getattr(p, 'label', None),
+                choices=choices, choice=choice,
             ))
         else:
             raise Exception('Unknown parameter type')

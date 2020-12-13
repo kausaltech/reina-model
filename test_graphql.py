@@ -27,10 +27,11 @@ if False:
     exit()
 
 
-if False:
+if True:
     available_interventions_query = gql("""
         query {
             availableInterventions {
+                id
                 type
                 description
                 parameters {
@@ -38,8 +39,10 @@ if False:
                     description
                     required
                     ... on InterventionChoiceParameter {
-                        choices
-                        labels
+                        choices {
+                            id
+                            label
+                        }
                     }
                     ... on InterventionIntParameter {
                         minValue

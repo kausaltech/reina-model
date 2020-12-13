@@ -1,8 +1,29 @@
 import dataclasses
 import typing
 from dataclasses import dataclass
+from enum import Enum
 
 from flask_babel import lazy_gettext as _
+
+
+class ContactPlace(Enum):
+    HOME = 1
+    WORK = 2
+    SCHOOL = 3
+    TRANSPORT = 4
+    LEISURE = 5
+    OTHER = 6
+
+    def label(self):
+        TRANSLATIONS = {
+            self.HOME: _('Home'),
+            self.WORK: _('Work'),
+            self.SCHOOL: _('School'),
+            self.TRANSPORT: _('Transport'),
+            self.LEISURE: _('Leisure'),
+            self.OTHER: _('Other'),
+        }
+        return TRANSLATIONS[self]
 
 
 @dataclass
@@ -45,13 +66,13 @@ class Intervention:
             if isinstance(p, IntParameter):
                 o.value = iv[2 + idx]
             elif isinstance(p, ChoiceParameter):
-                o.value = iv[2 + idx]
+                value = iv[2 + idx]
                 for c in p.choices:
-                    if o.value == c.id:
+                    if value == c.id:
                         break
                 else:
                     raise Exception('Invalid choice value')
-                o.label = c.label
+                o.choice = c
             params.append(o)
 
         obj = dataclasses.replace(self, parameters=params)
@@ -108,9 +129,7 @@ INTERVENTIONS = [
             ),
             ChoiceParameter(
                 id='place', label=_('Place where the contacts happen'),
-                choices=[
-                    Choice('home', _('Home'))
-                ],
+                choices=[Choice(x.name.lower(), x.label()) for x in ContactPlace],
                 required=False,
             ),
         ],
