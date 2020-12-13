@@ -28,8 +28,9 @@ services:
         build:
             context: ../reina-ui
         restart: unless-stopped
-        ports:
-            - "127.0.0.1:3001:3000"
+        # If we want to access Next.js server directly, without proxying
+        # ports:
+        #     - "127.0.0.1:3001:3000"
         # For some reason, .env file does not work automatically, like it
         # does for reina-model, so we're setting it explicitly here.
         env_file:
