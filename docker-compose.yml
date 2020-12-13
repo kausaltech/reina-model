@@ -14,7 +14,7 @@ services:
         environment:
             - REDIS_URL=redis://redis:6379
         ports:
-            - "127.0.0.1:8123:8123"
+            - "127.0.0.1:5000:5000"
         volumes:
             - .:/app
     redis:

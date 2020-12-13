@@ -17,5 +17,5 @@ RUN export PYTHONPATH="${PYTHONPATH}:/src"
 
 RUN pybabel compile -d locale
 
-EXPOSE 8123
-ENTRYPOINT ["python", "-m", "corona", "--externally-visible"]
+EXPOSE 5000
+ENTRYPOINT ["flask", "run", "--host=0.0.0.0", "--port=5000"]
