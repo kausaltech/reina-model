@@ -13,8 +13,11 @@ services:
         restart: unless-stopped
         environment:
             - REDIS_URL=redis://redis:6379
-        ports:
-            - "127.0.0.1:5000:5000"
+        # If we want to examine graphql API directly, without proxying
+        #ports:
+        #    - "127.0.0.1:5000:5000"
+        depends_on:
+            - redis
         volumes:
             - .:/app
     redis:
