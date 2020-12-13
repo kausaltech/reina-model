@@ -12,16 +12,6 @@ from common import cache
 from simulation_thread import SimulationThread
 from variables import get_variable
 
-
-class ContactPlace(Enum):
-    HOME = 1
-    WORK = 2
-    SCHOOL = 3
-    TRANSPORT = 4
-    LEISURE = 5
-    OTHER = 6
-
-
 InterventionType = Enum('InverventionType', [
     (iv.type.upper().replace('-', '_'), iv.type) for iv in INTERVENTIONS
 ])
@@ -101,7 +91,7 @@ def iv_to_graphql_obj(iv, obj_id=None):
         else:
             raise Exception('Unknown parameter type')
     return Intervention(
-        id=obj_id, type=iv.type, description=iv.label, date=getattr(iv, 'date'), parameters=params
+        id=obj_id, type=iv.type, description=iv.label, date=getattr(iv, 'date', None), parameters=params
     )
 
 
