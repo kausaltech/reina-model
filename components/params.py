@@ -4,13 +4,13 @@ import dash_core_components as dcc
 import dash_html_components as html
 import dash_table
 import plotly.graph_objects as go
+from calc.simulation import sample_model_parameters
 from dash.dependencies import Input, Output, State
 from flask_babel import lazy_gettext as _
+from variables import get_variable, reset_variable, set_variable
 
-from calc.simulation import sample_model_parameters
 from components.cards import GraphCard
 from components.graphs import make_layout
-from variables import get_variable, reset_variable, set_variable
 
 SYMPTOM_MAP = {
     'ASYMPTOMATIC': _('Asymptomatic'),
@@ -152,6 +152,10 @@ DISEASE_PARAMS = (
 
     ('ratio_of_duration_before_hospitalisation', _('Ratio of time before hospitalization'), '%'),
     ('ratio_of_duration_in_ward', _('Ratio of time in ward before ICU care'), '%'),
+
+    ('incubating_at_simulation_start', _('People who are a- or presymptomatic at simulation start'), ''),
+    ('ill_at_simulation_start', _('People who are ill with symptoms at simulation start'), ''),
+    ('recovered_at_simulation_start', _('People who have recovered from infection at simulation start'), ''),
 )
 
 
@@ -197,7 +201,7 @@ def render_disease_params():
                 dbc.Button(
                 _('Restore defaults'), id='disease-params-reset-defaults', color='secondary',
                 size='sm', className='mt-3'
-                ), 
+                ),
             className='text-right'),
             html.Div(
                 dbc.Button(
@@ -272,9 +276,13 @@ def register_params_callbacks(app):
                 row['value'] = get_variable(row['id'])
             if row['value'] < 0:
                 row['value'] = 0
-            elif row['value'] > 100:
+            elif row['unit'] != '' and row['value'] > 100:
                 row['value'] = 100
-            set_variable(row['id'], float(row['value']))
+            val = (int(row['value'])
+                   if '_at_simulation_start' in row['id']
+                   else float(row['value']))
+
+            set_variable(row['id'], val)
 
         return rows
 
