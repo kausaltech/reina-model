@@ -6,7 +6,8 @@ from graphene import (ID, Boolean, Enum, Field, Float, InputObjectType, Int,
 from graphql import GraphQLError
 
 from calc.datasets import get_detected_cases
-from calc.interventions import INTERVENTIONS, ChoiceParameter, IntParameter
+from calc.interventions import (INTERVENTIONS, ChoiceParameter, IntParameter,
+                                iv_tuple_to_obj)
 from common import cache
 from simulation_thread import SimulationThread
 from variables import get_variable
@@ -35,7 +36,8 @@ class InterventionParameter(Interface):
 class InterventionChoiceParameter(ObjectType):
     choices = List(String)
     labels = List(String)
-    value = String()
+    choice = String()
+    label = String()
 
     class Meta:
         interfaces = (InterventionParameter,)
@@ -76,6 +78,33 @@ class SimulationResults(ObjectType):
     predicted_metrics = Field(DailyMetrics, required=True)
 
 
+def iv_to_graphql_obj(iv, obj_id=None):
+    params = []
+    iv_params = iv.parameters or []
+    for p in iv_params:
+        if isinstance(p, IntParameter):
+            params.append(InterventionIntParameter(
+                id=p.id, description=p.label, required=p.required,
+                min_value=p.min_value,
+                max_value=p.max_value,
+                unit=p.unit,
+                value=getattr(p, 'value', None),
+            ))
+        elif isinstance(p, ChoiceParameter):
+            choices = [c.id for c in p.choices]
+            labels = [str(c.label) for c in p.choices]
+            params.append(InterventionChoiceParameter(
+                id=p.id, description=p.label, required=p.required,
+                choices=choices, labels=labels, choice=getattr(p, 'value', None),
+                label=getattr(p, 'label', None),
+            ))
+        else:
+            raise Exception('Unknown parameter type')
+    return Intervention(
+        id=obj_id, type=iv.type, description=iv.label, date=getattr(iv, 'date'), parameters=params
+    )
+
+
 class Query(ObjectType):
     available_interventions = List(Intervention)
     active_interventions = List(Intervention)
@@ -87,29 +116,7 @@ class Query(ObjectType):
     def resolve_available_interventions(query, info):
         out = []
         for iv in INTERVENTIONS:
-            params = []
-            iv_params = iv.parameters or []
-            for p in iv_params:
-                if isinstance(p, IntParameter):
-                    params.append(InterventionIntParameter(
-                        id=p.id, description=p.label, required=p.required,
-                        min_value=p.min_value,
-                        max_value=p.max_value,
-                        unit=p.unit
-                    ))
-                elif isinstance(p, ChoiceParameter):
-                    choices = [c.id for c in p.choices]
-                    labels = [str(c.label) for c in p.choices]
-                    params.append(InterventionChoiceParameter(
-                        id=p.id, description=p.label, required=p.required,
-                        choices=choices, labels=labels
-                    ))
-                else:
-                    raise Exception('Unknown parameter type')
-
-            out.append(Intervention(
-                type=iv.type, description=iv.label, parameters=params
-            ))
+            out.append(iv_to_graphql_obj(iv))
 
         return out
 
@@ -117,9 +124,8 @@ class Query(ObjectType):
         interventions = get_variable('interventions')
         out = []
         for idx, iv in enumerate(interventions):
-            obj = Intervention(id=idx, type=iv[0], date=iv[1])
+            obj = iv_to_graphql_obj(iv_tuple_to_obj(iv), obj_id=idx)
             out.append(obj)
-
         return out
 
     def resolve_simulation_results(query, info, run_id):

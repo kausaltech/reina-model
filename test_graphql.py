@@ -32,6 +32,7 @@ if False:
         query {
             availableInterventions {
                 type
+                description
                 parameters {
                     id
                     description
@@ -61,6 +62,16 @@ if True:
                 id
                 type
                 date
+                parameters {
+                    id
+                    ... on InterventionIntParameter {
+                        value
+                    }
+                    ... on InterventionChoiceParameter {
+                        choice
+                        label
+                    }
+                }
             }
         }
     """)

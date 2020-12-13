@@ -1,3 +1,4 @@
+import dataclasses
 import typing
 from dataclasses import dataclass
 
@@ -34,6 +35,28 @@ class Intervention:
     type: str
     label: str
     parameters: typing.List[Parameter] = None
+
+    def copy_from_iv_tuple(self, iv):
+        params = []
+        for idx, p in enumerate(self.parameters or []):
+            if len(iv) <= 2 + idx:
+                break
+            o = dataclasses.replace(p)  # creates a copy
+            if isinstance(p, IntParameter):
+                o.value = iv[2 + idx]
+            elif isinstance(p, ChoiceParameter):
+                o.value = iv[2 + idx]
+                for c in p.choices:
+                    if o.value == c.id:
+                        break
+                else:
+                    raise Exception('Invalid choice value')
+                o.label = c.label
+            params.append(o)
+
+        obj = dataclasses.replace(self, parameters=params)
+        obj.date = iv[1]
+        return obj
 
 
 INTERVENTIONS = [
@@ -106,3 +129,13 @@ INTERVENTIONS = [
     # Intervention('build-new-hospital-beds', _('Build new hospital beds'), _('beds')),
     # Intervention('build-new-icu-units', _('Build new ICU units'), _('units')),
 ]
+
+
+def iv_tuple_to_obj(iv):
+    for obj in INTERVENTIONS:
+        if iv[0] == obj.type:
+            break
+    else:
+        raise Exception()
+
+    return obj.copy_from_iv_tuple(iv)
