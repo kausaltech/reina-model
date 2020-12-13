@@ -47,25 +47,24 @@ python -m corona
 
 ## Installing and running with Docker
 
-Alternatively, you can run Reina with [Docker](https://www.docker.com/).
-To do so, run:
+You can run Reina with [Docker](https://www.docker.com/). Check `reina-ui`  project to `../reina-ui` and set following environment variables to `.env` file:
+```
+ENV=dev
+FLASK_ENV=development
+NEXT_PUBLIC_GRAPHQL_ENDPOINT=http://localhost:8080/graphql
+```
+Then run
 
 ```
 docker-compose up
 ```
 
-To run the Reina UI, you need to check out the project to `../reina-ui`. To run it with
-Next.js development server, set the following environment variable to your .env file:
-```
-ENV=dev
-```
-
-The first time you run it, it will build the container for Reina, which takes some time. Once it's done, Reina Dash visualization is available at localhost:8123.
+The first time you run it, it will build the container for Reina, which takes some time. Once build done, Reina UI is available at localhost:8080.
 
 While the container is running, you can run the simulation like this:
 
 ```
-docker exec -ti reina python -m calc.simulation
+docker exec -ti reina-model python -m calc.simulation
 ```
 
 ## Configuring the hospital district
