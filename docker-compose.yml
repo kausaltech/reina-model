@@ -1,9 +1,15 @@
 version: '3'
 services:
-    reina:
+    caddy:
+        image: caddy:2.1.1-alpine
+        ports:
+        - "127.0.0.1:8080:8080"
+        restart: unless-stopped
+        volumes:
+        - .Caddyfile:/etc/caddy/Caddyfile
+    reina-model:
         build:
             context: .
-        container_name: reina
         restart: unless-stopped
         environment:
             - REDIS_URL=redis://redis:6379
@@ -14,3 +20,18 @@ services:
     redis:
         image: redis
         restart: unless-stopped
+    reina-ui:
+        build:
+            context: ../reina-ui
+        restart: unless-stopped
+        ports:
+            - "127.0.0.1:3001:3000"
+        # For some reason, .env file does not work automatically, like it
+        # does for reina-model, so we're setting it explicitly here.
+        env_file:
+            - .env
+        volumes:
+            - ../reina-ui:/app
+            - node_modules:/app/node_modules
+volumes:
+    node_modules:

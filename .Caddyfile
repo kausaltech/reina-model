@@ -1,0 +1,6 @@
+{
+    auto_https off
+}
+:8080
+reverse_proxy /graphql reina-model:8123/graphql
+reverse_proxy reina-ui:3000

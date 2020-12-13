@@ -54,6 +54,12 @@ To do so, run:
 docker-compose up
 ```
 
+To run the Reina UI, you need to check out the project to `../reina-ui`. To run it with
+Next.js development server, set the following environment variable to your .env file:
+```
+ENV=dev
+```
+
 The first time you run it, it will build the container for Reina, which takes some time. Once it's done, Reina Dash visualization is available at localhost:8123.
 
 While the container is running, you can run the simulation like this:
