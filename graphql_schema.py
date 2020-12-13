@@ -136,7 +136,10 @@ class Query(ObjectType):
             dates = []
             metrics = []
 
-        return SimulationResults(finished=finished, dates=dates, metrics=metrics)
+        daily_metrics = DailyMetrics(dates=dates, metrics=metrics)
+        return SimulationResults(
+            run_id=run_id, finished=finished, predicted_metrics=daily_metrics
+        )
 
     def resolve_validation_metrics(query, info):
         df = get_detected_cases()
