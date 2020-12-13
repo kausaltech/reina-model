@@ -28,20 +28,23 @@ flask-session==0.3.2      # via -r requirements.in
 flask==1.1.2              # via dash, flask-babel, flask-caching, flask-compress, flask-session, graphql-server
 future==0.18.2            # via dash
 futures==3.1.1            # via -r requirements.in
+gql==3.0.0a5              # via -r requirements.in
 graphene==3.0b6           # via -r requirements.in
-graphql-core==3.1.2       # via graphene, graphql-relay, graphql-server
+graphql-core==3.1.2       # via gql, graphene, graphql-relay, graphql-server
 graphql-relay==3.0.0      # via graphene
 graphql-server[flask]==3.0.0b2  # via -r requirements.in
 gunicorn==20.0.4          # via -r requirements.in
+idna==2.10                # via yarl
 itsdangerous==1.1.0       # via flask
 jinja2==2.11.2            # via flask, flask-babel
 kiwisolver==1.3.1         # via matplotlib
 llvmlite==0.35.0          # via numba
 markupsafe==1.1.1         # via jinja2
 matplotlib==3.3.3         # via -r requirements.in
+multidict==5.1.0          # via yarl
 numba==0.52.0             # via fastparquet
 numpy==1.19.4             # via -r requirements.in, fastparquet, matplotlib, numba, pandas, scipy
-packaging==20.7           # via fastparquet
+packaging==20.8           # via fastparquet
 pandas==1.1.5             # via -r requirements.in, fastparquet
 pillow==8.0.1             # via matplotlib
 plotly==4.14.1            # via dash
@@ -58,6 +61,7 @@ thrift==0.13.0            # via fastparquet
 typing-extensions==3.7.4.3  # via graphql-server
 werkzeug==1.0.1           # via -r requirements.in, flask
 xlrd==2.0.1               # via -r requirements.in
+yarl==1.6.3               # via gql
 
 # The following packages are considered to be unsafe in a requirements file:
 # setuptools
