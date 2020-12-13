@@ -85,9 +85,9 @@ def iv_to_graphql_obj(iv, obj_id=None):
             ))
         elif isinstance(p, ChoiceParameter):
             choices = [Choice(id=c.id, label=c.label) for c in p.choices]
-            value = getattr(p, 'value', None)
-            if value is not None:
-                choice = next(c for c in choices if c.id == value)
+            c = getattr(p, 'choice', None)
+            if c is not None:
+                choice = Choice(id=c.id, label=c.label)
             else:
                 choice = None
             params.append(InterventionChoiceParameter(

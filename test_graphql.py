@@ -27,7 +27,7 @@ if False:
     exit()
 
 
-if True:
+if False:
     available_interventions_query = gql("""
         query {
             availableInterventions {
@@ -71,8 +71,10 @@ if True:
                         value
                     }
                     ... on InterventionChoiceParameter {
-                        choice
-                        label
+                        choice {
+                            id
+                            label
+                        }
                     }
                 }
             }

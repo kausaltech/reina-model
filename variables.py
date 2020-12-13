@@ -186,6 +186,7 @@ VARIABLE_DEFAULTS = {
         ['limit-mobility', '2020-09-15', 25],
         ['limit-mobility', '2020-10-01', 30],
         ['limit-mobility', '2020-10-15', 35],
+        # ['limit-mobility', '2020-12-15', 35, 13, 15, 'school'],
 
         # FIXME: Fully remove import interventions
         ['import-infections', '2020-02-22', 5],
