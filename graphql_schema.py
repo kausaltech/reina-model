@@ -24,8 +24,42 @@ class Intervention(Interface):
     date = String(required=True)
 
 
+class ContactPlace(Enum):
+    HOME = 1
+    WORK = 2
+    SCHOOL = 3
+    TRANSPORT = 4
+    LEISURE = 5
+    OTHER = 6
+
+
 class LimitMobilityIntervention(ObjectType):
     value = Int(required=True)
+    min_age = Int()
+    max_age = Int()
+    contact_place = Field(ContactPlace)
+
+    class Meta:
+        interfaces = (Intervention,)
+
+
+class ImportInfectionsIntervention(ObjectType):
+    amount = Int(required=True)
+
+    class Meta:
+        interfaces = (Intervention,)
+
+
+class TestingStrategy(Enum):
+    NO_TESTING = 0
+    ONLY_SEVERE_SYMPTOMS = 1
+    ALL_WITH_SYMPTOMS = 2
+    CONTACT_TRACING = 3
+
+
+class TestingStrategyIntervention(ObjectType):
+    strategy = Field(TestingStrategy, required=True)
+    efficiency = Int()
 
     class Meta:
         interfaces = (Intervention,)
@@ -55,6 +89,28 @@ class Query(ObjectType):
         for iv in interventions:
             if iv[0] == 'limit-mobility':
                 out.append(LimitMobilityIntervention(date=iv[1], value=iv[2]))
+            elif iv[0] == 'import-infections':
+                out.append(ImportInfectionsIntervention(date=iv[1], amount=iv[2]))
+            elif iv[0] == 'import-infections':
+                out.append(ImportInfectionsIntervention(date=iv[1], amount=iv[2]))
+            elif iv[0] == 'test-all-with-symptoms':
+                out.append(TestingStrategyIntervention(
+                    date=iv[1],
+                    strategy=TestingStrategy.ALL_WITH_SYMPTOMS,
+                ))
+            elif iv[0] == 'test-only-severe-symptoms':
+                out.append(TestingStrategyIntervention(
+                    date=iv[1],
+                    strategy=TestingStrategy.ONLY_SEVERE_SYMPTOMS,
+                    efficiency=iv[2],
+                ))
+            elif iv[0] == 'test-with-contact-tracing':
+                out.append(TestingStrategyIntervention(
+                    date=iv[1],
+                    strategy=TestingStrategy.CONTACT_TRACING,
+                    efficiency=iv[2]
+                ))
+
         return out
 
     def resolve_simulation_results(query, info, run_id):
@@ -102,5 +158,5 @@ class RootMutation(ObjectType):
 
 
 schema = Schema(query=Query, mutation=RootMutation, types=[
-    LimitMobilityIntervention
+    LimitMobilityIntervention, TestingStrategyIntervention, ImportInfectionsIntervention
 ])
