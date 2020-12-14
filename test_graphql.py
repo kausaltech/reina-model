@@ -9,7 +9,51 @@ transport = RequestsHTTPTransport(url="http://localhost:5000/graphql")
 # Create a GraphQL client using the defined transport
 client = Client(transport=transport, fetch_schema_from_transport=True)
 
-if False:
+if True:
+    add_intervention = gql("""
+        mutation AddIntervention {
+            addIntervention(intervention: {
+                date: "2020-12-01",
+                type: "limit-mobility",
+                parameters: [{
+                    id: "reduction",
+                    value: 50,
+                }, {
+                    id: "min_age",
+                    value: 7,
+                }, {
+                    id: "max_age",
+                    value: 12,
+                }, {
+                    id: "place",
+                    choice: "school",
+                }],
+            }) {
+                id
+            }
+        }
+    """)
+
+    result = client.execute(add_intervention)
+    print(result)
+    exit()
+
+
+if True:
+    delete_intervention = gql("""
+        mutation DeleteIntervention($id: ID!) {
+            deleteIntervention(interventionId: $id) {
+                ok
+            }
+        }
+    """)
+
+    result = client.execute(delete_intervention, variable_values=dict(id='5'))
+    print(result)
+    exit()
+
+
+if True:
     validation_metrics_query = gql("""
         query {
             validationMetrics {
@@ -24,10 +68,9 @@ if False:
 
     result = client.execute(validation_metrics_query)
     print(result)
-    exit()
 
 
-if False:
+if True:
     available_interventions_query = gql("""
         query {
             availableInterventions {
@@ -55,7 +98,6 @@ if False:
 
     result = client.execute(available_interventions_query)
     pprint(result)
-    exit()
 
 
 if True:
@@ -82,8 +124,9 @@ if True:
     """)
     result = client.execute(get_interventions_query)
     print(result)
-    exit()
 
+
+exit()
 
 start_sim = gql("""
     mutation {

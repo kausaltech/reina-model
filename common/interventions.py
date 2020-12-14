@@ -106,6 +106,37 @@ class Intervention:
             out[p.id] = val
         return out
 
+    def set_param(self, param_id, val):
+        for p in (self.parameters or []):
+            if p.id == param_id:
+                break
+        else:
+            raise Exception('Invalid parameter id: %s' % param_id)
+
+        if isinstance(p, IntParameter):
+            if val is not None and not isinstance(val, int):
+                raise Exception('Requires int parameter: %s' % param_id)
+            p.value = val
+        elif isinstance(p, ChoiceParameter):
+            if val is not None:
+                for c in p.choices:
+                    if val == c.id:
+                        break
+                else:
+                    raise Exception('Invalid choice value for %s: %s' % (param_id, val))
+                p.choice = c
+            else:
+                p.choice = None
+
+    def make_iv_tuple(self):
+        params = []
+        for p in (self.parameters or []):
+            if isinstance(p, IntParameter):
+                params.append(p.value)
+            elif isinstance(p, ChoiceParameter):
+                params.append(p.choice and p.choice.id)
+        return [self.type, self.date, *params]
+
 
 INTERVENTIONS = [
     Intervention(
@@ -199,11 +230,15 @@ INTERVENTIONS = [
 # Intervention('limit-mass-gatherings', _('Limit mass gatherings'), _('max. contacts')),
 
 
-def iv_tuple_to_obj(iv):
+def get_intervention(iv_type):
     for obj in INTERVENTIONS:
-        if iv[0] == obj.type:
+        if iv_type == obj.type:
             break
     else:
-        raise Exception('Invalid intervention type: %s' % iv[0])
+        raise Exception('Invalid intervention type: %s' % iv_type)
+    return obj
 
+
+def iv_tuple_to_obj(iv):
+    obj = get_intervention(iv[0])
     return obj.make_from_iv_tuple(iv)

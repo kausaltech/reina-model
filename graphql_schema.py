@@ -3,13 +3,13 @@ import uuid
 from calc.datasets import get_detected_cases
 from common import cache
 from common.interventions import (INTERVENTIONS, ChoiceParameter, IntParameter,
-                                  iv_tuple_to_obj)
+                                  get_intervention, iv_tuple_to_obj)
 from flask import session
 from graphene import (ID, Boolean, Enum, Field, Float, InputObjectType, Int,
                       Interface, List, Mutation, ObjectType, Schema, String)
 from graphql import GraphQLError
 from simulation_thread import SimulationThread
-from variables import get_variable
+from variables import get_variable, reset_variables, set_variable
 
 InterventionType = Enum('InverventionType', [
     (iv.type.upper().replace('-', '_'), iv.type) for iv in INTERVENTIONS
@@ -163,22 +163,65 @@ class RunSimulation(Mutation):
         return dict(run_id=run_id)
 
 
+class InterventionInputParameter(InputObjectType):
+    id = ID(required=True)
+    value = Int()
+    choice = String()
+
+
 class InterventionInput(InputObjectType):
-    date = String()
-    parameters = List(InterventionParameter)
+    date = String(required=True)
+    type = ID(required=True)
+    parameters = List(InterventionInputParameter)
 
 
 class AddIntervention(Mutation):
     class Arguments:
         intervention = InterventionInput(required=True)
 
+    id = ID(required=True)
+
     def mutate(root, info, intervention):
-        return
+        iv_list = list(get_variable('interventions'))
+        obj = get_intervention(intervention.type)
+        obj.date = intervention.date
+        for p in intervention.parameters:
+            obj.set_param(p.id, p.choice or p.value)
+        iv_list.append(obj.make_iv_tuple())
+        set_variable('interventions', iv_list)
+
+        return dict(id=len(iv_list) - 1)
+
+
+class DeleteIntervention(Mutation):
+    class Arguments:
+        intervention_id = ID(required=True)
+
+    ok = Boolean()
+
+    def mutate(root, info, intervention_id):
+        iv_id = int(intervention_id)
+        iv_list = list(get_variable('interventions'))
+        if iv_id >= len(iv_list):
+            raise GraphQLError('invalid intervention ID')
+        del iv_list[iv_id]
+        set_variable('interventions', iv_list)
+        return dict(ok=True)
+
+
+class ResetVariables(Mutation):
+    ok = Boolean()
+
+    def mutate(root, info):
+        reset_variables()
+        return dict(ok=True)
 
 
 class RootMutation(ObjectType):
     run_simulation = RunSimulation.Field()
-    # add_intervention = AddIntervention.Field()
+    add_intervention = AddIntervention.Field()
+    delete_intervention = DeleteIntervention.Field()
+    reset_variables = ResetVariables.Field()
 
 
 schema = Schema(query=Query, mutation=RootMutation, types=[
