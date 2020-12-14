@@ -1,14 +1,13 @@
 import uuid
 
+from calc.datasets import get_detected_cases
+from common import cache
+from common.interventions import (INTERVENTIONS, ChoiceParameter, IntParameter,
+                                  iv_tuple_to_obj)
 from flask import session
 from graphene import (ID, Boolean, Enum, Field, Float, InputObjectType, Int,
                       Interface, List, Mutation, ObjectType, Schema, String)
 from graphql import GraphQLError
-
-from calc.datasets import get_detected_cases
-from calc.interventions import (INTERVENTIONS, ChoiceParameter, IntParameter,
-                                iv_tuple_to_obj)
-from common import cache
 from simulation_thread import SimulationThread
 from variables import get_variable
 
