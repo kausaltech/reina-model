@@ -10,6 +10,7 @@ import numpy as np
 import pandas as pd
 from cython.parallel import prange
 from faker.providers.person.fi_FI import Provider as NameProvider
+from common.interventions import Intervention
 
 cimport cython
 cimport openmp
@@ -54,6 +55,7 @@ cdef enum SimulationProblem:
 
 
 cdef enum ContactPlace:
+    ALL
     HOME
     WORK
     SCHOOL
@@ -63,6 +65,7 @@ cdef enum ContactPlace:
 
 
 CONTACT_PLACE_TO_STR = {
+    ALL: 'all',
     HOME: 'home',
     WORK: 'work',
     SCHOOL: 'school',
@@ -836,11 +839,25 @@ cdef struct AgeContactProbabilities:
     int count
 
 
+cdef class MobilityFactor:
+    cdef public ContactPlace place
+    cdef public int min_age
+    cdef public int max_age
+    cdef public float mobility_factor
+
+    def __init__(self, place, min_age, max_age, mobility_factor):
+        self.place = place
+        self.min_age = min_age
+        self.max_age = max_age
+        self.mobility_factor = mobility_factor
+
+
 cdef class ContactMatrix:
     cdef object contact_df  # pandas.DataFrame
     cdef double[::1] nr_contacts_by_age
     cdef AgeContactProbabilities *p_by_age
     cdef int nr_ages
+    cdef list mobility_factors
     cdef float mobility_factor
 
     def __init__(self, contacts_per_day, nr_ages):
@@ -850,16 +867,16 @@ cdef class ContactMatrix:
         self.contact_df = contacts_per_day.copy(deep=True)
         self.nr_ages = nr_ages
         self.mobility_factor = 1.0
+        self.mobility_factors = []
 
         cdef AgeContactProbabilities *acp
         self.p_by_age = <AgeContactProbabilities *> PyMem_Malloc(nr_ages * sizeof(AgeContactProbabilities))
 
         s = self.contact_df.groupby('participant_age').size()
-        for (age_min, age_max), count in s.items():
-            for age in range(age_min, age_max + 1):
-                acp = self.p_by_age + age
-                acp.count = count
-                acp.probabilities = <ContactProbability *> PyMem_Malloc(acp.count * sizeof(ContactProbability))
+        for age, count in s.items():
+            acp = self.p_by_age + age
+            acp.count = count
+            acp.probabilities = <ContactProbability *> PyMem_Malloc(acp.count * sizeof(ContactProbability))
 
         self.generate_probability_matrix()
 
@@ -875,12 +892,15 @@ cdef class ContactMatrix:
         df = self.contact_df.copy()
 
         # df.loc[df.place_type != 'home', 'contacts'] *= self.mobility_factor
-        df['contacts'] *= self.mobility_factor
+        for mf in self.mobility_factors:
+            filters = (df.participant_age >= mf.min_age) & (df.participant_age <= mf.max_age)
+            if mf.place != ContactPlace.ALL:
+                filters &= df.place_type == CONTACT_PLACE_TO_STR[mf.place]
+            df.loc[filters, 'contacts'] *= mf.mobility_factor
 
         total_contacts = df.groupby('participant_age')['contacts'].sum()
-        for (age_min, age_max), count in total_contacts.items():
-            for age in range(age_min, age_max + 1):
-                self.nr_contacts_by_age[age] = count
+        for age, count in total_contacts.items():
+            self.nr_contacts_by_age[age] = count
 
         df = df.set_index(['place_type', 'participant_age', 'contact_age']).sort_index()
         df = df.unstack('participant_age')
@@ -890,18 +910,16 @@ cdef class ContactMatrix:
 
         str_to_place = {val: key for key, val in CONTACT_PLACE_TO_STR.items()}
 
-        for col in df.columns:
-            age_min, age_max = col
-            s = df[col]
+        for age in df.columns:
+            s = df[age]
             for (place, (contact_age_min, contact_age_max)), cum_p in s.items():
-                for age in range(age_min, age_max + 1):
-                    acp = self.p_by_age + age
-                    cp = acp.probabilities + acp.count
-                    cp.place = str_to_place[place]
-                    cp.contact_age_min = contact_age_min
-                    cp.contact_age_max = contact_age_max
-                    cp.cum_p = cum_p
-                    acp.count += 1
+                acp = self.p_by_age + age
+                cp = acp.probabilities + acp.count
+                cp.place = str_to_place[place]
+                cp.contact_age_min = contact_age_min
+                cp.contact_age_max = contact_age_max
+                cp.cum_p = cum_p
+                acp.count += 1
 
     def __dealloc__(self):
         cdef AgeContactProbabilities *acp
@@ -913,8 +931,22 @@ cdef class ContactMatrix:
 
         PyMem_Free(self.p_by_age)
 
-    def set_mobility_factor(self, factor):
+    def set_mobility_factor(self, factor, place=None, min_age=None, max_age=None):
         self.mobility_factor = factor
+        if place == None:
+            place = ContactPlace.ALL
+        if min_age == None:
+            min_age = 0
+        if max_age == None:
+            max_age = self.nr_ages - 1
+        for mf in self.mobility_factors:
+            if mf.place == place and mf.min_age == min_age and mf.max_age == max_age:
+                mf.mobility_factor = factor
+                break
+        else:
+            mf = MobilityFactor(place, min_age, max_age, factor)
+            self.mobility_factors.append(mf)
+
         self.generate_probability_matrix()
 
     cdef ContactProbability * get_one_contact(self, Person *person, Context context) nogil:
@@ -1037,6 +1069,7 @@ cdef class Population:
 
     def set_initial_state(self, ipc, Context context):
         cdef Person * person
+        cdef int age
 
         i_incubating = ipc.incubating
         i_recovered_without_symptoms = i_incubating + ipc.recovered_without_illness()
@@ -1088,8 +1121,9 @@ cdef class Population:
             # the rest recovered on their own at some point
             person_recover(person, context)
 
-        for i in range(100):
-            self.all_detected[i] = 0
+        for age in range(100):
+            self.all_detected[age] = 0
+
         for i in range(ipc.confirmed_cases):
             # let's just spread these along all age groups
             # the age distribution of detected cases is not in any case used
@@ -1176,17 +1210,6 @@ cdef class Population:
             self.detected[age] -= 1
 
 
-cdef class Intervention:
-    cdef public int day
-    cdef public str name
-    cdef public int value
-
-    def __init__(self, day, name, value):
-        self.day = day
-        self.name = name
-        self.value = value
-
-
 cdef class Context:
     cdef public Population pop
     cdef public HealthcareSystem hc
@@ -1252,11 +1275,8 @@ cdef class Context:
         d = date.fromisoformat(self.start_date)
         return (d + timedelta(days=self.day)).isoformat()
 
-    def add_intervention(self, day, name, value):
-        if value is None:
-            value = 0
-        self.interventions.append(Intervention(day, name, value))
-
+    def add_intervention(self, iv):
+        self.interventions.append(iv)
 
     def generate_state(self):
         p = self.pop
@@ -1296,33 +1316,34 @@ cdef class Context:
             person = self.pop.get_random_person(self)
             person_infect(person, self)
 
-    def apply_intervention(self, name, value):
-        if name == 'test-all-with-symptoms':
+    def apply_intervention(self, iv):
+        params = iv.get_param_values()
+        if iv.type == 'test-all-with-symptoms':
             # Start testing everyone who shows even mild symptoms
             self.hc.set_testing_mode(TestingMode.ALL_WITH_SYMPTOMS)
-        elif name == 'test-only-severe-symptoms':
+        elif iv.type == 'test-only-severe-symptoms':
             # Test only those who show severe or critical symptoms
-            self.hc.set_testing_mode(TestingMode.ONLY_SEVERE_SYMPTOMS, value / 100.0)
-        elif name == 'test-with-contact-tracing':
+            self.hc.set_testing_mode(TestingMode.ONLY_SEVERE_SYMPTOMS, params['mild_detection_rate'] / 100.0)
+        elif iv.type == 'test-with-contact-tracing':
             # Test only those who show severe or critical symptoms
-            self.hc.set_testing_mode(TestingMode.ALL_WITH_SYMPTOMS_CT, value / 100.0)
-        elif name == 'build-new-icu-units':
-            self.hc.icu_units += value
-            self.hc.available_icu_units += value
-        elif name == 'build-new-hospital-beds':
-            self.hc.beds += value
-            self.hc.available_beds += value
-        elif name == 'import-infections':
+            self.hc.set_testing_mode(TestingMode.ALL_WITH_SYMPTOMS_CT, params['efficiency'] / 100.0)
+        elif iv.type == 'build-new-icu-units':
+            self.hc.icu_units += params['units']
+            self.hc.available_icu_units += params['units']
+        elif iv.type == 'build-new-hospital-beds':
+            self.hc.beds += params['beds']
+            self.hc.available_beds += params['beds']
+        elif iv.type == 'import-infections':
             # Introduct infections from elsewhere
-            count = value
-            self.infect_people(count)
-        elif name == 'limit-cross-border-mobility':
-            # Introduct infections from elsewhere
-            self.context.cross_border_mobility_factor = (100 - value) / 100.0
-        elif name == 'limit-mass-gatherings':
-            self.pop.limit_mass_gatherings = value
-        elif name == 'limit-mobility':
-            self.pop.contact_matrix.set_mobility_factor((100 - value) / 100.0)
+            self.infect_people(params['amount'])
+        # elif iv.type == 'limit-cross-border-mobility':
+        #    # Introduce infections from elsewhere
+        #    self.context.cross_border_mobility_factor = (100 - value) / 100.0
+        # elif iv.type == 'limit-mass-gatherings':
+        #    self.pop.limit_mass_gatherings = value
+        elif iv.type == 'limit-mobility':
+            reduction = params['reduction']
+            self.pop.contact_matrix.set_mobility_factor((100 - reduction) / 100.0)
         else:
             raise Exception()
 
@@ -1359,11 +1380,6 @@ cdef class Context:
             self._process_person(person)
 
     cdef void _iterate(self):
-        for intervention in self.interventions:
-            if intervention.day == self.day:
-                # print(intervention.name)
-                self.apply_intervention(intervention.name, intervention.value)
-
         self.import_infections()
 
         self.total_infectors = 0
@@ -1380,6 +1396,11 @@ cdef class Context:
         self.day += 1
 
     def iterate(self):
+        today = self.get_date_for_today()
+        for iv in self.interventions:
+            if iv.date == today:
+                self.apply_intervention(iv)
+
         self._iterate()
         if self.problem != SimulationProblem.NO_PROBLEMOS:
             raise SimulationFailed(PROBLEM_TO_STR[self.problem])

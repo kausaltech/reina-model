@@ -3,35 +3,13 @@ from dataclasses import dataclass
 from datetime import date, timedelta
 
 import pandas as pd
-from flask_babel import lazy_gettext as _
-
 from calc import ExecutionInterrupted, calcfunc
 from calc.datasets import (get_contacts_for_country,
                            get_initial_population_condition,
                            get_population_for_area)
+from common.interventions import Intervention, iv_tuple_to_obj
 from cythonsim import model
 from utils.perf import PerfCounter
-
-
-@dataclass
-class Intervention:
-    name: str
-    label: str
-    unit: str = None
-
-
-INTERVENTIONS = [
-    Intervention('test-all-with-symptoms', _('Test all with symptoms')),
-    Intervention('test-only-severe-symptoms', _('Test people only with severe symptoms, given percentage of mild cases are detected'), '%'),
-    Intervention('test-with-contact-tracing', _('Test all with symptoms and perform contact tracing with given accuracy'), '%'),
-    Intervention('limit-mobility', _('Limit population mobility'), '%'),
-    # Intervention('limit-mass-gatherings', _('Limit mass gatherings'), _('max. contacts')),
-    Intervention('import-infections', _('Import infections'), _('infections')),
-    # Intervention('import-infections-per-day', _('Import new infections daily'), _('infections/day')),
-    Intervention('build-new-hospital-beds', _('Build new hospital beds'), _('beds')),
-    Intervention('build-new-icu-units', _('Build new ICU units'), _('units')),
-]
-
 
 POP_ATTRS = [
     'susceptible', 'infected', 'all_detected', 'hospitalized', 'in_icu',
@@ -77,6 +55,15 @@ def get_contacts_per_day():
     df['participant_age'] = df['participant_age'].map(lambda x: tuple([int(y) for y in x.split('-')]))
     df['contact_age'] = df['contact_age'].map(lambda x: tuple([int(y) for y in x.split('-')]))
 
+    df = pd.DataFrame(
+        [(t.place_type, p, t.contact_age, t.contacts) for t in df.itertuples() for p in range(t.participant_age[0], t.participant_age[1] + 1)],
+        columns=['place_type', 'participant_age', 'contact_age', 'contacts']
+    )
+    # df = pd.DataFrame(
+    #    [(t.place_type, t.participant_age, c, t.contacts / (t.contact_age[1] - t.contact_age[0] + 1)) for t in df.itertuples() for c in range(t.contact_age[0], t.contact_age[1] + 1)],
+    #    columns=['place_type', 'participant_age', 'contact_age', 'contacts']
+    # )
+
     return df
 
 
@@ -114,12 +101,7 @@ def simulate_individuals(variables, step_callback=None):
     start_date = date.fromisoformat(variables['start_date'])
 
     for iv in variables['interventions']:
-        d = (date.fromisoformat(iv[1]) - start_date).days
-        if len(iv) > 2:
-            val = iv[2]
-        else:
-            val = 0
-        context.add_intervention(d, iv[0], val)
+        context.add_intervention(iv_tuple_to_obj(iv))
     pc.measure()
 
     days = variables['simulation_days']

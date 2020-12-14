@@ -4,7 +4,6 @@ import sys
 import time
 import uuid
 from datetime import date, timedelta
-from threading import Thread
 
 import dash
 import dash_bootstrap_components as dbc
@@ -12,23 +11,22 @@ import dash_core_components as dcc
 import dash_html_components as html
 import dash_table
 import flask
-from dash.dependencies import Input, Output, State
-from flask import request, session
-from flask_babel import Babel
-from flask_babel import lazy_gettext as _
-from flask_session import Session
-
 from calc import ExecutionInterrupted
 from calc.datasets import get_population_for_area
-from calc.simulation import INTERVENTIONS, simulate_individuals
+from calc.simulation import simulate_individuals
 from calc.utils import generate_cache_key
 from common import cache, settings
+from common.interventions import INTERVENTIONS
 from common.locale import get_active_locale, init_locale
 from components.params import register_params_callbacks, render_disease_params
 from components.results import register_results_callbacks, render_results
+from dash.dependencies import Input, Output, State
+from flask import session
+from flask_babel import Babel
+from flask_babel import lazy_gettext as _
+from flask_session import Session
 from scenarios import SCENARIOS
-from variables import (get_variable, reset_variable, reset_variables,
-                       set_variable)
+from variables import get_variable, reset_variable, set_variable
 
 os.environ['DASH_PRUNE_ERRORS'] = 'False'
 os.environ['DASH_SILENCE_ROUTES_LOGGING'] = 'False'
@@ -108,7 +106,7 @@ def interventions_to_rows():
     iv_rows = []
     for iv in sorted(ivs, key=lambda x: x[1]):
         for i in INTERVENTIONS:
-            if i.name == iv[0]:
+            if i.type == iv[0]:
                 break
         else:
             # FIXME
@@ -119,7 +117,10 @@ def interventions_to_rows():
             val = None
         # date=datetime.strptime(iv[1], '%Y-%m-%d').strftime("%d.%m.%y")
         # Should we display formatted date on list? Does it mess with DataTable?
-        row = dict(date=iv[1], label=i.label, value=val, name=i.name, unit=i.unit)
+        unit = None
+        if i.parameters:
+            unit = getattr(i.parameters[0], 'unit', None)
+        row = dict(date=iv[1], label=i.label, value=val, name=i.type, unit=unit)
         iv_rows.append(row)
     return iv_rows
 
@@ -177,7 +178,7 @@ def render_iv_card():
                 ),
                 dcc.Dropdown(
                     id='new-intervention-id',
-                    options=[{'label': i.label, 'value': i.name} for i in INTERVENTIONS],
+                    options=[{'label': i.label, 'value': i.type} for i in INTERVENTIONS],
                     style=dict(width="450px"),
                 ),
                 dbc.Input(

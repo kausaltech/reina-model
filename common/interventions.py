@@ -38,6 +38,7 @@ class IntParameter(Parameter):
     min_value: int = None
     max_value: int = None
     unit: str = None
+    value: int = None
 
 
 @dataclass
@@ -49,6 +50,7 @@ class Choice:
 @dataclass
 class ChoiceParameter(Parameter):
     choices: typing.List[Choice] = None
+    choice: Choice = None
 
 
 @dataclass
@@ -57,27 +59,52 @@ class Intervention:
     label: str
     parameters: typing.List[Parameter] = None
 
-    def copy_from_iv_tuple(self, iv):
+    def make_from_iv_tuple(self, iv):
         params = []
+        date = iv[1]
+        iv = list(iv)[2:]
         for idx, p in enumerate(self.parameters or []):
-            if len(iv) <= 2 + idx:
+            if not len(iv):
                 break
+            val = iv.pop(0)
+            if val is None:
+                continue
             o = dataclasses.replace(p)  # creates a copy
             if isinstance(p, IntParameter):
-                o.value = iv[2 + idx]
+                assert val is None or isinstance(val, int)
+                o.value = val
             elif isinstance(p, ChoiceParameter):
-                value = iv[2 + idx]
-                for c in p.choices:
-                    if value == c.id:
-                        break
+                if val is not None:
+                    assert isinstance(val, str)
+                    for c in p.choices:
+                        if val == c.id:
+                            break
+                    else:
+                        raise Exception('Invalid choice value: %s' % val)
+                    o.choice = c
                 else:
-                    raise Exception('Invalid choice value')
-                o.choice = c
+                    o.choice = None
             params.append(o)
 
         obj = dataclasses.replace(self, parameters=params)
-        obj.date = iv[1]
+        obj.date = date
         return obj
+
+    def get_param_values(self):
+        out = {}
+        for p in (self.parameters or []):
+            if isinstance(p, IntParameter):
+                if not p.value:
+                    continue
+                val = p.value
+            elif isinstance(p, ChoiceParameter):
+                if not p.choice:
+                    continue
+                val = p.choice.id
+            else:
+                raise Exception('Invalid parameter type: %s' % type(p))
+            out[p.id] = val
+        return out
 
 
 INTERVENTIONS = [
@@ -89,7 +116,7 @@ INTERVENTIONS = [
         _('Test people only with severe symptoms'),
         parameters=[
             IntParameter(
-                id='efficiency',
+                id='mild_detection_rate',
                 label=_('Percentage of mild cases that are detected'),
                 min_value=0, max_value=100, unit='%'
             ),
@@ -145,9 +172,31 @@ INTERVENTIONS = [
             ),
         ]
     ),
-    # Intervention('build-new-hospital-beds', _('Build new hospital beds'), _('beds')),
-    # Intervention('build-new-icu-units', _('Build new ICU units'), _('units')),
+    Intervention(
+        'build-new-hospital-beds',
+        _('Build new hospital beds'),
+        parameters=[
+            IntParameter(
+                id='beds',
+                label=_('Number of new beds built'),
+                unit=_('beds')
+            ),
+        ],
+    ),
+    Intervention(
+        'build-new-icu-units',
+        _('Build new ICU units'),
+        parameters=[
+            IntParameter(
+                id='units',
+                label=_('Number of new ICU units built'),
+                unit=_('ICU units')
+            ),
+        ],
+    ),
 ]
+# Intervention('import-infections-per-day', _('Import new infections daily'), _('infections/day')),
+# Intervention('limit-mass-gatherings', _('Limit mass gatherings'), _('max. contacts')),
 
 
 def iv_tuple_to_obj(iv):
@@ -155,6 +204,6 @@ def iv_tuple_to_obj(iv):
         if iv[0] == obj.type:
             break
     else:
-        raise Exception()
+        raise Exception('Invalid intervention type: %s' % iv[0])
 
-    return obj.copy_from_iv_tuple(iv)
+    return obj.make_from_iv_tuple(iv)
