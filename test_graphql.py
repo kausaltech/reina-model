@@ -59,8 +59,9 @@ if False:
             validationMetrics {
                 dates
                 metrics {
-                    id
-                    values
+                    type
+                    intValues
+                    isSimulated
                 }
             }
         }

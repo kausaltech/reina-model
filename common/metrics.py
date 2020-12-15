@@ -11,6 +11,7 @@ class Metric:
     unit: str = None
     color: str = None
     is_integer: bool = False
+    is_simulated: bool = True
 
 
 METRICS = [
@@ -121,9 +122,53 @@ METRICS = [
     ),
 ]
 
+VALIDATION_METRICS = [
+    #
+    # Real observed metrics
+    #
+    Metric(
+        'confirmed_real',
+        _('Detected cases (real)'),
+        description=None,
+        unit=_('cases (cum.)'),
+        color='teal',
+        is_integer=True,
+        is_simulated=False,
+    ),
+    Metric(
+        'hospitalized_real',
+        _('Hospitalized (real)'),
+        description=None,
+        unit=_('beds in use'),
+        color='orange',
+        is_integer=True,
+        is_simulated=False,
+    ),
+    Metric(
+        'in_icu_real',
+        _('In ICU (real)'),
+        description=None,
+        unit=_('ICU units in use'),
+        color='red',
+        is_integer=True,
+        is_simulated=False,
+    ),
+    Metric(
+        'dead_real',
+        _('Dead (real)'),
+        description=None,
+        unit=_('deaths (cum.)'),
+        color='indigo',
+        is_integer=True,
+        is_simulated=False,
+    ),
+]
+
+ALL_METRICS = METRICS + VALIDATION_METRICS
+
 
 def get_metric(metric_id):
-    for m in METRICS:
+    for m in ALL_METRICS:
         if m.id == metric_id:
             return m
     else:

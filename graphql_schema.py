@@ -11,7 +11,7 @@ from calc.datasets import get_detected_cases
 from common import cache
 from common.interventions import (INTERVENTIONS, ChoiceParameter, IntParameter,
                                   get_intervention, iv_tuple_to_obj)
-from common.metrics import METRICS, get_metric
+from common.metrics import ALL_METRICS, METRICS, VALIDATION_METRICS, get_metric
 from simulation_thread import SimulationThread
 from variables import get_variable, reset_variables, set_variable
 
@@ -20,7 +20,7 @@ InterventionType = Enum('InverventionType', [
 ])
 
 MetricType = Enum('MetricType', [
-    (m.id.upper().replace('-', '_'), m.id) for m in METRICS
+    (m.id.upper().replace('-', '_'), m.id) for m in ALL_METRICS
 ])
 
 
@@ -68,6 +68,7 @@ class Metric(ObjectType):
     unit = String()
     color = String()
     is_integer = Boolean(required=True)
+    is_simulated = Boolean(required=True)
     int_values = List(Int)
     float_values = List(Float)
 
@@ -145,8 +146,8 @@ def results_to_metrics(df, only=None):
 
         metrics.append(Metric(
             type=m.id, label=m.label, description=m.description, unit=m.unit,
-            color=m.color, is_integer=m.is_integer,
-            int_values=int_values, float_values=float_values,
+            color=m.color, is_integer=m.is_integer, is_simulated=m.is_simulated,
+            int_values=int_values, float_values=float_values
         ))
 
     return (dates, metrics)
@@ -197,8 +198,18 @@ class Query(ObjectType):
         df = get_detected_cases()
         dates = df.index.astype(str).values
         metrics = []
+
         for col in df.columns:
-            metrics.append(Metric(id=col, values=df[col].to_numpy()))
+            m_id = f"{col}_real"
+            m = get_metric(m_id)
+            if not m:
+                continue
+            int_values = df[col].to_numpy()
+            metrics.append(Metric(
+                type=m.id, label=m.label, description=m.description, unit=m.unit,
+                color=m.color, is_integer=m.is_integer, is_simulated=False,
+                int_values=int_values
+            ))
         return DailyMetrics(dates=dates, metrics=metrics)
 
 
