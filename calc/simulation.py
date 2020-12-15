@@ -3,6 +3,7 @@ from dataclasses import dataclass
 from datetime import date, timedelta
 
 import pandas as pd
+
 from calc import ExecutionInterrupted, calcfunc
 from calc.datasets import (get_contacts_for_country,
                            get_initial_population_condition,
@@ -25,7 +26,7 @@ def create_disease_params(variables):
     kwargs = {}
     for key in model.DISEASE_PARAMS:
         val = variables[key]
-        if key in ('p_infection', 'p_severe', 'p_critical', 'p_icu_death'):
+        if key in ('p_infection', 'p_severe', 'p_critical', 'p_icu_death', 'p_death_outside_hospital'):
             val = [(age, sev / 100) for age, sev in val]
         elif key.startswith('p_') or key.startswith('ratio_'):
             val = val / 100
@@ -280,8 +281,12 @@ if __name__ == '__main__':
     if True:
         from variables import allow_set_variable, set_variable
 
-        header = '%-12s' % 'day'
-        for attr in POP_ATTRS + STATE_ATTRS + ['us_per_infected']:
+        header = '%-10s' % 'day'
+        state_attrs = STATE_ATTRS
+        state_attrs.remove('available_hospital_beds')
+        state_attrs.remove('available_icu_units')
+        state_attrs.remove('total_icu_units')
+        for attr in POP_ATTRS + state_attrs + ['us_per_infected']:
             header += '%15s' % attr
         print(header)
 
@@ -292,7 +297,7 @@ if __name__ == '__main__':
             for attr in POP_ATTRS:
                 s += '%15d' % rec[attr]
 
-            for attr in ['exposed_per_day', 'available_hospital_beds', 'available_icu_units', 'tests_run_per_day']:
+            for attr in ['exposed_per_day', 'tests_run_per_day']:
                 s += '%15d' % rec[attr]
             s += '%13.2f' % rec['r']
             if rec['infected']:
@@ -301,7 +306,7 @@ if __name__ == '__main__':
             return True
 
         with allow_set_variable():
-            set_variable('simulation_days', 180)
+            set_variable('simulation_days', 360)
             simulate_individuals(step_callback=step_callback, skip_cache=True)
 
     if False:

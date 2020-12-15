@@ -127,9 +127,14 @@ def results_to_metrics(df, only=None):
             selected_metrics.append(METRICS[metric_id])
 
     metrics = []
-    df['ifr'] = df.dead.divide(df.all_infected.replace(0, np.inf)) * 100
-    df['cfr'] = df.dead.divide(df.all_detected.replace(0, np.inf)) * 100
+
+    MIN_CASES = 20
+    df['ifr'] = df.dead.divide(df.all_infected.clip(lower=MIN_CASES).replace(MIN_CASES, np.inf)) * 100
+    df['cfr'] = df.dead.divide(df.all_detected.clip(lower=MIN_CASES).replace(MIN_CASES, np.inf)) * 100
+    df['ifr'] = df['ifr'].rolling(window=7).mean()
+    df['cfr'] = df['cfr'].rolling(window=7).mean()
     df['r'] = df['r'].rolling(window=7).mean()
+
     for m in selected_metrics:
         if m.id not in df.columns:
             print(m.id)

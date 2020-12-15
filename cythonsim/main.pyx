@@ -10,6 +10,7 @@ import numpy as np
 import pandas as pd
 from cython.parallel import prange
 from faker.providers.person.fi_FI import Provider as NameProvider
+
 from common.interventions import Intervention
 
 cimport cython
@@ -52,6 +53,8 @@ cdef enum SimulationProblem:
     MALLOC_FAILURE
     OTHER_FAILURE
     WRONG_STATE
+    CONTACT_PROBABILITY_FAILURE
+    INFECTEES_MISMATCH
 
 
 cdef enum ContactPlace:
@@ -62,6 +65,11 @@ cdef enum ContactPlace:
     TRANSPORT
     LEISURE
     OTHER
+
+
+cdef enum PlaceOfDeath:
+    DEATH_IN_HOSPITAL
+    DEATH_OUTSIDE_HOSPITAL
 
 
 CONTACT_PLACE_TO_STR = {
@@ -102,6 +110,8 @@ PROBLEM_TO_STR = {
     SimulationProblem.MALLOC_FAILURE: 'Malloc failure',
     SimulationProblem.OTHER_FAILURE: 'Other failure',
     SimulationProblem.WRONG_STATE: 'Wrong state',
+    SimulationProblem.CONTACT_PROBABILITY_FAILURE: 'Contact probability failure',
+    SimulationProblem.INFECTEES_MISMATCH: 'Infectees mismatch',
 }
 
 
@@ -116,7 +126,7 @@ DEF MAX_CONTACTS = 128
 cdef struct Person:
     int32 idx, infector
     uint8 age, has_immunity, is_infected, was_detected, queued_for_testing, \
-        symptom_severity, state, included_in_totals
+        symptom_severity, place_of_death, state, included_in_totals
     int16 day_of_infection, days_left, other_people_infected, other_people_exposed_today, \
         day_of_illness
     int16 max_contacts_per_day
@@ -199,7 +209,7 @@ cdef str person_str(Person *self, int today=-1):
 
 cdef void person_infect(Person *self, Context context, Person *source=NULL) nogil:
     self.state = PersonState.INCUBATION
-    self.symptom_severity = context.disease.get_symptom_severity(self, context)
+    context.disease.set_symptom_severity(self, context)
     self.days_left = context.disease.get_incubation_days(self, context)
     self.is_infected = 1
     self.day_of_infection = context.day
@@ -215,7 +225,7 @@ cdef void person_infect(Person *self, Context context, Person *source=NULL) nogi
 
     if context.hc.testing_mode == TestingMode.ALL_WITH_SYMPTOMS_CT:
         if self.infectees != NULL:
-            context.set_problem(SimulationProblem.OTHER_FAILURE)
+            context.set_problem(SimulationProblem.INFECTEES_MISMATCH)
         else:
             self.infectees = <int32 *> malloc(sizeof(int32) * MAX_INFECTEES)
             if self.infectees == NULL:
@@ -357,9 +367,9 @@ cdef void person_release_from_hospital(Person *self, Context context) nogil:
 
 
 cdef void person_die(Person *self, Context context) nogil:
-    # This is a way to get long-lasting immunity.
     self.state = PersonState.DEAD
     context.pop.die(self)
+    # This is a way to get long-lasting immunity.
     person_become_removed(self, context)
 
 
@@ -385,7 +395,10 @@ cdef void person_advance(Person *self, Context context) nogil:
         if self.days_left == 0:
             # People with mild symptoms recover after the symptomatic period
             # and people with more severe symptoms are hospitalized.
-            if self.symptom_severity in (SymptomSeverity.SEVERE, SymptomSeverity.CRITICAL, SymptomSeverity.FATAL):
+            # Some people with fatal symptoms die at home or in a place of care.
+            if self.symptom_severity == SymptomSeverity.FATAL and self.place_of_death == PlaceOfDeath.DEATH_OUTSIDE_HOSPITAL:
+                person_die(self, context)
+            elif self.symptom_severity in (SymptomSeverity.SEVERE, SymptomSeverity.CRITICAL, SymptomSeverity.FATAL):
                 person_hospitalize(self, context)
             else:
                 person_recover(self, context)
@@ -633,6 +646,7 @@ cdef inline int round_to_int(float f) nogil:
 DISEASE_PARAMS = (
     'p_infection', 'p_asymptomatic', 'p_severe', 'p_critical', 'p_hospital_death',
     'p_icu_death', 'p_hospital_death_no_beds', 'p_icu_death_no_beds',
+    'p_death_outside_hospital', 'infectiousness_multiplier',
     'mean_incubation_duration',
     'mean_duration_from_onset_to_death', 'mean_duration_from_onset_to_recovery',
     'ratio_of_duration_before_hospitalisation', 'ratio_of_duration_in_ward',
@@ -650,12 +664,14 @@ cdef class Disease:
     cdef ClassedValues p_infection
     cdef ClassedValues p_severe
     cdef ClassedValues p_critical
+    cdef ClassedValues p_death_outside_hospital
     cdef ClassedValues infectiousness_over_time
     cdef ClassedValues p_icu_death
 
     def __init__(self,
         p_infection, p_asymptomatic, p_severe, p_critical, p_hospital_death,
         p_icu_death, p_hospital_death_no_beds, p_icu_death_no_beds,
+        p_death_outside_hospital, infectiousness_multiplier,
         mean_incubation_duration,
         mean_duration_from_onset_to_death, mean_duration_from_onset_to_recovery,
         ratio_of_duration_before_hospitalisation, ratio_of_duration_in_ward,
@@ -675,8 +691,12 @@ cdef class Disease:
         self.p_infection = ClassedValues(p_infection)
         self.p_severe = ClassedValues(p_severe)
         self.p_critical = ClassedValues(p_critical)
-        self.infectiousness_over_time = ClassedValues(INFECTIOUSNESS_OVER_TIME)
+        self.p_death_outside_hospital = ClassedValues(p_death_outside_hospital)
         self.p_icu_death = ClassedValues(p_icu_death)
+
+        # We multiply the infectiousness by 2 to give p_infection some more range
+        iot = [(day, p * infectiousness_multiplier) for day, p in INFECTIOUSNESS_OVER_TIME]
+        self.infectiousness_over_time = ClassedValues(iot)
 
     @classmethod
     def from_variables(cls, variables):
@@ -805,9 +825,10 @@ cdef class Disease:
 
         return round_to_int(f)
 
-    cdef SymptomSeverity get_symptom_severity(self, Person *person, Context context) nogil:
+    cdef SymptomSeverity set_symptom_severity(self, Person *person, Context context) nogil:
+        cdef SymptomSeverity severity
         cdef int i
-        cdef float sc, cc, fc, val
+        cdef float sc, cc, fc, ohc, val
 
         val = context.random.get()
         if val < self.p_asymptomatic:
@@ -818,15 +839,22 @@ cdef class Disease:
         sc = self.p_severe.get_greatest_lte(person.age)
         cc = self.p_critical.get_greatest_lte(person.age)
         fc = self.p_icu_death.get_greatest_lte(person.age)
+        ohc = self.p_death_outside_hospital.get_greatest_lte(person.age)
 
-        if val < fc * sc * cc:
-            return SymptomSeverity.FATAL
-        if val < sc * cc:
-            return SymptomSeverity.CRITICAL
-        if val < sc:
-            return SymptomSeverity.SEVERE
-        return SymptomSeverity.MILD
-
+        if val < ohc * fc * sc * cc:
+            person.place_of_death = PlaceOfDeath.DEATH_OUTSIDE_HOSPITAL
+            severity = SymptomSeverity.FATAL
+        elif val < fc * sc * cc:
+            person.place_of_death = PlaceOfDeath.DEATH_IN_HOSPITAL
+            severity = SymptomSeverity.FATAL
+        elif val < sc * cc:
+            severity = SymptomSeverity.CRITICAL
+        elif val < sc:
+            severity = SymptomSeverity.SEVERE
+        else:
+            severity = SymptomSeverity.MILD
+        person.symptom_severity = severity
+        return severity
 
 cdef struct ContactProbability:
     ContactPlace place
@@ -859,6 +887,7 @@ cdef class ContactMatrix:
     cdef int nr_ages
     cdef list mobility_factors
     cdef float mobility_factor
+    cdef object stats  # pandas.DataFrame
 
     def __init__(self, contacts_per_day, nr_ages):
         cdef int age
@@ -880,6 +909,32 @@ cdef class ContactMatrix:
 
         self.generate_probability_matrix()
 
+    def generate_contact_statistics(self, df):
+        # df = df.groupby(['place_type', 'participant_age']).sum().reset_index()
+        age_groups = pd.interval_range(0, 80, freq=10, closed='left')
+        age_groups = age_groups.append(pd.Index([pd.Interval(80, 101, closed='left')]))
+        df = df.copy()
+        df['pgrp'] = pd.cut(df['participant_age'], age_groups)
+        df = df.groupby(['place_type', 'pgrp', 'contact_age'])['contacts'].mean().reset_index()
+        df = df.rename(columns=dict(pgrp='participant_age'))
+        df['cgrp'] = pd.cut(df['contact_age'].map(lambda x: x[0]), age_groups)
+        df = df.groupby(['participant_age', 'cgrp', 'place_type'])['contacts'].sum().reset_index()
+        df = df.rename(columns=dict(cgrp='contact_age'))
+        df = df[['participant_age', 'contact_age', 'place_type', 'contacts']]
+        self.stats = df
+
+        df = df.groupby(['participant_age', 'contact_age'])['contacts'].sum().unstack('contact_age')
+        df.columns = df.columns.to_list()
+        df.columns = df.columns.to_tuples()
+        df['total'] = df.sum(axis=1)
+        print(df)
+
+        df = self.stats
+        df = df[df.participant_age == pd.Interval(30, 40, closed='left')]
+        df = df.groupby(['place_type', 'contact_age']).sum().unstack('contact_age')
+        print(df)
+
+
     def generate_probability_matrix(self):
         cdef int age, i
         cdef AgeContactProbabilities *acp
@@ -897,6 +952,8 @@ cdef class ContactMatrix:
             if mf.place != ContactPlace.ALL:
                 filters &= df.place_type == CONTACT_PLACE_TO_STR[mf.place]
             df.loc[filters, 'contacts'] *= mf.mobility_factor
+
+        # self.generate_contact_statistics(df)
 
         total_contacts = df.groupby('participant_age')['contacts'].sum()
         for age, count in total_contacts.items():
@@ -962,7 +1019,7 @@ cdef class ContactMatrix:
             if p < cp.cum_p:
                 return cp
 
-        context.problem = SimulationProblem.OTHER_FAILURE
+        context.problem = SimulationProblem.CONTACT_PROBABILITY_FAILURE
         return NULL
 
     @cython.cdivision(True)
@@ -1313,7 +1370,13 @@ cdef class Context:
         cdef Person * person
 
         for i in range(count):
-            person = self.pop.get_random_person(self)
+            for x in range(10):
+                person = self.pop.get_random_person(self)
+                if person.state == PersonState.SUSCEPTIBLE:
+                    break
+            else:
+                print('Unable to find person to infect')
+                continue
             person_infect(person, self)
 
     def apply_intervention(self, iv):
@@ -1343,7 +1406,22 @@ cdef class Context:
         #    self.pop.limit_mass_gatherings = value
         elif iv.type == 'limit-mobility':
             reduction = params['reduction']
-            self.pop.contact_matrix.set_mobility_factor((100 - reduction) / 100.0)
+            reduction = (100 - reduction) / 100.0
+
+            min_age = params.get('min_age')
+            max_age = params.get('max_age')
+
+            str_to_place = {val: key for key, val in CONTACT_PLACE_TO_STR.items()}
+            place = params.get('place')
+            if place is not None:
+                place = str_to_place[place]
+
+            self.pop.contact_matrix.set_mobility_factor(
+                factor=reduction,
+                min_age=min_age,
+                max_age=max_age,
+                place=place,
+            )
         else:
             raise Exception()
 
@@ -1466,7 +1544,7 @@ cdef class Context:
                     out[i] = self.pop.get_contacts(&p, contacts, self)
             elif what == 'symptom_severity':
                 for i in range(sample_size):
-                    out[i] = self.disease.get_symptom_severity(&p, self)
+                    out[i] = self.disease.set_symptom_severity(&p, self)
             elif what == 'incubation_period':
                 for i in range(sample_size):
                     out[i] = self.disease.get_incubation_days(&p, self)

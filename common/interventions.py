@@ -94,7 +94,7 @@ class Intervention:
         out = {}
         for p in (self.parameters or []):
             if isinstance(p, IntParameter):
-                if not p.value:
+                if p.value is None:
                     continue
                 val = p.value
             elif isinstance(p, ChoiceParameter):

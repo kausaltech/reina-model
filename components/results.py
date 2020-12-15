@@ -7,12 +7,13 @@ import dash_html_components as html
 import dash_table
 import numpy as np
 import pandas as pd
-from calc.datasets import get_detected_cases
-from components.cards import GraphCard
-from components.graphs import make_layout
 from dash.dependencies import Input, Output, State
 from dash_table.Format import Format, Scheme
 from flask_babel import lazy_gettext as _
+
+from calc.datasets import get_detected_cases
+from components.cards import GraphCard
+from components.graphs import make_layout
 from utils.colors import THEME_COLORS
 from variables import get_variable
 
@@ -80,10 +81,13 @@ def render_validation_card(df):
             hoverlabel=dict(namelength=-1),
         ))
 
-    card = GraphCard('validation', graph=dict(config=dict(responsive=False)))
+    card = GraphCard('validation', graph=dict(config=dict(
+        responsive=False,
+        displayModeBar=True,
+    )))
     layout = make_layout(
         title=_('Validation'), height=250, showlegend=True,
-        margin=dict(r=250)
+        margin=dict(r=250), xaxis=dict(fixedrange=False)
     )
     fig = dict(data=traces, layout=layout)
     card.set_figure(fig)
@@ -251,8 +255,11 @@ def render_result_graphs(df):
     card.set_figure(fig)
     c2 = card.render()
 
-    df['ifr'] = df.dead.divide(df.all_infected.replace(0, np.inf)) * 100
-    df['cfr'] = df.dead.divide(df.all_detected.replace(0, np.inf)) * 100
+    MIN_CASES = 20
+    df['ifr'] = df.dead.divide(df.all_infected.clip(lower=MIN_CASES).replace(MIN_CASES, np.inf)) * 100
+    df['cfr'] = df.dead.divide(df.all_detected.clip(lower=MIN_CASES).replace(MIN_CASES, np.inf)) * 100
+    df['ifr'] = df['ifr'].rolling(window=7).mean()
+    df['cfr'] = df['cfr'].rolling(window=7).mean()
     df['r'] = df['r'].rolling(window=7).mean()
 
     param_cols = (
