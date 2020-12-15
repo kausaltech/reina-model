@@ -3,7 +3,7 @@ services:
     caddy:
         image: caddy:2.1.1-alpine
         ports:
-        - "127.0.0.1:8080:8080"
+        - "127.0.0.1:${REINA_PORT:-8080}:8080"
         restart: unless-stopped
         volumes:
         - .Caddyfile:/etc/caddy/Caddyfile
@@ -15,8 +15,8 @@ services:
             - REDIS_URL=redis://redis:6379
             - FLASK_APP=graphql_backend.py
         # If we want to examine graphql API directly, without proxying
-        ports:
-            - "127.0.0.1:5000:5000"
+        #ports:
+        #    - "127.0.0.1:5000:5000"
         depends_on:
             - redis
         volumes:

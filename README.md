@@ -59,7 +59,7 @@ Then run
 docker-compose up
 ```
 
-The first time you run it, it will build the container for Reina, which takes some time. Once build done, Reina UI is available at localhost:8080.
+The first time you run it, it will build the container for Reina, which takes some time. Once build done, Reina UI is available at localhost:8080 by default. If you want to use some other port, set it in `REINA_PORT` environment variable.
 
 While the container is running, you can run the simulation like this:
 
