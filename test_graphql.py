@@ -9,12 +9,12 @@ transport = RequestsHTTPTransport(url="http://localhost:5000/graphql")
 # Create a GraphQL client using the defined transport
 client = Client(transport=transport, fetch_schema_from_transport=True)
 
-if True:
+if False:
     add_intervention = gql("""
         mutation AddIntervention {
             addIntervention(intervention: {
                 date: "2020-12-01",
-                type: "limit-mobility",
+                type: LIMIT_MOBILITY,
                 parameters: [{
                     id: "reduction",
                     value: 50,
@@ -39,7 +39,7 @@ if True:
     exit()
 
 
-if True:
+if False:
     delete_intervention = gql("""
         mutation DeleteIntervention($id: ID!) {
             deleteIntervention(interventionId: $id) {
@@ -53,7 +53,7 @@ if True:
     exit()
 
 
-if True:
+if False:
     validation_metrics_query = gql("""
         query {
             validationMetrics {
@@ -70,7 +70,7 @@ if True:
     print(result)
 
 
-if True:
+if False:
     available_interventions_query = gql("""
         query {
             availableInterventions {
@@ -100,7 +100,7 @@ if True:
     pprint(result)
 
 
-if True:
+if False:
     get_interventions_query = gql("""
         query {
             activeInterventions {
@@ -126,31 +126,33 @@ if True:
     print(result)
 
 
-exit()
-
-start_sim = gql("""
-    mutation {
-        runSimulation(sessionId: "1234") {
-            runId
-        }
-    }
-""")
-
-result = client.execute(start_sim)
-run_id = result['runSimulation']['runId']
-print(run_id)
-
-get_results = gql("""
-    query getSimulationResults($runId: ID!) {
-        simulationResults(runId: $runId) {
-            finished
-            dates
-            metrics {
-                id
-                values
+if True:
+    start_sim = gql("""
+        mutation {
+            runSimulation(randomSeed: 1234) {
+                runId
             }
         }
-    }
-""")
-result = client.execute(get_results, variable_values=dict(runId=run_id))
-print(result)
+    """)
+
+    result = client.execute(start_sim)
+    run_id = result['runSimulation']['runId']
+
+    get_results = gql("""
+        query getSimulationResults($runId: ID!) {
+            simulationResults(runId: $runId) {
+                finished
+                predictedMetrics {
+                    dates
+                    metrics {
+                        type
+                        label
+                        intValues
+                        floatValues
+                    }
+                }
+            }
+        }
+    """)
+    result = client.execute(get_results, variable_values=dict(runId=run_id))
+    print(result)

@@ -1,19 +1,26 @@
-import uuid
+import random
 
+import numpy as np
 from flask import session
 from graphene import (ID, Boolean, Enum, Field, Float, InputObjectType, Int,
-                      Interface, List, Mutation, ObjectType, Schema, String)
+                      Interface, List, Mutation, ObjectType, Schema, String,
+                      Union)
 from graphql import GraphQLError
 
 from calc.datasets import get_detected_cases
 from common import cache
 from common.interventions import (INTERVENTIONS, ChoiceParameter, IntParameter,
                                   get_intervention, iv_tuple_to_obj)
+from common.metrics import METRICS, get_metric
 from simulation_thread import SimulationThread
 from variables import get_variable, reset_variables, set_variable
 
 InterventionType = Enum('InverventionType', [
     (iv.type.upper().replace('-', '_'), iv.type) for iv in INTERVENTIONS
+])
+
+MetricType = Enum('MetricType', [
+    (m.id.upper().replace('-', '_'), m.id) for m in METRICS
 ])
 
 
@@ -55,13 +62,19 @@ class Intervention(ObjectType):
 
 
 class Metric(ObjectType):
-    id = ID(required=True)
-    values = List(Float, required=True)
+    type = MetricType(required=True)
+    label = String(required=True)
+    description = String()
+    unit = String()
+    color = String()
+    is_integer = Boolean(required=True)
+    int_values = List(Int)
+    float_values = List(Float)
 
 
 class DailyMetrics(ObjectType):
     dates = List(String)
-    metrics = List(Metric)
+    metrics = List(Metric, only=List(MetricType))
 
 
 class SimulationResults(ObjectType):
@@ -101,6 +114,44 @@ def iv_to_graphql_obj(iv, obj_id=None):
     )
 
 
+def results_to_metrics(df, only=None):
+    dates = df.index.astype(str).values
+
+    selected_metrics = []
+    if only is None:
+        selected_metrics = METRICS
+    else:
+        for mtype in only:
+            metric_id = mtype.value
+            selected_metrics.append(METRICS[metric_id])
+
+    metrics = []
+    df['ifr'] = df.dead.divide(df.all_infected.replace(0, np.inf)) * 100
+    df['cfr'] = df.dead.divide(df.all_detected.replace(0, np.inf)) * 100
+    df['r'] = df['r'].rolling(window=7).mean()
+    for m in selected_metrics:
+        if m.id not in df.columns:
+            print(m.id)
+            continue
+
+        vals = df[m.id]
+        int_values = None
+        float_values = None
+        if m.is_integer:
+            int_values = vals.astype('Int32').replace({np.nan: None})
+        else:
+            vals = vals.astype('float')
+            float_values = vals.replace({np.nan: None})
+
+        metrics.append(Metric(
+            type=m.id, label=m.label, description=m.description, unit=m.unit,
+            color=m.color, is_integer=m.is_integer,
+            int_values=int_values, float_values=float_values,
+        ))
+
+    return (dates, metrics)
+
+
 class Query(ObjectType):
     available_interventions = List(Intervention)
     active_interventions = List(Intervention)
@@ -132,10 +183,7 @@ class Query(ObjectType):
 
         results = cache.get('%s-results' % run_id)
         if results is not None:
-            dates = results.index.astype(str).values
-            metrics = []
-            for col in results.columns:
-                metrics.append(Metric(id=col, values=results[col].to_numpy(na_value=None)))
+            dates, metrics = results_to_metrics(results)
         else:
             dates = []
             metrics = []
@@ -155,10 +203,16 @@ class Query(ObjectType):
 
 
 class RunSimulation(Mutation):
+    class Arguments:
+        random_seed = Int()
+
     run_id = ID(required=True)
 
-    def mutate(root, info):
-        thread = SimulationThread(variables=session.copy())
+    def mutate(root, info, random_seed=None):
+        variables = session.copy()
+        if random_seed is not None:
+            variables['random_seed'] = random_seed
+        thread = SimulationThread(variables=variables)
         run_id = thread.cache_key
         thread.start()
         return dict(run_id=run_id)
