@@ -106,6 +106,13 @@ class Intervention:
             out[p.id] = val
         return out
 
+    def copy(self):
+        params = []
+        for p in (self.parameters or []):
+            params.append(dataclasses.replace(p))
+        obj = dataclasses.replace(self, parameters=params)
+        return obj
+
     def set_param(self, param_id, val):
         for p in (self.parameters or []):
             if p.id == param_id:

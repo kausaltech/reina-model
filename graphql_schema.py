@@ -256,7 +256,7 @@ class AddIntervention(Mutation):
         iv_type = intervention.type.value
 
         iv_list = list(get_variable('interventions'))
-        obj = get_intervention(iv_type)
+        obj = get_intervention(iv_type).copy()
         obj.date = intervention.date
         for p in intervention.parameters:
             obj.set_param(p.id, p.choice or p.value)
