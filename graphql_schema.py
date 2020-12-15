@@ -1,13 +1,14 @@
 import uuid
 
-from calc.datasets import get_detected_cases
-from common import cache
-from common.interventions import (INTERVENTIONS, ChoiceParameter, IntParameter,
-                                  get_intervention, iv_tuple_to_obj)
 from flask import session
 from graphene import (ID, Boolean, Enum, Field, Float, InputObjectType, Int,
                       Interface, List, Mutation, ObjectType, Schema, String)
 from graphql import GraphQLError
+
+from calc.datasets import get_detected_cases
+from common import cache
+from common.interventions import (INTERVENTIONS, ChoiceParameter, IntParameter,
+                                  get_intervention, iv_tuple_to_obj)
 from simulation_thread import SimulationThread
 from variables import get_variable, reset_variables, set_variable
 
@@ -171,7 +172,7 @@ class InterventionInputParameter(InputObjectType):
 
 class InterventionInput(InputObjectType):
     date = String(required=True)
-    type = ID(required=True)
+    type = InterventionType(required=True)
     parameters = List(InterventionInputParameter)
 
 
@@ -182,8 +183,10 @@ class AddIntervention(Mutation):
     id = ID(required=True)
 
     def mutate(root, info, intervention):
+        iv_type = intervention.type.value
+
         iv_list = list(get_variable('interventions'))
-        obj = get_intervention(intervention.type)
+        obj = get_intervention(iv_type)
         obj.date = intervention.date
         for p in intervention.parameters:
             obj.set_param(p.id, p.choice or p.value)
