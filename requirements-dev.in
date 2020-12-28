@@ -1,0 +1,4 @@
+-c requirements.txt
+python-language-server[Rope,Pyflakes,McCabe,YAPF]
+pyls-isort
+ipython
