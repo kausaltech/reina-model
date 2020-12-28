@@ -2,6 +2,7 @@
 # cython: boundscheck=False
 # cython: wraparound=False
 # cython: profile=False
+# cython: linetrace=False
 
 from collections import namedtuple
 from datetime import date, timedelta
@@ -209,7 +210,7 @@ cdef str person_str(Person *self, int today=-1):
 
 cdef void person_infect(Person *self, Context context, Person *source=NULL) nogil:
     self.state = PersonState.INCUBATION
-    context.disease.set_symptom_severity(self, context)
+    context.disease.set_person_symptom_severity(self, context)
     self.days_left = context.disease.get_incubation_days(self, context)
     self.is_infected = 1
     self.day_of_infection = context.day
@@ -613,6 +614,7 @@ cdef class ClassedValues:
         self.min_class = min(self.classes)
         self.max_class = max(self.classes)
 
+    @cython.initializedcheck(False)
     cdef float get(self, int kls, float default) nogil:
         cdef int idx;
 
@@ -623,6 +625,7 @@ cdef class ClassedValues:
                 return self.values[idx]
         return default
 
+    @cython.initializedcheck(False)
     cdef float get_greatest_lte(self, int kls) nogil:
         """Returns the greatest value less-than-or-equal to the given class"""
         cdef int idx = 0
@@ -825,7 +828,8 @@ cdef class Disease:
 
         return round_to_int(f)
 
-    cdef SymptomSeverity set_symptom_severity(self, Person *person, Context context) nogil:
+    @cython.cdivision(True)
+    cdef SymptomSeverity set_person_symptom_severity(self, Person *person, Context context) nogil:
         cdef SymptomSeverity severity
         cdef int i
         cdef float sc, cc, fc, ohc, val
@@ -855,6 +859,7 @@ cdef class Disease:
             severity = SymptomSeverity.MILD
         person.symptom_severity = severity
         return severity
+
 
 cdef struct ContactProbability:
     ContactPlace place
@@ -886,6 +891,7 @@ cdef class ContactMatrix:
     cdef AgeContactProbabilities *p_by_age
     cdef int nr_ages
     cdef list mobility_factors
+
     cdef float mobility_factor
     cdef object stats  # pandas.DataFrame
 
@@ -934,7 +940,6 @@ cdef class ContactMatrix:
         df = df.groupby(['place_type', 'contact_age']).sum().unstack('contact_age')
         print(df)
 
-
     def generate_probability_matrix(self):
         cdef int age, i
         cdef AgeContactProbabilities *acp
@@ -946,7 +951,6 @@ cdef class ContactMatrix:
 
         df = self.contact_df.copy()
 
-        # df.loc[df.place_type != 'home', 'contacts'] *= self.mobility_factor
         for mf in self.mobility_factors:
             filters = (df.participant_age >= mf.min_age) & (df.participant_age <= mf.max_age)
             if mf.place != ContactPlace.ALL:
@@ -1023,6 +1027,7 @@ cdef class ContactMatrix:
         return NULL
 
     @cython.cdivision(True)
+    @cython.initializedcheck(False)
     cdef int get_nr_contacts(self, Person *person, Context context, float factor, int limit) nogil:
         cdef float f
 
@@ -1196,6 +1201,7 @@ cdef class Population:
         return self.people + idx
 
     @cython.cdivision(True)
+    @cython.initializedcheck(False)
     cdef int get_contacts(self, Person *person, Contact *contacts, Context context, float factor=1.0, int limit=100) nogil:
         if self.limit_mass_gatherings and self.limit_mass_gatherings < limit:
             limit = self.limit_mass_gatherings
@@ -1229,12 +1235,14 @@ cdef class Population:
 
         return nr_contacts
 
+    @cython.initializedcheck(False)
     cdef void infect(self, Person * person) nogil:
         age = person.age
         self.susceptible[age] -= 1
         self.infected[age] += 1
         self.all_infected[age] += 1
 
+    @cython.initializedcheck(False)
     cdef void recover(self, Person * person) nogil:
         cdef int age = person.age
         self.infected[age] -= 1
@@ -1242,23 +1250,29 @@ cdef class Population:
         if person.was_detected:
             self.detected[age] -= 1
 
+    @cython.initializedcheck(False)
     cdef void detect(self, Person * person) nogil:
         cdef int age = person.age
         self.detected[age] += 1
         self.all_detected[age] += 1
 
+    @cython.initializedcheck(False)
     cdef void hospitalize(self, Person * person) nogil:
         self.hospitalized[person.age] += 1
 
+    @cython.initializedcheck(False)
     cdef void transfer_to_icu(self, Person * person) nogil:
         self.in_icu[person.age] += 1
 
+    @cython.initializedcheck(False)
     cdef void release_from_icu(self, Person * person) nogil:
         self.in_icu[person.age] -= 1
 
+    @cython.initializedcheck(False)
     cdef void release_from_hospital(self, Person * person) nogil:
         self.hospitalized[person.age] -= 1
 
+    @cython.initializedcheck(False)
     cdef void die(self, Person * person) nogil:
         cdef int age = person.age
         self.infected[age] -= 1
@@ -1544,7 +1558,8 @@ cdef class Context:
                     out[i] = self.pop.get_contacts(&p, contacts, self)
             elif what == 'symptom_severity':
                 for i in range(sample_size):
-                    out[i] = self.disease.set_symptom_severity(&p, self)
+                    self.disease.set_person_symptom_severity(&p, self)
+                    out[i] = p.symptom_severity
             elif what == 'incubation_period':
                 for i in range(sample_size):
                     out[i] = self.disease.get_incubation_days(&p, self)
