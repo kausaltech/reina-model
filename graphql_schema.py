@@ -1,27 +1,26 @@
-import random
-
 import numpy as np
 from flask import session
-from graphene import (ID, Boolean, Enum, Field, Float, InputObjectType, Int,
-                      Interface, List, Mutation, ObjectType, Schema, String,
-                      Union)
+from graphene import (
+    ID, Boolean, Enum, Field, Float, InputObjectType, Int, Interface, List,
+    Mutation, ObjectType, Schema, String,
+)
 from graphql import GraphQLError
 
-from calc.datasets import get_detected_cases
+from calc.datasets import get_detected_cases, get_population_for_area
 from common import cache
-from common.interventions import (INTERVENTIONS, ChoiceParameter, IntParameter,
-                                  get_intervention, iv_tuple_to_obj)
+from common.interventions import (
+    INTERVENTIONS, ChoiceParameter, IntParameter, get_intervention,
+    iv_tuple_to_obj,
+)
 from common.metrics import ALL_METRICS, METRICS, VALIDATION_METRICS, get_metric
 from simulation_thread import SimulationThread
 from variables import get_variable, reset_variables, set_variable
 
-EventType = Enum('EventType', [
-    (iv.type.upper().replace('-', '_'), iv.type) for iv in INTERVENTIONS
-])
+EventType = Enum(
+    'EventType', [(iv.type.upper().replace('-', '_'), iv.type) for iv in INTERVENTIONS]
+)
 
-MetricType = Enum('MetricType', [
-    (m.id.upper().replace('-', '_'), m.id) for m in ALL_METRICS
-])
+MetricType = Enum('MetricType', [(m.id.upper().replace('-', '_'), m.id) for m in ALL_METRICS])
 
 
 class EventParameter(Interface):
@@ -40,7 +39,7 @@ class EventChoiceParameter(ObjectType):
     choice = Field(Choice)
 
     class Meta:
-        interfaces = (EventParameter,)
+        interfaces = (EventParameter, )
 
 
 class EventIntParameter(ObjectType):
@@ -50,7 +49,7 @@ class EventIntParameter(ObjectType):
     unit = String()
 
     class Meta:
-        interfaces = (EventParameter,)
+        interfaces = (EventParameter, )
 
 
 class Event(ObjectType):
@@ -86,18 +85,28 @@ class SimulationResults(ObjectType):
     predicted_metrics = Field(DailyMetrics, required=True)
 
 
+class SimulationArea(ObjectType):
+    name = String(required=True)
+    name_long = String(required=True)
+    total_population = Int(required=True)
+
+
 def iv_to_graphql_obj(iv, obj_id=None):
     params = []
     iv_params = iv.parameters
     for p in iv_params:
         if isinstance(p, IntParameter):
-            params.append(EventIntParameter(
-                id=p.id, description=p.label, required=p.required,
-                min_value=p.min_value,
-                max_value=p.max_value,
-                unit=p.unit,
-                value=iv.values.get(p.id),
-            ))
+            params.append(
+                EventIntParameter(
+                    id=p.id,
+                    description=p.label,
+                    required=p.required,
+                    min_value=p.min_value,
+                    max_value=p.max_value,
+                    unit=p.unit,
+                    value=iv.values.get(p.id),
+                )
+            )
         elif isinstance(p, ChoiceParameter):
             choices = [Choice(id=c.id, label=c.label) for c in p.choices]
             c = iv.values.get(p.id)
@@ -105,14 +114,23 @@ def iv_to_graphql_obj(iv, obj_id=None):
                 choice = Choice(id=c.id, label=c.label)
             else:
                 choice = None
-            params.append(EventChoiceParameter(
-                id=p.id, description=p.label, required=p.required,
-                choices=choices, choice=choice,
-            ))
+            params.append(
+                EventChoiceParameter(
+                    id=p.id,
+                    description=p.label,
+                    required=p.required,
+                    choices=choices,
+                    choice=choice,
+                )
+            )
         else:
             raise Exception('Unknown parameter type')
     return Event(
-        id=obj_id, type=iv.type, description=iv.label, date=getattr(iv, 'date', None), parameters=params
+        id=obj_id,
+        type=iv.type,
+        description=iv.label,
+        date=getattr(iv, 'date', None),
+        parameters=params
     )
 
 
@@ -130,8 +148,12 @@ def results_to_metrics(df, only=None):
     metrics = []
 
     MIN_CASES = 20
-    df['ifr'] = df.dead.divide(df.all_infected.clip(lower=MIN_CASES).replace(MIN_CASES, np.inf)) * 100
-    df['cfr'] = df.dead.divide(df.all_detected.clip(lower=MIN_CASES).replace(MIN_CASES, np.inf)) * 100
+    df['ifr'] = df.dead.divide(
+        df.all_infected.clip(lower=MIN_CASES).replace(MIN_CASES, np.inf)
+    ) * 100
+    df['cfr'] = df.dead.divide(
+        df.all_detected.clip(lower=MIN_CASES).replace(MIN_CASES, np.inf)
+    ) * 100
     df['ifr'] = df['ifr'].rolling(window=7).mean()
     df['cfr'] = df['cfr'].rolling(window=7).mean()
     df['r'] = df['r'].rolling(window=7).mean()
@@ -150,11 +172,19 @@ def results_to_metrics(df, only=None):
             vals = vals.astype('float')
             float_values = vals.replace({np.nan: None})
 
-        metrics.append(Metric(
-            type=m.id, label=m.label, description=m.description, unit=m.unit,
-            color=m.color, is_integer=m.is_integer, is_simulated=m.is_simulated,
-            int_values=int_values, float_values=float_values
-        ))
+        metrics.append(
+            Metric(
+                type=m.id,
+                label=m.label,
+                description=m.description,
+                unit=m.unit,
+                color=m.color,
+                is_integer=m.is_integer,
+                is_simulated=m.is_simulated,
+                int_values=int_values,
+                float_values=float_values
+            )
+        )
 
     return (dates, metrics)
 
@@ -164,8 +194,7 @@ class Query(ObjectType):
     active_events = List(Event)
     simulation_results = Field(SimulationResults, run_id=ID(required=True))
     validation_metrics = Field(DailyMetrics)
-    area_name = String(required=True)
-    area_name_long = String(required=True)
+    area = Field(SimulationArea)
 
     def resolve_available_events(query, info):
         out = []
@@ -200,9 +229,7 @@ class Query(ObjectType):
             metrics = []
 
         daily_metrics = DailyMetrics(dates=dates, metrics=metrics)
-        return SimulationResults(
-            run_id=run_id, finished=finished, predicted_metrics=daily_metrics
-        )
+        return SimulationResults(run_id=run_id, finished=finished, predicted_metrics=daily_metrics)
 
     def resolve_validation_metrics(query, info):
         df = get_detected_cases()
@@ -215,12 +242,30 @@ class Query(ObjectType):
             if not m:
                 continue
             int_values = df[col].to_numpy()
-            metrics.append(Metric(
-                type=m.id, label=m.label, description=m.description, unit=m.unit,
-                color=m.color, is_integer=m.is_integer, is_simulated=False,
-                int_values=int_values
-            ))
+            metrics.append(
+                Metric(
+                    type=m.id,
+                    label=m.label,
+                    description=m.description,
+                    unit=m.unit,
+                    color=m.color,
+                    is_integer=m.is_integer,
+                    is_simulated=False,
+                    int_values=int_values
+                )
+            )
         return DailyMetrics(dates=dates, metrics=metrics)
+
+    def resolve_area(query, info):
+        name = get_variable('area_name')
+        name_long = get_variable('area_name_long')
+        df = get_population_for_area()
+        population = df.sum().sum()
+        return dict(
+            name=name,
+            name_long=name_long,
+            total_population=population,
+        )
 
 
 class RunSimulation(Mutation):
@@ -302,6 +347,4 @@ class RootMutation(ObjectType):
     reset_variables = ResetVariables.Field()
 
 
-schema = Schema(query=Query, mutation=RootMutation, types=[
-    EventChoiceParameter, EventIntParameter
-])
+schema = Schema(query=Query, mutation=RootMutation, types=[EventChoiceParameter, EventIntParameter])
