@@ -141,6 +141,7 @@ cdef struct Person:
 
 cdef struct Contact:
     int32 person_idx
+    float mask_p
     ContactPlace place
 
 
@@ -235,10 +236,10 @@ cdef void person_infect(Person *self, Context context, Person *source=NULL) nogi
     context.pop.infect(self)
 
 
-cdef bint person_expose(Person *self, Context context, Person *source) nogil:
+cdef bint person_expose(Person *self, Context context, Person *source, float mask_p) nogil:
     if self.is_infected or self.has_immunity:
         return False
-    if context.disease.did_infect(self, context, source):
+    if context.disease.did_infect(self, context, source, mask_p):
         person_infect(self, context, source)
         return True
     return False
@@ -272,7 +273,7 @@ cdef void person_expose_others(Person *self, Context context) nogil:
         # with gil:
         #     print('%s\n-> %s' % (person_str(self), person_str(target)))
 
-        if person_expose(target, context, self):
+        if person_expose(target, context, self, contacts[i].mask_p):
             if infectees != NULL:
                 if self.other_people_infected >= MAX_INFECTEES:
                     context.set_problem(SimulationProblem.TOO_MANY_INFECTEES, self)
@@ -653,6 +654,7 @@ DISEASE_PARAMS = (
     'mean_incubation_duration',
     'mean_duration_from_onset_to_death', 'mean_duration_from_onset_to_recovery',
     'ratio_of_duration_before_hospitalisation', 'ratio_of_duration_in_ward',
+    'p_mask_protects_wearer', 'p_mask_protects_others',
 )
 
 cdef class Disease:
@@ -671,6 +673,9 @@ cdef class Disease:
     cdef ClassedValues infectiousness_over_time
     cdef ClassedValues p_icu_death
 
+    cdef float p_mask_protects_wearer
+    cdef float p_mask_protects_others
+
     def __init__(self,
         p_infection, p_asymptomatic, p_severe, p_critical, p_hospital_death,
         p_icu_death, p_hospital_death_no_beds, p_icu_death_no_beds,
@@ -678,6 +683,7 @@ cdef class Disease:
         mean_incubation_duration,
         mean_duration_from_onset_to_death, mean_duration_from_onset_to_recovery,
         ratio_of_duration_before_hospitalisation, ratio_of_duration_in_ward,
+        p_mask_protects_wearer, p_mask_protects_others
     ):
         self.p_asymptomatic = p_asymptomatic
 
@@ -696,6 +702,9 @@ cdef class Disease:
         self.p_critical = ClassedValues(p_critical)
         self.p_death_outside_hospital = ClassedValues(p_death_outside_hospital)
         self.p_icu_death = ClassedValues(p_icu_death)
+
+        self.p_mask_protects_others = p_mask_protects_others
+        self.p_mask_protects_wearer = p_mask_protects_wearer
 
         # We multiply the infectiousness by 2 to give p_infection some more range
         iot = [(day, p * infectiousness_multiplier) for day, p in INFECTIOUSNESS_OVER_TIME]
@@ -722,12 +731,27 @@ cdef class Disease:
             return 0
         return self.infectiousness_over_time.get(day, 0)
 
-    cdef bint did_infect(self, Person *person, Context context, Person *source) nogil:
+    cdef bint did_infect(self, Person *person, Context context, Person *source, float mask_p) nogil:
         cdef float chance = self.get_source_infectiousness(source)
         cdef float p_infection = self.p_infection.get_greatest_lte(person.age)
+        cdef bint infection
+        cdef float a, b
 
         # FIXME: Smaller chance for asymptomatic people?
-        return context.random.chance(chance * p_infection)
+        infection = context.random.chance(chance * p_infection)
+        if not infection:
+            return False
+
+        # If infection would've happened, let's see if masks saved the day.
+        if mask_p:
+            # (A or B) = p(A) + p(B) - p(A and B)
+            a = mask_p * self.p_mask_protects_others
+            b = mask_p * self.p_mask_protects_wearer
+            chance = a + b - a * b
+            if context.random.chance(chance):
+                return False
+
+        return True
 
     cdef int get_exposed_people(self, Person *person, Contact *contacts, Context context) nogil:
         # Detected people are quarantined
@@ -865,6 +889,7 @@ cdef struct ContactProbability:
     ContactPlace place
     int contact_age_min, contact_age_max
     double cum_p
+    float mask_p
 
 
 cdef struct AgeContactProbabilities:
@@ -887,6 +912,7 @@ cdef class MobilityFactor:
 
 cdef class ContactMatrix:
     cdef object contact_df  # pandas.DataFrame
+    cdef object mask_probabilities  # pandas.DataFrame
     cdef double[::1] nr_contacts_by_age
     cdef AgeContactProbabilities *p_by_age
     cdef int nr_ages
@@ -913,7 +939,8 @@ cdef class ContactMatrix:
             acp.count = count
             acp.probabilities = <ContactProbability *> PyMem_Malloc(acp.count * sizeof(ContactProbability))
 
-        self.generate_probability_matrix()
+        self.generate_mask_probability_matrix()
+        self.generate_contact_probabilities()
 
     def generate_contact_statistics(self, df):
         # df = df.groupby(['place_type', 'participant_age']).sum().reset_index()
@@ -940,7 +967,13 @@ cdef class ContactMatrix:
         df = df.groupby(['place_type', 'contact_age']).sum().unstack('contact_age')
         print(df)
 
-    def generate_probability_matrix(self):
+    def generate_mask_probability_matrix(self):
+        places = list(CONTACT_PLACE_TO_STR.values())
+        places.remove('all')
+        ages = range(self.nr_ages)
+        self.mask_probabilities = pd.DataFrame(0.0, index=ages, columns=places)
+
+    def generate_contact_probabilities(self):
         cdef int age, i
         cdef AgeContactProbabilities *acp
         cdef ContactProbability *cp
@@ -973,6 +1006,8 @@ cdef class ContactMatrix:
 
         for age in df.columns:
             s = df[age]
+            mask_probabilities = self.mask_probabilities.loc[age]
+
             for (place, (contact_age_min, contact_age_max)), cum_p in s.items():
                 acp = self.p_by_age + age
                 cp = acp.probabilities + acp.count
@@ -980,6 +1015,7 @@ cdef class ContactMatrix:
                 cp.contact_age_min = contact_age_min
                 cp.contact_age_max = contact_age_max
                 cp.cum_p = cum_p
+                cp.mask_p = mask_probabilities[place]
                 acp.count += 1
 
     def __dealloc__(self):
@@ -1008,7 +1044,24 @@ cdef class ContactMatrix:
             mf = MobilityFactor(place, min_age, max_age, factor)
             self.mobility_factors.append(mf)
 
-        self.generate_probability_matrix()
+        self.generate_contact_probabilities()
+
+    def set_mask_probability(self, p, place=None, min_age=None, max_age=None):
+        if min_age == None:
+            min_age = 0
+        if max_age == None:
+            max_age = self.nr_ages - 1
+
+        df = self.mask_probabilities
+        filters = (df.index >= min_age) & (df.index <= max_age)
+        if place == None:
+            places = CONTACT_PLACE_TO_STR.keys()
+            places.remove(ContactPlace.ALL)
+        else:
+            places = [place]
+
+        places_str = [CONTACT_PLACE_TO_STR[x] for x in places]
+        df.loc[filters, places_str] = p
 
     cdef ContactProbability * get_one_contact(self, Person *person, Context context) nogil:
         cdef AgeContactProbabilities *acp
@@ -1232,6 +1285,7 @@ cdef class Population:
             c = contacts + i
             c.person_idx = person_idx
             c.place = cp.place
+            c.mask_p = cp.mask_p
 
         return nr_contacts
 
@@ -1432,6 +1486,22 @@ cdef class Context:
 
             self.pop.contact_matrix.set_mobility_factor(
                 factor=reduction,
+                min_age=min_age,
+                max_age=max_age,
+                place=place,
+            )
+        elif iv.type == 'wear-masks':
+            p = params['share_of_contacts'] / 100.0
+            min_age = params.get('min_age')
+            max_age = params.get('max_age')
+
+            str_to_place = {val: key for key, val in CONTACT_PLACE_TO_STR.items()}
+            place = params.get('place')
+            if place is not None:
+                place = str_to_place[place]
+
+            self.pop.contact_matrix.set_mask_probability(
+                p=p,
                 min_age=min_age,
                 max_age=max_age,
                 place=place,

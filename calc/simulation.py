@@ -163,7 +163,7 @@ def simulate_individuals(variables, step_callback=None):
             import pstats
             cProfile.runctx("context.iterate()", globals(), locals(), "profile.prof")
             s = pstats.Stats("profile.prof")
-            s.strip_dirs().sort_stats("time").print_stats()
+            s.strip_dirs().sort_stats("cumtime").print_stats()
 
     return df
 
@@ -306,8 +306,19 @@ if __name__ == '__main__':
             return True
 
         with allow_set_variable():
-            set_variable('simulation_days', 360)
-            simulate_individuals(step_callback=step_callback, skip_cache=True)
+            set_variable('simulation_days', 365)
+
+            def run_simulation():
+                simulate_individuals(step_callback=step_callback, skip_cache=True)
+
+            if False:
+                import cProfile
+                import pstats
+                cProfile.runctx("run_simulation()", globals(), locals(), "profile.prof")
+                s = pstats.Stats("profile.prof")
+                s.strip_dirs().sort_stats("cumtime").print_stats()
+            else:
+                run_simulation()
 
     if False:
         from variables import allow_set_variable, get_variable, set_variable

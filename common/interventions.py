@@ -151,9 +151,7 @@ class Intervention:
 
 
 INTERVENTIONS = [
-    Intervention(
-        'test-all-with-symptoms', _('Test all patients with symptoms')
-    ),
+    Intervention('test-all-with-symptoms', _('Test all patients with symptoms')),
     Intervention(
         'test-only-severe-symptoms',
         _('Test people only with severe symptoms'),
@@ -161,7 +159,9 @@ INTERVENTIONS = [
             IntParameter(
                 id='mild_detection_rate',
                 label=_('Percentage of mild cases that are detected'),
-                min_value=0, max_value=100, unit='%'
+                min_value=0,
+                max_value=100,
+                unit='%'
             ),
         ]
     ),
@@ -172,7 +172,9 @@ INTERVENTIONS = [
             IntParameter(
                 id='efficiency',
                 label=_('Percentage of infectors that are caught through contact tracing'),
-                min_value=0, max_value=100, unit='%',
+                min_value=0,
+                max_value=100,
+                unit='%',
             ),
         ]
     ),
@@ -183,22 +185,64 @@ INTERVENTIONS = [
             IntParameter(
                 id='reduction',
                 label=_('Reduction in contacts'),
-                min_value=0, max_value=100, unit='%',
+                min_value=0,
+                max_value=100,
+                unit='%',
             ),
             IntParameter(
                 id='min_age',
                 label=_('Minimum age for limitation'),
-                min_value=0, max_value=100, unit=_('years'),
+                min_value=0,
+                max_value=100,
+                unit=_('years'),
                 required=False,
             ),
             IntParameter(
                 id='max_age',
                 label=_('Maximum age for limitation'),
-                min_value=0, max_value=100, unit=_('years'),
+                min_value=0,
+                max_value=100,
+                unit=_('years'),
                 required=False,
             ),
             ChoiceParameter(
-                id='place', label=_('Place where the contacts happen'),
+                id='place',
+                label=_('Place where the contacts happen'),
+                choices=[Choice(x.name.lower(), x.label()) for x in ContactPlace],
+                required=False,
+            ),
+        ],
+    ),
+    Intervention(
+        'wear-masks',
+        _('People wear masks'),
+        parameters=[
+            IntParameter(
+                id='share_of_contacts',
+                label=_('Portion of daily contacts where masks are in use'),
+                min_value=0,
+                max_value=100,
+                unit='%',
+            ),
+            IntParameter(
+                id='min_age',
+                label=_('Minimum age for intervention'),
+                min_value=0,
+                max_value=100,
+                unit=_('years'),
+                required=False,
+            ),
+            IntParameter(
+                id='max_age',
+                label=_('Maximum age for intervention'),
+                min_value=0,
+                max_value=100,
+                unit=_('years'),
+                required=False,
+            ),
+            ChoiceParameter(
+                id='place',
+                label=_('Place where intervention happens'),
                 choices=[Choice(x.name.lower(), x.label()) for x in ContactPlace],
                 required=False,
             ),
@@ -208,33 +252,21 @@ INTERVENTIONS = [
         'import-infections',
         _('Import infections from outside the area'),
         parameters=[
-            IntParameter(
-                id='amount',
-                label=_('Amount of new infections'),
-                unit=_('infections')
-            ),
+            IntParameter(id='amount', label=_('Amount of new infections'), unit=_('infections')),
         ]
     ),
     Intervention(
         'build-new-hospital-beds',
         _('Build new hospital beds'),
         parameters=[
-            IntParameter(
-                id='beds',
-                label=_('Number of new beds built'),
-                unit=_('beds')
-            ),
+            IntParameter(id='beds', label=_('Number of new beds built'), unit=_('beds')),
         ],
     ),
     Intervention(
         'build-new-icu-units',
         _('Build new ICU units'),
         parameters=[
-            IntParameter(
-                id='units',
-                label=_('Number of new ICU units built'),
-                unit=_('ICU units')
-            ),
+            IntParameter(id='units', label=_('Number of new ICU units built'), unit=_('ICU units')),
         ],
     ),
 ]

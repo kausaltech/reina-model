@@ -28,7 +28,8 @@ VARIABLE_OVERRIDE_SETS = {
             ['limit-mobility', '2020-08-12', 0, 7, 25, 'school'],
             ['limit-mobility', '2020-12-19', 100, 7, 25, 'school'],
             ['limit-mobility', '2021-01-07', 0, 7, 25, 'school'],
-            ['limit-mobility', '2021-01-07', 100, 7, 12, 'school'],
+            ['limit-mobility', '2021-01-07', 0, 7, 12, 'school'],
+            ['limit-mobility', '2021-01-07', 100, 13, 25, 'school'],
 
             ['limit-mobility', '2020-03-15', 10, None, None, 'leisure'],
             ['limit-mobility', '2020-03-18', 20, None, None, 'leisure'],
@@ -40,6 +41,7 @@ VARIABLE_OVERRIDE_SETS = {
             ['limit-mobility', '2020-05-11', 30, None, None, 'leisure'],
             ['limit-mobility', '2020-06-01', 20, None, None, 'leisure'],
             ['limit-mobility', '2020-10-31', 10, None, None, 'leisure'],
+            ['limit-mobility', '2020-12-11', 15, None, None, 'leisure'],
 
             ['limit-mobility', '2020-03-17', 10, None, None, 'work'],
             ['limit-mobility', '2020-03-19', 20, None, None, 'work'],
@@ -65,6 +67,7 @@ VARIABLE_OVERRIDE_SETS = {
             ['limit-mobility', '2020-03-22', 40, None, None, 'transport'],
             ['limit-mobility', '2020-03-22', 40, None, None, 'transport'],
             ['limit-mobility', '2020-04-04', 50, None, None, 'transport'],
+            ['wear-masks', '2020-09-01', 30, None, None, 'transport'],
 
             # Overall mobility limitation
             ['limit-mobility', '2020-03-20', 10],
@@ -113,7 +116,7 @@ VARIABLE_DEFAULTS = {
     'area_name_long': 'Helsingin ja Uudenmaan sairaanhoitopiiri',
     'country': 'FI',
     'max_age': 100,
-    'simulation_days': 365,
+    'simulation_days': 465,
     'start_date': '2020-02-18',
     'hospital_beds': 2600,
     'icu_units': 300,
@@ -121,6 +124,9 @@ VARIABLE_DEFAULTS = {
     #
     # Disease parameters
     #
+
+    'p_mask_protects_wearer': 45.0,  # %
+    'p_mask_protects_others': 90.0,  # %
 
     # Chance to be asymptomatic
     'p_asymptomatic': 50.0,  # %
