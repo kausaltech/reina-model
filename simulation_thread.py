@@ -27,6 +27,7 @@ class SimulationThread(multiprocessing.Process):
             return
         # Race condition here, but it is of little consequence
         # FIXME: Probably should use SETNX instead
+        cache.set('%s-error' % self.cache_key, None, self.cache_expiration)
         cache.set('%s-finished' % self.cache_key, False, timeout=self.cache_expiration)
         super().start()
 
@@ -47,6 +48,10 @@ class SimulationThread(multiprocessing.Process):
             df = simulate_individuals(step_callback=step_callback, variable_store=self.variables)
         except ExecutionInterrupted:
             logger.error('%s: process cancelled' % self.uuid)
+        except Exception as e:
+            cache.set('%s-finished' % self.cache_key, True, self.cache_expiration)
+            cache.set('%s-error' % self.cache_key, str(e), self.cache_expiration)
+            raise
         else:
             logger.info('%s: computation finished' % self.uuid)
             step_callback(df, force=True)
