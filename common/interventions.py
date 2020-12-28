@@ -38,7 +38,6 @@ class IntParameter(Parameter):
     min_value: int = None
     max_value: int = None
     unit: str = None
-    value: int = None
 
 
 @dataclass
@@ -50,7 +49,6 @@ class Choice:
 @dataclass
 class ChoiceParameter(Parameter):
     choices: typing.List[Choice] = None
-    choice: Choice = None
 
 
 @dataclass
@@ -59,20 +57,27 @@ class Intervention:
     label: str
     parameters: typing.List[Parameter] = None
 
+    values: typing.Mapping[str, typing.Union[int, Choice, None]] = None
+    date: str = None
+
+    def __post_init__(self):
+        if self.parameters is None:
+            self.parameters = []
+        if self.values is None:
+            self.values = {}
+
     def make_from_iv_tuple(self, iv):
-        params = []
+        values = {}
         date = iv[1]
         iv = list(iv)[2:]
-        for idx, p in enumerate(self.parameters or []):
+        for idx, p in enumerate(self.parameters):
             if not len(iv):
                 break
             val = iv.pop(0)
             if val is None:
                 continue
-            o = dataclasses.replace(p)  # creates a copy
             if isinstance(p, IntParameter):
                 assert val is None or isinstance(val, int)
-                o.value = val
             elif isinstance(p, ChoiceParameter):
                 if val is not None:
                     assert isinstance(val, str)
@@ -81,40 +86,39 @@ class Intervention:
                             break
                     else:
                         raise Exception('Invalid choice value: %s' % val)
-                    o.choice = c
+                    val = c
                 else:
-                    o.choice = None
-            params.append(o)
+                    val = None
 
-        obj = dataclasses.replace(self, parameters=params)
+            values[p.id] = val
+
+        obj = dataclasses.replace(self, values=values)
         obj.date = date
         return obj
 
     def get_param_values(self):
         out = {}
-        for p in (self.parameters or []):
+        if not self.values:
+            return out
+        for p in self.parameters:
             if isinstance(p, IntParameter):
-                if p.value is None:
-                    continue
-                val = p.value
+                val = self.values.get(p.id)
             elif isinstance(p, ChoiceParameter):
-                if not p.choice:
+                c = self.values.get(p.id)
+                if not c:
                     continue
-                val = p.choice.id
+                val = c.id
             else:
                 raise Exception('Invalid parameter type: %s' % type(p))
             out[p.id] = val
         return out
 
     def copy(self):
-        params = []
-        for p in (self.parameters or []):
-            params.append(dataclasses.replace(p))
-        obj = dataclasses.replace(self, parameters=params)
+        obj = dataclasses.replace(self, values=dict(self.values))
         return obj
 
     def set_param(self, param_id, val):
-        for p in (self.parameters or []):
+        for p in self.parameters or []:
             if p.id == param_id:
                 break
         else:
@@ -123,7 +127,7 @@ class Intervention:
         if isinstance(p, IntParameter):
             if val is not None and not isinstance(val, int):
                 raise Exception('Requires int parameter: %s' % param_id)
-            p.value = val
+            self.values[p.id] = val
         elif isinstance(p, ChoiceParameter):
             if val is not None:
                 for c in p.choices:
@@ -131,17 +135,18 @@ class Intervention:
                         break
                 else:
                     raise Exception('Invalid choice value for %s: %s' % (param_id, val))
-                p.choice = c
-            else:
-                p.choice = None
+                val = c
+            self.values[p.id] = val
 
     def make_iv_tuple(self):
         params = []
-        for p in (self.parameters or []):
+        for p in self.parameters:
+            val = self.values.get(p.id)
             if isinstance(p, IntParameter):
-                params.append(p.value)
+                pass
             elif isinstance(p, ChoiceParameter):
-                params.append(p.choice and p.choice.id)
+                val = val.id if val else None
+            params.append(val)
         return [self.type, self.date, *params]
 
 

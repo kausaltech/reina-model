@@ -15,7 +15,7 @@ from common.metrics import ALL_METRICS, METRICS, VALIDATION_METRICS, get_metric
 from simulation_thread import SimulationThread
 from variables import get_variable, reset_variables, set_variable
 
-InterventionType = Enum('InverventionType', [
+EventType = Enum('EventType', [
     (iv.type.upper().replace('-', '_'), iv.type) for iv in INTERVENTIONS
 ])
 
@@ -24,7 +24,7 @@ MetricType = Enum('MetricType', [
 ])
 
 
-class InterventionParameter(Interface):
+class EventParameter(Interface):
     id = ID()
     description = String()
     required = Boolean()
@@ -35,30 +35,31 @@ class Choice(ObjectType):
     label = String()
 
 
-class InterventionChoiceParameter(ObjectType):
+class EventChoiceParameter(ObjectType):
     choices = List(Choice, required=True)
     choice = Field(Choice)
 
     class Meta:
-        interfaces = (InterventionParameter,)
+        interfaces = (EventParameter,)
 
 
-class InterventionIntParameter(ObjectType):
+class EventIntParameter(ObjectType):
     min_value = Int()
     max_value = Int()
     value = Int()
     unit = String()
 
     class Meta:
-        interfaces = (InterventionParameter,)
+        interfaces = (EventParameter,)
 
 
-class Intervention(ObjectType):
+class Event(ObjectType):
     id = ID()
     date = String()
     description = String()
-    type = InterventionType()
-    parameters = List(InterventionParameter)
+    type = EventType()
+    parameters = List(EventParameter)
+    modified_by_user = Boolean()
 
 
 class Metric(ObjectType):
@@ -87,30 +88,30 @@ class SimulationResults(ObjectType):
 
 def iv_to_graphql_obj(iv, obj_id=None):
     params = []
-    iv_params = iv.parameters or []
+    iv_params = iv.parameters
     for p in iv_params:
         if isinstance(p, IntParameter):
-            params.append(InterventionIntParameter(
+            params.append(EventIntParameter(
                 id=p.id, description=p.label, required=p.required,
                 min_value=p.min_value,
                 max_value=p.max_value,
                 unit=p.unit,
-                value=getattr(p, 'value', None),
+                value=iv.values.get(p.id),
             ))
         elif isinstance(p, ChoiceParameter):
             choices = [Choice(id=c.id, label=c.label) for c in p.choices]
-            c = getattr(p, 'choice', None)
+            c = iv.values.get(p.id)
             if c is not None:
                 choice = Choice(id=c.id, label=c.label)
             else:
                 choice = None
-            params.append(InterventionChoiceParameter(
+            params.append(EventChoiceParameter(
                 id=p.id, description=p.label, required=p.required,
                 choices=choices, choice=choice,
             ))
         else:
             raise Exception('Unknown parameter type')
-    return Intervention(
+    return Event(
         id=obj_id, type=iv.type, description=iv.label, date=getattr(iv, 'date', None), parameters=params
     )
 
@@ -159,21 +160,21 @@ def results_to_metrics(df, only=None):
 
 
 class Query(ObjectType):
-    available_interventions = List(Intervention)
-    active_interventions = List(Intervention)
+    available_events = List(Event)
+    active_events = List(Event)
     simulation_results = Field(SimulationResults, run_id=ID(required=True))
     validation_metrics = Field(DailyMetrics)
     area_name = String(required=True)
     area_name_long = String(required=True)
 
-    def resolve_available_interventions(query, info):
+    def resolve_available_events(query, info):
         out = []
         for iv in INTERVENTIONS:
             out.append(iv_to_graphql_obj(iv))
 
         return out
 
-    def resolve_active_interventions(query, info):
+    def resolve_active_events(query, info):
         interventions = get_variable('interventions')
         out = []
         for idx, iv in enumerate(interventions):
@@ -186,6 +187,10 @@ class Query(ObjectType):
         finished = cache.get(cache_key)
         if finished is None:
             raise GraphQLError('No simulation run active')
+
+        error = cache.get('%s-error' % run_id)
+        if error is not None:
+            raise GraphQLError('Simulation error: %s' % error)
 
         results = cache.get('%s-results' % run_id)
         if results is not None:
@@ -234,31 +239,31 @@ class RunSimulation(Mutation):
         return dict(run_id=run_id)
 
 
-class InterventionInputParameter(InputObjectType):
+class EventInputParameter(InputObjectType):
     id = ID(required=True)
     value = Int()
     choice = String()
 
 
-class InterventionInput(InputObjectType):
+class EventInput(InputObjectType):
     date = String(required=True)
-    type = InterventionType(required=True)
-    parameters = List(InterventionInputParameter)
+    type = EventType(required=True)
+    parameters = List(EventInputParameter)
 
 
-class AddIntervention(Mutation):
+class AddEvent(Mutation):
     class Arguments:
-        intervention = InterventionInput(required=True)
+        event = EventInput(required=True)
 
     id = ID(required=True)
 
-    def mutate(root, info, intervention):
-        iv_type = intervention.type.value
+    def mutate(root, info, event):
+        iv_type = event.type.value
 
         iv_list = list(get_variable('interventions'))
         obj = get_intervention(iv_type).copy()
-        obj.date = intervention.date
-        for p in intervention.parameters:
+        obj.date = event.date
+        for p in event.parameters:
             obj.set_param(p.id, p.choice or p.value)
         iv_list.append(obj.make_iv_tuple())
         set_variable('interventions', iv_list)
@@ -266,14 +271,14 @@ class AddIntervention(Mutation):
         return dict(id=len(iv_list) - 1)
 
 
-class DeleteIntervention(Mutation):
+class DeleteEvent(Mutation):
     class Arguments:
-        intervention_id = ID(required=True)
+        event_id = ID(required=True)
 
     ok = Boolean()
 
-    def mutate(root, info, intervention_id):
-        iv_id = int(intervention_id)
+    def mutate(root, info, event_id):
+        iv_id = int(event_id)
         iv_list = list(get_variable('interventions'))
         if iv_id >= len(iv_list):
             raise GraphQLError('invalid intervention ID')
@@ -292,11 +297,11 @@ class ResetVariables(Mutation):
 
 class RootMutation(ObjectType):
     run_simulation = RunSimulation.Field()
-    add_intervention = AddIntervention.Field()
-    delete_intervention = DeleteIntervention.Field()
+    add_event = AddEvent.Field()
+    delete_event = DeleteEvent.Field()
     reset_variables = ResetVariables.Field()
 
 
 schema = Schema(query=Query, mutation=RootMutation, types=[
-    InterventionChoiceParameter, InterventionIntParameter
+    EventChoiceParameter, EventIntParameter
 ])
