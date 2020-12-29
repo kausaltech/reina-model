@@ -18,6 +18,7 @@ cimport cython
 cimport openmp
 from cpython.mem cimport PyMem_Malloc, PyMem_Free  # isort:skip
 from libc.stdlib cimport malloc, free  # isort:skip
+from libc.string cimport memset
 cimport numpy as cnp
 
 from cythonsim.simrandom cimport RandomPool  # isort:skip
@@ -127,7 +128,8 @@ DEF MAX_CONTACTS = 128
 cdef struct Person:
     int32 idx, infector
     uint8 age, has_immunity, is_infected, was_detected, queued_for_testing, \
-        symptom_severity, place_of_death, state, included_in_totals
+        symptom_severity, place_of_death, state, included_in_totals, \
+        variant_idx
     int16 day_of_infection, days_left, other_people_infected, other_people_exposed_today, \
         day_of_illness
     int16 max_contacts_per_day
@@ -136,8 +138,6 @@ cdef struct Person:
     float days_from_onset_to_removed
     uint8 nr_infectees
     int32 *infectees
-
-    openmp.omp_lock_t lock
 
 
 cdef struct Contact:
@@ -149,25 +149,11 @@ cdef struct Contact:
 cdef void person_init(Person *self, int32 idx, uint8 age) nogil:
     self.idx = idx
     self.age = age
-    self.is_infected = 0
-    self.was_detected = 0
-    self.has_immunity = 0
-    self.days_left = 0
-    self.day_of_illness = 0
-    self.day_of_infection = 0
-    self.queued_for_testing = 0
-    self.other_people_infected = 0
-    self.included_in_totals = 0
-    self.days_from_onset_to_removed = 0
     self.symptom_severity = SymptomSeverity.ASYMPTOMATIC
     self.state = PersonState.SUSCEPTIBLE
-    self.nr_infectees = 0
-    self.max_contacts_per_day = 0
     self.infector = -1
     self.infectees = NULL
     self.day_of_vaccination = -1
-
-    openmp.omp_init_lock(&self.lock)
 
 
 first_names = list(NameProvider.first_names.keys())
@@ -683,6 +669,55 @@ INFECTIOUSNESS_OVER_TIME = (
     (10, 0.00117),
 )
 
+cdef struct ClassifiedValues:
+    int *classes
+    float *values
+    int num_classes, min_class, max_class
+
+
+cdef void cv_init(ClassifiedValues *self, object pairs):
+    self.num_classes = len(pairs)
+    self.classes = <int *> PyMem_Malloc(self.num_classes * sizeof(int))
+    self.values = <float *> PyMem_Malloc(self.num_classes * sizeof(float))
+    self.min_class = 0x7fffffff
+    self.max_class = 0
+    for idx, (kls, val) in enumerate(pairs):
+        self.classes[idx] = kls
+        self.values[idx] = val
+        if kls < self.min_class:
+            self.min_class = kls
+        if kls > self.max_class:
+            self.max_class = kls
+
+
+cdef void cv_free(ClassifiedValues *cv):
+    PyMem_Free(cv.classes)
+    PyMem_Free(cv.values)
+
+
+cdef float cv_get(ClassifiedValues *cv, int kls, float default) nogil:
+    cdef int idx;
+
+    if kls < cv.min_class or kls > cv.max_class:
+        return default
+    for idx in range(cv.num_classes):
+        if cv.classes[idx] == kls:
+            return cv.values[idx]
+    return default
+
+
+cdef float cv_get_greatest_lte(ClassifiedValues *cv, int kls) nogil:
+    """Returns the greatest value less-than-or-equal to the given class"""
+    cdef int idx = 0
+    cdef float last
+
+    for idx in range(cv.num_classes):
+        if cv.classes[idx] > kls:
+            idx -= 1
+            break
+    return cv.values[idx]
+
+
 cdef class ClassedValues:
     cdef int[::1] classes
     cdef float[::1] values
@@ -734,8 +769,63 @@ DISEASE_PARAMS = (
     'mean_incubation_duration',
     'mean_duration_from_onset_to_death', 'mean_duration_from_onset_to_recovery',
     'ratio_of_duration_before_hospitalisation', 'ratio_of_duration_in_ward',
-    'p_mask_protects_wearer', 'p_mask_protects_others',
+    'p_mask_protects_wearer', 'p_mask_protects_others', 'variants',
 )
+
+cdef struct Variant:
+    float p_asymptomatic, p_hospital_death
+    float p_icu_death_no_beds, p_hospital_death_no_beds
+    float mean_incubation_duration
+    float mean_duration_from_onset_to_death
+    float mean_duration_from_onset_to_recovery
+    float ratio_of_duration_before_hospitalisation
+    float ratio_of_duration_in_ward
+
+    ClassifiedValues p_infection
+    ClassifiedValues p_severe
+    ClassifiedValues p_critical
+    ClassifiedValues p_death_outside_hospital
+    ClassifiedValues infectiousness_over_time
+    ClassifiedValues p_icu_death
+
+    float p_mask_protects_wearer
+    float p_mask_protects_others
+
+cdef variant_init(Variant *self, object params):
+    self.p_asymptomatic = params['p_asymptomatic']
+
+    self.p_hospital_death = params['p_hospital_death']
+    self.p_hospital_death_no_beds = params['p_hospital_death_no_beds']
+    self.p_icu_death_no_beds = params['p_icu_death_no_beds']
+
+    self.mean_incubation_duration = params['mean_incubation_duration']
+    self.mean_duration_from_onset_to_death = params['mean_duration_from_onset_to_death']
+    self.mean_duration_from_onset_to_recovery = params['mean_duration_from_onset_to_recovery']
+    self.ratio_of_duration_in_ward = params['ratio_of_duration_in_ward']
+    self.ratio_of_duration_before_hospitalisation = params['ratio_of_duration_before_hospitalisation']
+
+    cv_init(&self.p_infection, params['p_infection'])
+    cv_init(&self.p_severe, params['p_severe'])
+    cv_init(&self.p_critical, params['p_critical'])
+    cv_init(&self.p_death_outside_hospital, params['p_death_outside_hospital'])
+    cv_init(&self.p_icu_death, params['p_icu_death'])
+
+    self.p_mask_protects_others = params['p_mask_protects_others']
+    self.p_mask_protects_wearer = params['p_mask_protects_wearer']
+
+    # Take the global infectiousness parameter into account in IOT
+    iot = [(day, p * params['infectiousness_multiplier']) for day, p in INFECTIOUSNESS_OVER_TIME]
+    cv_init(&self.infectiousness_over_time, iot)
+
+
+cdef variant_free(Variant *self):
+    cv_free(&self.p_infection)
+    cv_free(&self.p_severe)
+    cv_free(&self.p_critical)
+    cv_free(&self.p_death_outside_hospital)
+    cv_free(&self.p_icu_death)
+    cv_free(&self.infectiousness_over_time)
+
 
 cdef class Disease:
     cdef float p_asymptomatic, p_hospital_death
@@ -756,39 +846,55 @@ cdef class Disease:
     cdef float p_mask_protects_wearer
     cdef float p_mask_protects_others
 
-    def __init__(self,
-        p_infection, p_asymptomatic, p_severe, p_critical, p_hospital_death,
-        p_icu_death, p_hospital_death_no_beds, p_icu_death_no_beds,
-        p_death_outside_hospital, infectiousness_multiplier,
-        mean_incubation_duration,
-        mean_duration_from_onset_to_death, mean_duration_from_onset_to_recovery,
-        ratio_of_duration_before_hospitalisation, ratio_of_duration_in_ward,
-        p_mask_protects_wearer, p_mask_protects_others
-    ):
-        self.p_asymptomatic = p_asymptomatic
+    cdef Variant *variants
+    cdef object variant_names
+    cdef int nr_variants
 
-        self.p_hospital_death = p_hospital_death
-        self.p_hospital_death_no_beds = p_hospital_death_no_beds
-        self.p_icu_death_no_beds = p_icu_death_no_beds
+    def __init__(self, params):
+        self.p_asymptomatic = params['p_asymptomatic']
 
-        self.mean_incubation_duration = mean_incubation_duration
-        self.mean_duration_from_onset_to_death = mean_duration_from_onset_to_death
-        self.mean_duration_from_onset_to_recovery = mean_duration_from_onset_to_recovery
-        self.ratio_of_duration_in_ward = ratio_of_duration_in_ward
-        self.ratio_of_duration_before_hospitalisation = ratio_of_duration_before_hospitalisation
+        self.p_hospital_death = params['p_hospital_death']
+        self.p_hospital_death_no_beds = params['p_hospital_death_no_beds']
+        self.p_icu_death_no_beds = params['p_icu_death_no_beds']
 
-        self.p_infection = ClassedValues(p_infection)
-        self.p_severe = ClassedValues(p_severe)
-        self.p_critical = ClassedValues(p_critical)
-        self.p_death_outside_hospital = ClassedValues(p_death_outside_hospital)
-        self.p_icu_death = ClassedValues(p_icu_death)
+        self.mean_incubation_duration = params['mean_incubation_duration']
+        self.mean_duration_from_onset_to_death = params['mean_duration_from_onset_to_death']
+        self.mean_duration_from_onset_to_recovery = params['mean_duration_from_onset_to_recovery']
+        self.ratio_of_duration_in_ward = params['ratio_of_duration_in_ward']
+        self.ratio_of_duration_before_hospitalisation = params['ratio_of_duration_before_hospitalisation']
 
-        self.p_mask_protects_others = p_mask_protects_others
-        self.p_mask_protects_wearer = p_mask_protects_wearer
+        self.p_infection = ClassedValues(params['p_infection'])
+        self.p_severe = ClassedValues(params['p_severe'])
+        self.p_critical = ClassedValues(params['p_critical'])
+        self.p_death_outside_hospital = ClassedValues(params['p_death_outside_hospital'])
+        self.p_icu_death = ClassedValues(params['p_icu_death'])
 
-        # We multiply the infectiousness by 2 to give p_infection some more range
-        iot = [(day, p * infectiousness_multiplier) for day, p in INFECTIOUSNESS_OVER_TIME]
+        self.p_mask_protects_others = params['p_mask_protects_others']
+        self.p_mask_protects_wearer = params['p_mask_protects_wearer']
+
+        # Take the global infectiousness parameter into account in IOT
+        iot = [(day, p * params['infectiousness_multiplier']) for day, p in INFECTIOUSNESS_OVER_TIME]
         self.infectiousness_over_time = ClassedValues(iot)
+
+        self.variant_names = []
+        self.nr_variants = 1 + len(params['variants'])
+        self.variants = <Variant *> PyMem_Malloc(sizeof(Variant) * self.nr_variants)
+
+        # Wild-type
+        variant_init(&self.variants[0], params)
+        self.variant_names.append('wild-type')
+
+        for idx, variant in enumerate(params['variants']):
+            v_params = params.copy()
+            v_params.update(variant)
+            variant_init(&self.variants[idx + 1], v_params)
+            self.variant_names.append(variant['name'])
+
+    def __dealloc__(self):
+        for idx in range(self.nr_variants):
+            variant_free(&self.variants[idx])
+        PyMem_Free(self.variants)
+
 
     @classmethod
     def from_variables(cls, variables):
@@ -797,11 +903,9 @@ cdef class Disease:
             args.append(variables[name])
         return cls(*args)
 
-    cdef float get_infectiousness_over_time(self, int day) nogil:
-        return self.infectiousness_over_time.get(day, 0)
-
     cdef float get_source_infectiousness(self, Person *source) nogil:
         cdef int day
+        cdef ClassifiedValues *iot
 
         if source.state == PersonState.INCUBATION:
             day = -source.days_left
@@ -809,13 +913,17 @@ cdef class Disease:
             day = source.day_of_illness
         else:
             return 0
-        return self.infectiousness_over_time.get(day, 0)
+        iot = &self.variants[source.variant_idx].infectiousness_over_time
+        return cv_get(iot, day, 0)
 
     cdef bint did_infect(self, Person *person, Context context, Person *source, float mask_p) nogil:
         cdef float chance = self.get_source_infectiousness(source)
-        cdef float p_infection = self.p_infection.get_greatest_lte(person.age)
+        cdef Variant *variant = &self.variants[source.variant_idx]
+        cdef float p_infection
         cdef bint infection
         cdef float a, b
+
+        p_infection = cv_get_greatest_lte(&variant.p_infection, person.age)
 
         # FIXME: Smaller chance for asymptomatic people?
         infection = context.random.chance(chance * p_infection)
@@ -825,8 +933,8 @@ cdef class Disease:
         # If infection would've happened, let's see if masks saved the day.
         if mask_p:
             # (A or B) = p(A) + p(B) - p(A and B)
-            a = mask_p * self.p_mask_protects_others
-            b = mask_p * self.p_mask_protects_wearer
+            a = mask_p * variant.p_mask_protects_others
+            b = mask_p * variant.p_mask_protects_wearer
             chance = a + b - a * b
             if context.random.chance(chance):
                 return False
@@ -1257,6 +1365,7 @@ cdef class Population:
         np.random.shuffle(people_idx)
 
         people = <Person *> PyMem_Malloc(total * sizeof(Person))
+        memset(people, 0, total * sizeof(Person))
         idx = 0
         for age, count in enumerate(age_counts):
             self.age_start[age] = idx
@@ -1450,7 +1559,7 @@ cdef class Context:
 
         ipc = population_params.pop('initial_population_condition', None)
         self.pop = Population(**population_params)
-        self.disease = Disease(**disease_params)
+        self.disease = Disease(disease_params)
         self.hc = HealthcareSystem(**healthcare_params)
 
         self.start_date = start_date
