@@ -51,7 +51,10 @@ def _hash_funcs(funcs):
         m.update(f.__code__.co_code)
         if f.filedeps:
             for fn in f.filedeps:
-                update_time = os.path.getmtime(fn)
+                try:
+                    update_time = os.path.getmtime(fn)
+                except FileNotFoundError:
+                    update_time = None
                 m.update(bytes(str(update_time), encoding='ascii'))
     return m.hexdigest()
 
