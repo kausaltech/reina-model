@@ -11,10 +11,10 @@ from common import cache
 logger = logging.getLogger(__name__)
 
 
-class SimulationThread(multiprocessing.Process):
+class SimulationProcess(multiprocessing.Process):
     def __init__(self, variables):
         self.variables = variables
-        super().__init__()
+        super().__init__(daemon=True)
         self.uuid = str(uuid.uuid4())
         self.cache_key = generate_cache_key(simulate_individuals, var_store=self.variables)
         self.cache_expiration = 30

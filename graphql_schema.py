@@ -13,7 +13,7 @@ from common.interventions import (
     iv_tuple_to_obj,
 )
 from common.metrics import ALL_METRICS, METRICS, VALIDATION_METRICS, get_metric
-from simulation_thread import SimulationThread
+from simulation_thread import SimulationProcess
 from variables import get_variable, reset_variables, set_variable
 
 EventType = Enum(
@@ -189,6 +189,9 @@ def results_to_metrics(df, only=None):
     return (dates, metrics)
 
 
+simulation_processes = {}
+
+
 class Query(ObjectType):
     available_events = List(Event)
     active_events = List(Event)
@@ -216,6 +219,15 @@ class Query(ObjectType):
         finished = cache.get(cache_key)
         if finished is None:
             raise GraphQLError('No simulation run active')
+
+        if finished and run_id in simulation_processes:
+            print('Process %s finished, joining' % run_id)
+            process = simulation_processes[run_id]
+            if process.is_alive():
+                print('Process is still alive??')
+                simulation_processes[run_id].kill()
+            simulation_processes[run_id].join()
+            del simulation_processes[run_id]
 
         error = cache.get('%s-error' % run_id)
         if error is not None:
@@ -278,9 +290,22 @@ class RunSimulation(Mutation):
         variables = session.copy()
         if random_seed is not None:
             variables['random_seed'] = random_seed
-        thread = SimulationThread(variables=variables)
-        run_id = thread.cache_key
-        thread.start()
+
+        for key, process in list(simulation_processes.items()):
+            if process.exitcode is not None:
+                process.join()
+                del simulation_processes[key]
+
+        if len(simulation_processes) >= 16:
+            raise GraphQLError('System busy')
+
+        process = SimulationProcess(variables=variables)
+        run_id = process.cache_key
+        process.start()
+        if process.pid:
+            print('Started process with PID %s (key %s)' % (process.pid, process.cache_key))
+            simulation_processes[process.cache_key] = process
+
         return dict(run_id=run_id)
 
 
