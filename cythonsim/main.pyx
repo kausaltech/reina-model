@@ -655,21 +655,32 @@ cdef class HealthcareSystem:
 
 # The infectiousness profile of the pathogen over time.
 # Day 0 is the symptom onset day.
-# Source: https://www.medrxiv.org/content/10.1101/2020.03.15.20036707v2.full.pdf
+
+# Source: The timing of COVID-19 transmission (Luca et al.)
+# https://doi.org/10.1101/2020.09.04.20188516)
+# https://www.medrxiv.org/content/10.1101/2020.09.04.20188516v2.full.pdf
 INFECTIOUSNESS_OVER_TIME = (
-    (-2, 0.12),
-    (-1, 0.29),
-    (0, 0.27),
-    (1, 0.07),
-    (2, 0.05),
-    (3, 0.04),
-    (4, 0.03),
-    (5, 0.02),
-    (6, 0.02),
-    (7, 0.01),
-    (8, 0.01),
-    (9, 0.01),
-    (10, 0.01),
+    (-10, 0.00183),
+    (-9, 0.00280),
+    (-8, 0.00446),
+    (-7, 0.00742),
+    (-6, 0.01291),
+    (-5, 0.02350),
+    (-4, 0.04419),
+    (-3, 0.08247),
+    (-2, 0.14018),
+    (-1, 0.19032),
+    (0, 0.18539),
+    (1, 0.13091),
+    (2, 0.07538),
+    (3, 0.04018),
+    (4, 0.02144),
+    (5, 0.01185),
+    (6, 0.00686),
+    (7, 0.00415),
+    (8, 0.00262),
+    (9, 0.00172),
+    (10, 0.00117),
 )
 
 cdef class ClassedValues:

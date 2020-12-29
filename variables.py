@@ -20,9 +20,8 @@ VARIABLE_OVERRIDE_SETS = {
             ['test-all-with-symptoms', '2020-04-01'],
             ['test-with-contact-tracing', '2020-06-01', 10],
             ['test-with-contact-tracing', '2020-07-01', 20],
-            ['test-with-contact-tracing', '2020-09-01', 30],
-            ['test-with-contact-tracing', '2020-11-01', 40],
-            ['test-with-contact-tracing', '2020-11-15', 40],
+            ['test-with-contact-tracing', '2020-09-01', 60],
+            # ['test-with-contact-tracing', '2020-12-01', 60],
 
             ['limit-mobility', '2020-03-23', 100, 7, 25, 'school'],
             ['limit-mobility', '2020-08-12', 0, 7, 25, 'school'],
@@ -61,39 +60,50 @@ VARIABLE_OVERRIDE_SETS = {
             ['limit-mobility', '2020-08-24', 20, None, None, 'work'],
             ['limit-mobility', '2020-09-11', 15, None, None, 'work'],
             ['limit-mobility', '2020-10-14', 20, None, None, 'work'],
-            ['limit-mobility', '2020-10-14', 20, None, None, 'work'],
+            ['limit-mobility', '2020-10-23', 10, None, None, 'work'],
+            ['limit-mobility', '2020-12-14', 20, None, None, 'work'],
 
             ['limit-mobility', '2020-03-17', 20, None, None, 'transport'],
             ['limit-mobility', '2020-03-22', 40, None, None, 'transport'],
             ['limit-mobility', '2020-03-22', 40, None, None, 'transport'],
             ['limit-mobility', '2020-04-04', 50, None, None, 'transport'],
+            ['limit-mobility', '2020-08-15', 10, None, None, 'transport'],
+            ['limit-mobility', '2020-10-10', 20, None, None, 'transport'],
+            ['limit-mobility', '2020-10-16', 25, None, None, 'transport'],
+            ['limit-mobility', '2020-11-16', 30, None, None, 'transport'],
+            ['limit-mobility', '2020-12-12', 40, None, None, 'transport'],
+
             ['wear-masks', '2020-09-01', 30, None, None, 'transport'],
+            ['wear-masks', '2020-10-01', 35, None, None, 'transport'],
+            ['wear-masks', '2020-11-01', 40, None, None, 'transport'],
+            # Protect over 65-year-olds
+            # ['wear-masks', '2020-10-01', 40, 65, None],
 
             # Overall mobility limitation
             ['limit-mobility', '2020-03-20', 10],
-            ['limit-mobility', '2020-04-04', 15],
-            ['limit-mobility', '2020-05-18', 25],
-            # ['limit-mobility', '2020-06-14', 0],
+            ['limit-mobility', '2020-04-04', 20],
+            ['limit-mobility', '2020-05-15', 30],
             ['limit-mobility', '2020-06-01', 35],  # summer effect?
             ['limit-mobility', '2020-08-05', 10],
             ['limit-mobility', '2020-08-15', 10],
-            ['limit-mobility', '2020-09-01', 10],
-            # ['limit-mobility', '2020-09-15', 0],
+            ['limit-mobility', '2020-09-01', 0],
 
-            ['import-infections', '2020-02-22', 5],
-            ['import-infections', '2020-03-05', 5],
+            ['import-infections', '2020-03-01', 10],
             ['import-infections', '2020-03-07', 5],
             ['import-infections', '2020-03-09', 5],
-            ['import-infections', '2020-03-11', 5],
-            ['import-infections', '2020-08-15', 15],
-            ['import-infections', '2020-09-01', 15],
-            ['import-infections', '2020-09-15', 15],
-            ['import-infections', '2020-10-01', 10],
-            ['import-infections', '2020-10-15', 10],
-            #['import-infections', '2020-10-30', 10],
-            ['import-infections', '2020-11-01', 10],
-            ['import-infections', '2020-11-07', 10],
-            ['import-infections', '2020-11-15', 10],
+            ['import-infections', '2020-07-15', 15],
+            ['import-infections', '2020-08-01', 10],
+            ['import-infections', '2020-09-01', 10],
+            ['import-infections', '2020-09-15', 10],
+            ['import-infections', '2020-10-01', 20],
+            ['import-infections', '2020-10-13', 20],
+            ['import-infections', '2020-10-15', 20],
+            ['import-infections', '2020-10-18', 20],
+            ['import-infections', '2020-11-01', 5],
+            ['import-infections', '2020-11-07', 15],
+            ['import-infections', '2020-11-15', 30],
+            ['import-infections', '2020-11-22', 25],
+            ['import-infections', '2020-12-01', 25],
         ],
         # Commenting these away for now, until we decide on whether to use
         # setting initial state or interventions to set state for start date
@@ -131,21 +141,21 @@ VARIABLE_DEFAULTS = {
     # Chance to be asymptomatic
     'p_asymptomatic': 50.0,  # %
 
-    'infectiousness_multiplier': 1.3,
+    'infectiousness_multiplier': 1.5,
 
     # Overall chance to become infected after being exposed.
     # This is modified by viral load of the infector, which
     # depends on the day of the illness.
     'p_infection': [
-        [0, 10],
-        [10, 10.0],
+        [0, 5.0],
+        [10, 7.0],
         [20, 18.0],
         [30, 18.0],
         [40, 18.0],
         [50, 18.0],
         [60, 22.0],
-        [70, 30.0],
-        [80, 80.0],
+        [70, 25.0],
+        [80, 70.0],
     ],
 
     # Chance to die after regular hospital care
@@ -160,7 +170,7 @@ VARIABLE_DEFAULTS = {
         [50, 50.0],
         [60, 50.0],
         [70, 50.0],
-        [80, 90.0]
+        [80, 50.0]
     ],
     'p_death_outside_hospital': [
         [0, 0.0],
@@ -170,8 +180,8 @@ VARIABLE_DEFAULTS = {
         [40, 0.0],
         [50, 0.0],
         [60, 0.0],
-        [70, 60.0],
-        [80, 90.0]
+        [70, 40.0],
+        [80, 50.0]
     ],
     # Chance to die if no hospital beds are available (but not
     # needing ICU care)
@@ -237,13 +247,21 @@ VARIABLE_DEFAULTS = {
         ['test-only-severe-symptoms', '2020-04-15', 70],
         ['test-all-with-symptoms', '2020-05-01'],
         ['test-with-contact-tracing', '2020-06-15', 30],
-        ['test-with-contact-tracing', '2020-10-15', 10],
-        # ['test-with-contact-tracing', '2020-10-01', 5],
+        ['test-with-contact-tracing', '2020-09-15', 50],
 
         # ['limit-mass-gatherings', '2020-03-12', 50],
 
         ['limit-mobility', '2020-03-15', 80, 0, 70, 'other'],
         ['limit-mobility', '2020-08-15', 50, 0, 70, 'other'],
+        ['limit-mobility', '2020-08-15', 50, 0, 70, 'other'],
+        ['limit-mobility', '2020-04-01', 10],
+        ['limit-mobility', '2020-05-01', 25],
+        ['limit-mobility', '2020-05-15', 30],
+        ['limit-mobility', '2020-09-01', 20],
+        ['limit-mobility', '2020-09-15', 10],
+        ['limit-mobility', '2020-10-01', 0],
+
+        ['wear-masks', '2020-09-15', 50, 65, None, None],
 
         ['limit-mobility', '2020-03-15', 10, None, None, 'leisure'],
         ['limit-mobility', '2020-03-22', 40, None, None, 'leisure'],
@@ -292,6 +310,9 @@ VARIABLE_DEFAULTS = {
         ['import-infections', '2020-09-07', 150],
         ['import-infections', '2020-09-15', 150],
         ['import-infections', '2020-10-01', 50],
+        ['import-infections', '2020-10-15', 100],
+        ['import-infections', '2020-11-01', 100],
+        ['import-infections', '2020-11-15', 100],
     ],
 
     'preset_scenario': 'default',
