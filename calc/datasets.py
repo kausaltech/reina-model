@@ -1,7 +1,6 @@
 from dataclasses import dataclass
 
 import pandas as pd
-
 from utils import add_root_path, get_root_path
 
 from . import calcfunc
@@ -65,6 +64,7 @@ AREA_CASEFILES = {
     'Varsinais-Suomi': add_root_path('data/hosp_cases_varsinais-suomi.csv')
 }
 
+
 @calcfunc(
     variables=['area_name'],
     filedeps=list(AREA_CASEFILES.values())
@@ -78,7 +78,6 @@ def get_detected_cases(variables):
     df['date'] = pd.to_datetime(df['date']).dt.date
     df = df.set_index('date')
     return df
-
 
 
 @dataclass
@@ -111,7 +110,6 @@ class InitialPopulationCondition:
         before simulation start
         """
         return sum([self.dead, self.recovered, self.in_icu, self.in_ward, self.ill])
-
 
 
 @calcfunc(
@@ -152,7 +150,28 @@ def get_initial_population_condition(variables) -> InitialPopulationCondition:
         ill=ill, incubating=incubating, recovered=recovered)
 
 
+MOBILITY_DATA_FILE = add_root_path('data/2020_FI_Region_Mobility_Report.csv')
 
+
+@calcfunc(
+    variables=['area_name'],
+    filedeps=[MOBILITY_DATA_FILE]
+)
+def get_mobility_data(variables):
+    df = pd.read_csv(MOBILITY_DATA_FILE, header=0, index_col='date')
+    df = df.drop(columns=[
+        'country_region_code', 'country_region', 'metro_area', 'iso_3166_2_code',
+        'census_fips_code',
+    ])
+    REGIONS = {
+        'HUS': 'Uusimaa',
+        'Varsinais-Suomi': 'Southwest Finland',
+    }
+    region = REGIONS[variables['area_name']]
+    df = df[(df['sub_region_1'] == region) & df.sub_region_2.isna()]
+    df = df.drop(columns=['sub_region_1', 'sub_region_2'])
+    df.index = pd.to_datetime(df.index)
+    return df
 
 
 if __name__ == '__main__':
