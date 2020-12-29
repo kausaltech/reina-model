@@ -190,14 +190,19 @@ cdef str person_str(Person *self, int today=-1):
     else:
         queued = ''
 
-    return '%s: %d years, infection on day %d%s, %s, %s, days left %d, %sdetected %d, max. contacts %d (others infected %d%s)' % (
-        name, self.age, self.day_of_infection, days_ago, STATE_TO_STR[self.state],
+    if self.variant_idx:
+        variant_str = ' [variant %d]' % self.variant_idx
+    else:
+        variant_str = ''
+
+    return '%s: %d years, infection%s on day %d%s, %s, %s, days left %d, %sdetected %d, max. contacts %d (others infected %d%s)' % (
+        name, self.age, variant_str, self.day_of_infection, days_ago, STATE_TO_STR[self.state],
         SEVERITY_TO_STR[self.symptom_severity], self.days_left, queued, self.was_detected,
         self.max_contacts_per_day, self.other_people_infected, infectees
     )
 
 
-cdef void person_infect(Person *self, Context context, Person *source=NULL) nogil:
+cdef void person_infect(Person *self, Context context, Person *source, int variant_idx) nogil:
     self.state = PersonState.INCUBATION
     context.disease.set_person_symptom_severity(self, context)
     self.days_left = context.disease.get_incubation_days(self, context)
@@ -212,6 +217,8 @@ cdef void person_infect(Person *self, Context context, Person *source=NULL) nogi
                 return
             source.infectees[source.nr_infectees] = self.idx
             source.nr_infectees += 1
+        variant_idx = source.variant_idx
+    self.variant_idx = variant_idx
 
     if context.hc.testing_mode == TestingMode.ALL_WITH_SYMPTOMS_CT:
         if self.infectees != NULL:
@@ -228,7 +235,7 @@ cdef bint person_expose(Person *self, Context context, Person *source, float mas
     if self.is_infected or self.has_immunity:
         return False
     if context.disease.did_infect(self, context, source, mask_p):
-        person_infect(self, context, source)
+        person_infect(self, context, source, -1)
         return True
     return False
 
@@ -780,6 +787,7 @@ cdef struct Variant:
     float mean_duration_from_onset_to_recovery
     float ratio_of_duration_before_hospitalisation
     float ratio_of_duration_in_ward
+    float infectiousness_multiplier
 
     ClassifiedValues p_infection
     ClassifiedValues p_severe
@@ -797,6 +805,7 @@ cdef variant_init(Variant *self, object params):
     self.p_hospital_death = params['p_hospital_death']
     self.p_hospital_death_no_beds = params['p_hospital_death_no_beds']
     self.p_icu_death_no_beds = params['p_icu_death_no_beds']
+    self.infectiousness_multiplier = params['infectiousness_multiplier']
 
     self.mean_incubation_duration = params['mean_incubation_duration']
     self.mean_duration_from_onset_to_death = params['mean_duration_from_onset_to_death']
@@ -813,9 +822,7 @@ cdef variant_init(Variant *self, object params):
     self.p_mask_protects_others = params['p_mask_protects_others']
     self.p_mask_protects_wearer = params['p_mask_protects_wearer']
 
-    # Take the global infectiousness parameter into account in IOT
-    iot = [(day, p * params['infectiousness_multiplier']) for day, p in INFECTIOUSNESS_OVER_TIME]
-    cv_init(&self.infectiousness_over_time, iot)
+    cv_init(&self.infectiousness_over_time, INFECTIOUSNESS_OVER_TIME)
 
 
 cdef variant_free(Variant *self):
@@ -828,54 +835,11 @@ cdef variant_free(Variant *self):
 
 
 cdef class Disease:
-    cdef float p_asymptomatic, p_hospital_death
-    cdef float p_icu_death_no_beds, p_hospital_death_no_beds
-    cdef float mean_incubation_duration
-    cdef float mean_duration_from_onset_to_death
-    cdef float mean_duration_from_onset_to_recovery
-    cdef float ratio_of_duration_before_hospitalisation
-    cdef float ratio_of_duration_in_ward
-
-    cdef ClassedValues p_infection
-    cdef ClassedValues p_severe
-    cdef ClassedValues p_critical
-    cdef ClassedValues p_death_outside_hospital
-    cdef ClassedValues infectiousness_over_time
-    cdef ClassedValues p_icu_death
-
-    cdef float p_mask_protects_wearer
-    cdef float p_mask_protects_others
-
     cdef Variant *variants
     cdef object variant_names
     cdef int nr_variants
 
     def __init__(self, params):
-        self.p_asymptomatic = params['p_asymptomatic']
-
-        self.p_hospital_death = params['p_hospital_death']
-        self.p_hospital_death_no_beds = params['p_hospital_death_no_beds']
-        self.p_icu_death_no_beds = params['p_icu_death_no_beds']
-
-        self.mean_incubation_duration = params['mean_incubation_duration']
-        self.mean_duration_from_onset_to_death = params['mean_duration_from_onset_to_death']
-        self.mean_duration_from_onset_to_recovery = params['mean_duration_from_onset_to_recovery']
-        self.ratio_of_duration_in_ward = params['ratio_of_duration_in_ward']
-        self.ratio_of_duration_before_hospitalisation = params['ratio_of_duration_before_hospitalisation']
-
-        self.p_infection = ClassedValues(params['p_infection'])
-        self.p_severe = ClassedValues(params['p_severe'])
-        self.p_critical = ClassedValues(params['p_critical'])
-        self.p_death_outside_hospital = ClassedValues(params['p_death_outside_hospital'])
-        self.p_icu_death = ClassedValues(params['p_icu_death'])
-
-        self.p_mask_protects_others = params['p_mask_protects_others']
-        self.p_mask_protects_wearer = params['p_mask_protects_wearer']
-
-        # Take the global infectiousness parameter into account in IOT
-        iot = [(day, p * params['infectiousness_multiplier']) for day, p in INFECTIOUSNESS_OVER_TIME]
-        self.infectiousness_over_time = ClassedValues(iot)
-
         self.variant_names = []
         self.nr_variants = 1 + len(params['variants'])
         self.variants = <Variant *> PyMem_Malloc(sizeof(Variant) * self.nr_variants)
@@ -894,7 +858,6 @@ cdef class Disease:
         for idx in range(self.nr_variants):
             variant_free(&self.variants[idx])
         PyMem_Free(self.variants)
-
 
     @classmethod
     def from_variables(cls, variables):
@@ -926,7 +889,7 @@ cdef class Disease:
         p_infection = cv_get_greatest_lte(&variant.p_infection, person.age)
 
         # FIXME: Smaller chance for asymptomatic people?
-        infection = context.random.chance(chance * p_infection)
+        infection = context.random.chance(chance * p_infection * variant.infectiousness_multiplier)
         if not infection:
             return False
 
@@ -962,8 +925,8 @@ cdef class Disease:
 
         return 0
 
-
     cdef bint dies_in_hospital(self, Person *person, Context context, bint care_available) nogil:
+        cdef Variant *variant = &self.variants[person.variant_idx]
         cdef float chance = 0
 
         if person.symptom_severity == SymptomSeverity.FATAL:
@@ -972,12 +935,12 @@ cdef class Disease:
             if care_available:
                 return False
             else:
-                chance = self.p_icu_death_no_beds
+                chance = variant.p_icu_death_no_beds
         elif person.symptom_severity == SymptomSeverity.SEVERE:
             if care_available:
                 return False
             else:
-                chance = self.p_hospital_death_no_beds
+                chance = variant.p_hospital_death_no_beds
 
         return context.random.chance(chance)
 
@@ -988,52 +951,58 @@ cdef class Disease:
 
         # μ = 5.1
         # cv = 0.86
-        cdef float f = context.random.gamma(self.mean_incubation_duration, 0.86)
-        cdef int days = round_to_int(f) # Round to nearest integer
+        cdef Variant *variant = &self.variants[person.variant_idx]
+        cdef float f = context.random.gamma(variant.mean_incubation_duration, 0.86)
+        cdef int days = round_to_int(f)  # Round to nearest integer
         return days
 
 
     cdef float get_days_from_onset_to_removed(self, Person *person, Context context) nogil:
         cdef float mu, cv, f
+        cdef Variant *variant = &self.variants[person.variant_idx]
 
         if person.symptom_severity == SymptomSeverity.FATAL:
             # source: https://www.imperial.ac.uk/mrc-global-infectious-disease-analysis/covid-19/report-13-europe-npi-impact/
-            mu = self.mean_duration_from_onset_to_death
+            mu = variant.mean_duration_from_onset_to_death
             cv = 0.45
         else:
-            mu = self.mean_duration_from_onset_to_recovery
+            mu = variant.mean_duration_from_onset_to_recovery
             cv = 0.45
 
         return context.random.gamma(mu, cv)
 
+
     cdef int get_illness_days(self, Person *person, Context context) nogil:
+        cdef Variant *variant = &self.variants[person.variant_idx]
         cdef float f
 
         f = person.days_from_onset_to_removed
         # Asymptomatic and mild spend all of the days in the illness state.
         # Others spend the rest in hospitalization and in ICU.
         if person.symptom_severity not in (SymptomSeverity.ASYMPTOMATIC, SymptomSeverity.MILD):
-            f *= self.ratio_of_duration_before_hospitalisation
+            f *= variant.ratio_of_duration_before_hospitalisation
 
         return round_to_int(f)
 
     cdef int get_hospitalization_days(self, Person *person, Context context) nogil:
+        cdef Variant *variant = &self.variants[person.variant_idx]
         cdef float f
 
         if person.symptom_severity == SymptomSeverity.SEVERE:
-            f = person.days_from_onset_to_removed * (1 - self.ratio_of_duration_before_hospitalisation)
+            f = person.days_from_onset_to_removed * (1 - variant.ratio_of_duration_before_hospitalisation)
         elif person.symptom_severity in (SymptomSeverity.FATAL, SymptomSeverity.CRITICAL):
-            f = person.days_from_onset_to_removed * self.ratio_of_duration_in_ward
+            f = person.days_from_onset_to_removed * variant.ratio_of_duration_in_ward
         else:
             f = 0
 
         return round_to_int(f)
 
     cdef int get_icu_days(self, Person *person, Context context) nogil:
+        cdef Variant *variant = &self.variants[person.variant_idx]
         cdef float f
 
         if person.symptom_severity in (SymptomSeverity.FATAL, SymptomSeverity.CRITICAL):
-            f = 1 - self.ratio_of_duration_in_ward - self.ratio_of_duration_before_hospitalisation
+            f = 1 - variant.ratio_of_duration_in_ward - variant.ratio_of_duration_before_hospitalisation
             f *= person.days_from_onset_to_removed
         else:
             f = 0
@@ -1042,20 +1011,21 @@ cdef class Disease:
 
     @cython.cdivision(True)
     cdef SymptomSeverity set_person_symptom_severity(self, Person *person, Context context) nogil:
+        cdef Variant *variant = &self.variants[person.variant_idx]
         cdef SymptomSeverity severity
         cdef int i, days
         cdef float sc, cc, fc, ohc, val
 
         val = context.random.get()
-        if val < self.p_asymptomatic:
+        if val < variant.p_asymptomatic:
             return SymptomSeverity.ASYMPTOMATIC
 
-        val = (val - self.p_asymptomatic) / (1 - self.p_asymptomatic)
+        val = (val - variant.p_asymptomatic) / (1 - variant.p_asymptomatic)
 
-        sc = self.p_severe.get_greatest_lte(person.age)
-        cc = self.p_critical.get_greatest_lte(person.age)
-        fc = self.p_icu_death.get_greatest_lte(person.age)
-        ohc = self.p_death_outside_hospital.get_greatest_lte(person.age)
+        sc = cv_get_greatest_lte(&variant.p_severe, person.age)
+        cc = cv_get_greatest_lte(&variant.p_critical, person.age)
+        fc = cv_get_greatest_lte(&variant.p_icu_death, person.age)
+        ohc = cv_get_greatest_lte(&variant.p_death_outside_hospital, person.age)
 
         if person.day_of_vaccination >= 0:
             days = context.day - person.day_of_vaccination
@@ -1396,7 +1366,7 @@ cdef class Population:
             # TODO: We want to scatter the infection progression, not have
             # everyone who is ill or incubating at simulation start to be at
             # the first day.
-            person_infect(person, context)
+            person_infect(person, context, NULL, 0)
 
             if i < i_incubating:
                 # these people have no symptoms yet
@@ -1636,9 +1606,19 @@ cdef class Context:
             return np.array(self.pop.all_detected)
         raise Exception()
 
-    def infect_people(self, count):
+    def infect_people(self, count, variant):
         cdef int idx
         cdef Person * person
+
+        if variant is None:
+            variant_idx = 0
+        else:
+            for idx, vn in enumerate(self.disease.variant_names):
+                if variant == vn:
+                    variant_idx = idx
+                    break
+            else:
+                raise Exception('Variant %s not found' % variant)
 
         for i in range(count):
             for x in range(10):
@@ -1648,7 +1628,7 @@ cdef class Context:
             else:
                 print('Unable to find person to infect')
                 continue
-            person_infect(person, self)
+            person_infect(person, self, NULL, variant_idx)
 
     def apply_intervention(self, iv):
         params = iv.get_param_values()
@@ -1668,8 +1648,8 @@ cdef class Context:
             self.hc.beds += params['beds']
             self.hc.available_beds += params['beds']
         elif iv.type == 'import-infections':
-            # Introduct infections from elsewhere
-            self.infect_people(params['amount'])
+            # Introduce infections from elsewhere
+            self.infect_people(params['amount'], params.get('variant'))
         # elif iv.type == 'limit-cross-border-mobility':
         #    # Introduce infections from elsewhere
         #    self.context.cross_border_mobility_factor = (100 - value) / 100.0

@@ -314,7 +314,12 @@ VARIABLE_DEFAULTS = {
         ['import-infections', '2020-11-01', 100],
         ['import-infections', '2020-11-15', 100],
     ],
-    'variants': [],
+    'variants': [
+        {
+            'name': 'b1.1.7',
+            'infectiousness_multiplier': 1.5 * 1.5
+        },
+    ],
     'preset_scenario': 'default',
 
     # Used for sampling the model

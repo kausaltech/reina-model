@@ -4,6 +4,7 @@ from dataclasses import dataclass
 from enum import Enum
 
 from flask_babel import lazy_gettext as _
+from variables import get_variable
 
 
 class ContactPlace(Enum):
@@ -24,6 +25,9 @@ class ContactPlace(Enum):
             self.OTHER: _('Other'),
         }
         return TRANSLATIONS[self]
+
+
+VARIANTS = [(x['name'], x['name']) for x in get_variable('variants')]
 
 
 @dataclass
@@ -281,6 +285,12 @@ INTERVENTIONS = [
         _('Import infections from outside the area'),
         parameters=[
             IntParameter(id='amount', label=_('Amount of new infections'), unit=_('infections')),
+            ChoiceParameter(
+                id='variant',
+                label=_('Variant of the disease'),
+                choices=[Choice(x[0], x[1]) for x in VARIANTS],
+                required=False,
+            ),
         ]
     ),
     Intervention(
