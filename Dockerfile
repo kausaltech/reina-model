@@ -5,16 +5,17 @@ RUN apt update && apt install -y libfreetype6-dev libpng-dev libqhull-dev pkg-co
 
 RUN mkdir /app /src
 WORKDIR /app
-COPY . /app
 
 # We check out editable installs (numpy) to /src, so that we can
 # mount development directory to /app if we want,
 # and numpy won't be suddenly missing. By default, numpy would be
 # installed to /app/src
+COPY requirements.txt /app/
 RUN pip install -r requirements.txt --src /src
+
+COPY . /app
+
 RUN export PYTHONPATH="${PYTHONPATH}:/src"
-
-
 RUN pybabel compile -d locale
 
 EXPOSE 5000
