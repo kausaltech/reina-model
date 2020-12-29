@@ -7,7 +7,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: PROJECT VERSION\n"
 "Report-Msgid-Bugs-To: EMAIL@ADDRESS\n"
-"POT-Creation-Date: 2020-12-15 20:24+0200\n"
+"POT-Creation-Date: 2020-12-29 11:00+0200\n"
 "PO-Revision-Date: 2020-03-29 16:35+0300\n"
 "Last-Translator: FULL NAME <EMAIL@ADDRESS>\n"
 "Language: fi\n"
@@ -125,83 +125,115 @@ msgstr "Vapaa-aika"
 msgid "Other"
 msgstr "Muu"
 
-#: common/interventions.py:143
+#: common/interventions.py:154
 msgid "Test all patients with symptoms"
 msgstr "Testataan kaikki oirehtivat"
 
-#: common/interventions.py:147
+#: common/interventions.py:157
 msgid "Test people only with severe symptoms"
 msgstr "Testataan ainoastaan vakavasti oirehtivat"
 
-#: common/interventions.py:151
+#: common/interventions.py:161
 msgid "Percentage of mild cases that are detected"
 msgstr "Osuus miedoista tautitapauksista, jotka havaitaan"
 
-#: common/interventions.py:158
+#: common/interventions.py:170
 msgid "Test all with symptoms and perform contact tracing"
 msgstr "Testataan kaikki oirehtivat sekä jäljitetään tartuntaketjuja"
 
-#: common/interventions.py:162
+#: common/interventions.py:174
 msgid "Percentage of infectors that are caught through contact tracing"
 msgstr "Tartuntaketjun osuus, joka saadaan jäljityksellä kiinni"
 
-#: common/interventions.py:169 components/params.py:244 components/results.py:112
+#: common/interventions.py:183 components/params.py:244 components/results.py:112
 msgid "Limit population mobility"
 msgstr "Rajoitetaan väestön liikkuvuutta"
 
-#: common/interventions.py:173
+#: common/interventions.py:187
 msgid "Reduction in contacts"
 msgstr "Vähennys kontakteissa"
 
-#: common/interventions.py:178
+#: common/interventions.py:194
 msgid "Minimum age for limitation"
 msgstr "Pienin ikä, jota rajoitus koskee"
 
-#: common/interventions.py:179 common/interventions.py:185
+#: common/interventions.py:197 common/interventions.py:205 common/interventions.py:232 common/interventions.py:240 common/interventions.py:266 common/interventions.py:274
 msgid "years"
 msgstr "vuotta"
 
-#: common/interventions.py:184
+#: common/interventions.py:202
 msgid "Maximum age for limitation"
 msgstr "Suurin ikä, jota rajoitus koskee"
 
-#: common/interventions.py:189
+#: common/interventions.py:210
 msgid "Place where the contacts happen"
 msgstr "Paikka jossa kontaktit tapahtuvat"
 
-#: common/interventions.py:197
+#: common/interventions.py:218
+msgid "People wear masks"
+msgstr "Henkilöt käyttävät kasvomaskeja"
+
+#: common/interventions.py:222
+msgid "Portion of daily contacts where masks are in use"
+msgstr "Osuus päivittäisistä lähikontakteissa jossa maskia käytetään"
+
+#: common/interventions.py:229 common/interventions.py:263
+msgid "Minimum age for intervention"
+msgstr "Pienin ikä, johon interventio vaikuttaa"
+
+#: common/interventions.py:237 common/interventions.py:271
+msgid "Maximum age for intervention"
+msgstr "Suurin ikä, johon interventio vaikuttaa"
+
+#: common/interventions.py:245
+msgid "Place where intervention happens"
+msgstr "Interventio tapahtumapaikka"
+
+#: common/interventions.py:253
+msgid "Vaccinate people against disease"
+msgstr "Rokotetaan ihmisiä tautia vastaan"
+
+#: common/interventions.py:257
+msgid "Number of people vaccinated daily"
+msgstr "Uusien rokotusten määrä päivittäin"
+
+#: common/interventions.py:259
+msgid "persons/day"
+msgstr "hlö/pv"
+
+#: common/interventions.py:281
 msgid "Import infections from outside the area"
 msgstr "Alueelle tulee infektioita muualta"
 
-#: common/interventions.py:201
+#: common/interventions.py:283
 msgid "Amount of new infections"
 msgstr "Uusien infektioiden lukumäärä"
 
-#: common/interventions.py:202
+#: common/interventions.py:283
 msgid "infections"
 msgstr "infektiota"
 
-#: common/interventions.py:208
+#: common/interventions.py:288
 msgid "Build new hospital beds"
 msgstr "Rakennetaan uusia sairaansijoja"
 
-#: common/interventions.py:212
+#: common/interventions.py:290
 msgid "Number of new beds built"
 msgstr "Uusien sairaansijojen lukumäärä"
 
-#: common/interventions.py:213 common/metrics.py:89
+#: common/interventions.py:290 common/metrics.py:89
 msgid "beds"
 msgstr "kpl"
 
-#: common/interventions.py:219
+#: common/interventions.py:295
 msgid "Build new ICU units"
 msgstr "Rakennetaan uusia tehohoitopaikkoja"
 
-#: common/interventions.py:223
+#: common/interventions.py:297
 msgid "Number of new ICU units built"
 msgstr "Uusien tehohoitoyksiköiden lukumäärä"
 
-#: common/interventions.py:224 common/metrics.py:96 components/results.py:239
+#: common/interventions.py:297 common/metrics.py:96 components/results.py:239
 msgid "ICU units"
 msgstr "Tehohoitopaikat"
 
