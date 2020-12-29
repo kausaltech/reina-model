@@ -131,6 +131,7 @@ cdef struct Person:
     int16 day_of_infection, days_left, other_people_infected, other_people_exposed_today, \
         day_of_illness
     int16 max_contacts_per_day
+    int16 day_of_vaccination
 
     float days_from_onset_to_removed
     uint8 nr_infectees
@@ -164,6 +165,7 @@ cdef void person_init(Person *self, int32 idx, uint8 age) nogil:
     self.max_contacts_per_day = 0
     self.infector = -1
     self.infectees = NULL
+    self.day_of_vaccination = -1
 
     openmp.omp_init_lock(&self.lock)
 
@@ -375,6 +377,24 @@ cdef void person_die(Person *self, Context context) nogil:
     person_become_removed(self, context)
 
 
+cdef bint person_vaccinate(Person *self, Context context) nogil:
+    """Vaccinates a person.
+
+    Will return False if the person cannot be vaccinated, True otherwise.
+    """
+
+    if self.state == PersonState.DEAD or self.day_of_vaccination >= 0:
+        return False
+
+    # Do not vaccinate detected cases. (Hospitalized patients are always detected.)
+    if self.was_detected:
+        return False
+
+    self.day_of_vaccination = context.day
+    context.pop.vaccinate(self)
+    return True
+
+
 cdef void person_advance(Person *self, Context context) nogil:
     cdef int people_exposed
     self.other_people_exposed_today = 0
@@ -433,11 +453,12 @@ DEF TESTING_TRACE = False
 
 cdef class HealthcareSystem:
     cdef int32 beds, icu_units, available_beds, available_icu_units
-    cdef int32 tests_run_per_day
+    cdef int32 ct_cases_per_day
     cdef float p_detected_anyway
     cdef float p_successful_tracing
     cdef TestingMode testing_mode
     cdef list testing_queue
+    cdef list vaccinations
     cdef openmp.omp_lock_t lock
 
     def __init__(self, hospital_beds, icu_units):
@@ -447,9 +468,10 @@ cdef class HealthcareSystem:
         self.available_icu_units = icu_units
         self.testing_mode = TestingMode.NO_TESTING
         self.testing_queue = []
-        self.tests_run_per_day = 0
+        self.ct_cases_per_day = 0
         self.p_detected_anyway = 0
         self.p_successful_tracing = 1.0
+        self.vaccinations = []
         openmp.omp_init_lock(&self.lock)
 
     cdef bint queue_for_testing(self, int person_idx, Context context, float p_success) nogil:
@@ -497,7 +519,7 @@ cdef class HealthcareSystem:
         cdef int idx
 
         queue = self.testing_queue
-        self.tests_run_per_day = len(queue)
+        self.ct_cases_per_day = len(queue)
         self.testing_queue = []
 
         # Run tests
@@ -524,6 +546,53 @@ cdef class HealthcareSystem:
                 # infectees for testing.
                 # FIXME: Simulate non-perfect contact tracing?
                 self.perform_contact_tracing(idx, context, 0)
+
+        pop_max_age = context.pop.nr_ages - 1
+        for v in self.vaccinations:
+            if not v['nr_daily']:
+                continue
+            min_age = v['min_age']
+            max_age = v['max_age']
+            if min_age == None:
+                min_age = 0
+            if max_age == None:
+                max_age = pop_max_age
+            self.vaccinate_people(v.get('nr_daily'), min_age, max_age, context)
+
+    cdef void vaccinate_people(self, int nr_to_vaccinate, int min_age, int max_age, Context context) nogil:
+        cdef Person *person
+        cdef int idx_start, idx_end, idx, vaccinated
+
+        idx_start = context.pop.age_start[min_age]
+        if max_age < context.pop.nr_ages - 1:
+            idx_end = context.pop.age_start[max_age + 1]
+        else:
+            idx_end = context.pop.total_people
+
+        vaccinated = 0
+        # Start vaccinating systematically from the oldest age group
+        idx = idx_end - 1
+
+        # More to vaccinate than we have agents?
+        if nr_to_vaccinate > idx_end - idx_start:
+            nr_to_vaccinate = idx_end - idx_start
+
+        while vaccinated < nr_to_vaccinate and idx >= idx_start:
+            person = context.pop.people + context.pop.people_sorted_by_age[idx]
+            idx -= 1
+            if not person_vaccinate(person, context):
+                continue
+            vaccinated += 1
+
+    def start_vaccinating(self, daily_vaccinations, min_age, max_age, context):
+        for v in self.vaccinations:
+            if min_age != v.get('min_age') or max_age != v.get('max_age'):
+                continue
+            break
+        else:
+            v = dict(min_age=min_age, max_age=max_age)
+            self.vaccinations.append(v)
+        v['nr_daily'] = daily_vaccinations
 
     cdef void seek_testing(self, Person *person, Context context) nogil:
         IF TESTING_TRACE:
@@ -855,7 +924,7 @@ cdef class Disease:
     @cython.cdivision(True)
     cdef SymptomSeverity set_person_symptom_severity(self, Person *person, Context context) nogil:
         cdef SymptomSeverity severity
-        cdef int i
+        cdef int i, days
         cdef float sc, cc, fc, ohc, val
 
         val = context.random.get()
@@ -868,6 +937,12 @@ cdef class Disease:
         cc = self.p_critical.get_greatest_lte(person.age)
         fc = self.p_icu_death.get_greatest_lte(person.age)
         ohc = self.p_death_outside_hospital.get_greatest_lte(person.age)
+
+        if person.day_of_vaccination >= 0:
+            days = context.day - person.day_of_vaccination
+            # FIXME: Parametrize
+            if days > 14:
+                sc *= (1 - 0.90)  # Efficacy of 90 %
 
         if val < ohc * fc * sc * cc:
             person.place_of_death = PlaceOfDeath.DEATH_OUTSIDE_HOSPITAL
@@ -1055,7 +1130,7 @@ cdef class ContactMatrix:
         df = self.mask_probabilities
         filters = (df.index >= min_age) & (df.index <= max_age)
         if place == None:
-            places = CONTACT_PLACE_TO_STR.keys()
+            places = list(CONTACT_PLACE_TO_STR.keys())
             places.remove(ContactPlace.ALL)
         else:
             places = [place]
@@ -1107,7 +1182,7 @@ cdef class Population:
 
     # Stats
     cdef int[::1] infected, detected, all_detected, all_infected, hospitalized, \
-        in_icu, dead, susceptible, recovered
+        in_icu, dead, susceptible, recovered, vaccinated
     cdef int nr_ages
 
     cdef ContactMatrix contact_matrix
@@ -1141,6 +1216,7 @@ cdef class Population:
         self.hospitalized = np.zeros(nr_ages, dtype=np.int32)
         self.in_icu = np.zeros(nr_ages, dtype=np.int32)
         self.dead = np.zeros(nr_ages, dtype=np.int32)
+        self.vaccinated = np.zeros(nr_ages, dtype=np.int32)
 
     cdef void _free_people(self) nogil:
         cdef Person * p
@@ -1334,6 +1410,13 @@ cdef class Population:
         if person.was_detected:
             self.detected[age] -= 1
 
+    @cython.initializedcheck(False)
+    cdef void vaccinate(self, Person * person) nogil:
+        self.vaccinated[person.age] += 1
+        # FIXME: Change if vaccination changes transmission
+        # if person.state == PersonState.SUSCEPTIBLE:
+        #    self.susceptible[person.age] -= 1
+
 
 cdef class Context:
     cdef public Population pop
@@ -1419,7 +1502,7 @@ cdef class Context:
             total_icu_units=hc.icu_units,
             r=r,
             exposed_per_day=self.exposed_per_day,
-            tests_run_per_day=self.hc.tests_run_per_day,
+            ct_cases_per_day=self.hc.ct_cases_per_day,
             mobility_limitation=1 - self.pop.contact_matrix.mobility_factor,
         )
         return s
@@ -1506,6 +1589,12 @@ cdef class Context:
                 max_age=max_age,
                 place=place,
             )
+        elif iv.type == 'vaccinate':
+            nr = params['daily_vaccinations']
+            min_age = params.get('min_age')
+            max_age = params.get('max_age')
+
+            self.hc.start_vaccinating(nr, min_age, max_age, self)
         else:
             raise Exception()
 

@@ -5,20 +5,32 @@ from datetime import date, timedelta
 import pandas as pd
 
 from calc import ExecutionInterrupted, calcfunc
-from calc.datasets import (get_contacts_for_country,
-                           get_initial_population_condition,
-                           get_population_for_area)
+from calc.datasets import (
+    get_contacts_for_country, get_initial_population_condition,
+    get_population_for_area,
+)
 from common.interventions import Intervention, iv_tuple_to_obj
 from cythonsim import model
 from utils.perf import PerfCounter
 
 POP_ATTRS = [
-    'susceptible', 'infected', 'all_detected', 'hospitalized', 'in_icu',
-    'dead', 'recovered', 'all_infected',
+    'susceptible',
+    'infected',
+    'all_detected',
+    'hospitalized',
+    'in_icu',
+    'dead',
+    'recovered',
+    'all_infected',
 ]
 STATE_ATTRS = [
-    'exposed_per_day', 'available_hospital_beds', 'available_icu_units',
-    'total_icu_units', 'tests_run_per_day', 'r', 'mobility_limitation',
+    'exposed_per_day',
+    'available_hospital_beds',
+    'available_icu_units',
+    'total_icu_units',
+    'ct_cases_per_day',
+    'r',
+    'mobility_limitation',
 ]
 
 
@@ -26,7 +38,9 @@ def create_disease_params(variables):
     kwargs = {}
     for key in model.DISEASE_PARAMS:
         val = variables[key]
-        if key in ('p_infection', 'p_severe', 'p_critical', 'p_icu_death', 'p_death_outside_hospital'):
+        if key in (
+            'p_infection', 'p_severe', 'p_critical', 'p_icu_death', 'p_death_outside_hospital'
+        ):
             val = [(age, sev / 100) for age, sev in val]
         elif key.startswith('p_') or key.startswith('ratio_'):
             val = val / 100
@@ -35,9 +49,7 @@ def create_disease_params(variables):
     return kwargs
 
 
-@calcfunc(
-    funcs=[get_contacts_for_country]
-)
+@calcfunc(funcs=[get_contacts_for_country])
 def get_nr_of_contacts():
     df = get_contacts_for_country()
     df = df.drop(columns='place_type').groupby('participant_age').sum()
@@ -47,17 +59,25 @@ def get_nr_of_contacts():
     return s.sort_index()
 
 
-@calcfunc(
-    funcs=[get_contacts_for_country]
-)
+@calcfunc(funcs=[get_contacts_for_country])
 def get_contacts_per_day():
     df = get_contacts_for_country()
-    df = pd.melt(df, id_vars=['place_type', 'participant_age'], var_name='contact_age', value_name='contacts')
-    df['participant_age'] = df['participant_age'].map(lambda x: tuple([int(y) for y in x.split('-')]))
+    df = pd.melt(
+        df,
+        id_vars=['place_type', 'participant_age'],
+        var_name='contact_age',
+        value_name='contacts'
+    )
+    df['participant_age'] = df['participant_age'].map(
+        lambda x: tuple([int(y) for y in x.split('-')])
+    )
     df['contact_age'] = df['contact_age'].map(lambda x: tuple([int(y) for y in x.split('-')]))
 
     df = pd.DataFrame(
-        [(t.place_type, p, t.contact_age, t.contacts) for t in df.itertuples() for p in range(t.participant_age[0], t.participant_age[1] + 1)],
+        [
+            (t.place_type, p, t.contact_age, t.contacts) for t in df.itertuples()
+            for p in range(t.participant_age[0], t.participant_age[1] + 1)
+        ],
         columns=['place_type', 'participant_age', 'contact_age', 'contacts']
     )
     # df = pd.DataFrame(
@@ -70,8 +90,11 @@ def get_contacts_per_day():
 
 @calcfunc(
     variables=list(model.DISEASE_PARAMS) + [
-        'simulation_days', 'interventions', 'start_date',
-        'hospital_beds', 'icu_units',
+        'simulation_days',
+        'interventions',
+        'start_date',
+        'hospital_beds',
+        'icu_units',
         'random_seed',
     ],
     funcs=[get_contacts_per_day, get_population_for_area],
@@ -170,7 +193,8 @@ def simulate_individuals(variables, step_callback=None):
 
 @calcfunc(
     variables=list(model.DISEASE_PARAMS) + [
-        'sample_limit_mobility', 'max_age',
+        'sample_limit_mobility',
+        'max_age',
     ],
     funcs=[get_contacts_for_country],
     filedeps=[model.__file__],
@@ -286,6 +310,7 @@ if __name__ == '__main__':
         state_attrs.remove('available_hospital_beds')
         state_attrs.remove('available_icu_units')
         state_attrs.remove('total_icu_units')
+        state_attrs.remove('mobility_limitation')
         for attr in POP_ATTRS + state_attrs + ['us_per_infected']:
             header += '%15s' % attr
         print(header)
@@ -297,7 +322,7 @@ if __name__ == '__main__':
             for attr in POP_ATTRS:
                 s += '%15d' % rec[attr]
 
-            for attr in ['exposed_per_day', 'tests_run_per_day']:
+            for attr in ['exposed_per_day', 'ct_cases_per_day']:
                 s += '%15d' % rec[attr]
             s += '%13.2f' % rec['r']
             if rec['infected']:
@@ -306,7 +331,7 @@ if __name__ == '__main__':
             return True
 
         with allow_set_variable():
-            set_variable('simulation_days', 365)
+            set_variable('simulation_days', 465)
 
             def run_simulation():
                 simulate_individuals(step_callback=step_callback, skip_cache=True)
@@ -321,9 +346,8 @@ if __name__ == '__main__':
                 run_simulation()
 
     if False:
-        from variables import allow_set_variable, get_variable, set_variable
-
         from calc.datasets import get_detected_cases
+        from variables import allow_set_variable, get_variable, set_variable
 
         with allow_set_variable():
             set_variable('simulation_days', 50)

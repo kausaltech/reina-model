@@ -249,6 +249,34 @@ INTERVENTIONS = [
         ],
     ),
     Intervention(
+        'vaccinate',
+        _('Vaccinate people against disease'),
+        parameters=[
+            IntParameter(
+                id='daily_vaccinations',
+                label=_('Number of people vaccinated daily'),
+                min_value=0,
+                unit=_('persons/day'),
+            ),
+            IntParameter(
+                id='min_age',
+                label=_('Minimum age for intervention'),
+                min_value=0,
+                max_value=100,
+                unit=_('years'),
+                required=False,
+            ),
+            IntParameter(
+                id='max_age',
+                label=_('Maximum age for intervention'),
+                min_value=0,
+                max_value=100,
+                unit=_('years'),
+                required=False,
+            ),
+        ],
+    ),
+    Intervention(
         'import-infections',
         _('Import infections from outside the area'),
         parameters=[
