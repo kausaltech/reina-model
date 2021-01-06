@@ -19,8 +19,6 @@ services:
         #    - "127.0.0.1:5000:5000"
         depends_on:
             - redis
-        volumes:
-            - .:/app
     redis:
         image: redis
         restart: unless-stopped
@@ -33,12 +31,6 @@ services:
         #     - "127.0.0.1:3001:3000"
         # For some reason, .env file does not work automatically, like it
         # does for reina-model, so we're setting it explicitly here.
-        env_file:
-            - .env
         environment:
-            - SERVER_GRAPHQL_ENDPOINT=http://reina-model:5000/graphql
-        volumes:
-            - ../reina-ui:/app
-            - node_modules:/app/node_modules
-volumes:
-    node_modules:
+            - SERVER_GRAPHQL_API_URL=http://reina-model:5000/graphql
+            - BROWSER_GRAPHQL_API_URL=/graphql
