@@ -9,7 +9,6 @@ dash-bootstrap-components
 Flask-Caching
 Flask-Session
 Flask-Babel
-gunicorn
 matplotlib
 python-dotenv
 redis
