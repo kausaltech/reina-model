@@ -1,14 +1,14 @@
 # Translations template for PROJECT.
-# Copyright (C) 2020 ORGANIZATION
+# Copyright (C) 2021 ORGANIZATION
 # This file is distributed under the same license as the PROJECT project.
-# FIRST AUTHOR <EMAIL@ADDRESS>, 2020.
+# FIRST AUTHOR <EMAIL@ADDRESS>, 2021.
 #
 #, fuzzy
 msgid ""
 msgstr ""
 "Project-Id-Version: PROJECT VERSION\n"
 "Report-Msgid-Bugs-To: EMAIL@ADDRESS\n"
-"POT-Creation-Date: 2020-12-29 11:00+0200\n"
+"POT-Creation-Date: 2021-01-07 13:22+0200\n"
 "PO-Revision-Date: YEAR-MO-DA HO:MI+ZONE\n"
 "Last-Translator: FULL NAME <EMAIL@ADDRESS>\n"
 "Language-Team: LANGUAGE <LL@li.org>\n"
@@ -100,140 +100,156 @@ msgstr ""
 msgid "Preset"
 msgstr ""
 
-#: common/interventions.py:19
+#: common/interventions.py:20
 msgid "Home"
 msgstr ""
 
-#: common/interventions.py:20
+#: common/interventions.py:21
 msgid "Work"
 msgstr ""
 
-#: common/interventions.py:21
+#: common/interventions.py:22
 msgid "School"
 msgstr ""
 
-#: common/interventions.py:22
+#: common/interventions.py:23
 msgid "Transport"
 msgstr ""
 
-#: common/interventions.py:23
+#: common/interventions.py:24
 msgid "Leisure"
 msgstr ""
 
-#: common/interventions.py:24
+#: common/interventions.py:25
 msgid "Other"
 msgstr ""
 
-#: common/interventions.py:154
+#: common/interventions.py:158
 msgid "Test all patients with symptoms"
 msgstr ""
 
-#: common/interventions.py:157
+#: common/interventions.py:161
 msgid "Test people only with severe symptoms"
 msgstr ""
 
-#: common/interventions.py:161
+#: common/interventions.py:165
 msgid "Percentage of mild cases that are detected"
 msgstr ""
 
-#: common/interventions.py:170
+#: common/interventions.py:174
 msgid "Test all with symptoms and perform contact tracing"
 msgstr ""
 
-#: common/interventions.py:174
+#: common/interventions.py:178
 msgid "Percentage of infectors that are caught through contact tracing"
 msgstr ""
 
-#: common/interventions.py:183 components/params.py:244 components/results.py:112
+#: common/interventions.py:187 components/params.py:244 components/results.py:112
 msgid "Limit population mobility"
 msgstr ""
 
-#: common/interventions.py:187
+#: common/interventions.py:191
 msgid "Reduction in contacts"
 msgstr ""
 
-#: common/interventions.py:194
+#: common/interventions.py:198
 msgid "Minimum age for limitation"
 msgstr ""
 
-#: common/interventions.py:197 common/interventions.py:205 common/interventions.py:232 common/interventions.py:240
-#: common/interventions.py:266 common/interventions.py:274
+#: common/interventions.py:201 common/interventions.py:209 common/interventions.py:236 common/interventions.py:244
+#: common/interventions.py:270 common/interventions.py:278
 msgid "years"
 msgstr ""
 
-#: common/interventions.py:202
+#: common/interventions.py:206
 msgid "Maximum age for limitation"
 msgstr ""
 
-#: common/interventions.py:210
+#: common/interventions.py:214
 msgid "Place where the contacts happen"
 msgstr ""
 
-#: common/interventions.py:218
+#: common/interventions.py:222
 msgid "People wear masks"
 msgstr ""
 
-#: common/interventions.py:222
+#: common/interventions.py:226
 msgid "Portion of daily contacts where masks are in use"
 msgstr ""
 
-#: common/interventions.py:229 common/interventions.py:263
+#: common/interventions.py:233 common/interventions.py:267
 msgid "Minimum age for intervention"
 msgstr ""
 
-#: common/interventions.py:237 common/interventions.py:271
+#: common/interventions.py:241 common/interventions.py:275
 msgid "Maximum age for intervention"
 msgstr ""
 
-#: common/interventions.py:245
+#: common/interventions.py:249
 msgid "Place where intervention happens"
 msgstr ""
 
-#: common/interventions.py:253
+#: common/interventions.py:257
 msgid "Vaccinate people against disease"
 msgstr ""
 
-#: common/interventions.py:257
-msgid "Number of people vaccinated daily"
+#: common/interventions.py:261
+msgid "Number of people vaccinated weekly"
 msgstr ""
 
-#: common/interventions.py:259
+#: common/interventions.py:263
 msgid "persons/day"
 msgstr ""
 
-#: common/interventions.py:281
+#: common/interventions.py:285
 msgid "Import infections from outside the area"
 msgstr ""
 
-#: common/interventions.py:283
+#: common/interventions.py:287
 msgid "Amount of new infections"
 msgstr ""
 
-#: common/interventions.py:283
+#: common/interventions.py:287
 msgid "infections"
 msgstr ""
 
-#: common/interventions.py:288
+#: common/interventions.py:290 common/interventions.py:303
+msgid "Variant of the disease"
+msgstr ""
+
+#: common/interventions.py:298
+msgid "Import infections from outside the area every week"
+msgstr ""
+
+#: common/interventions.py:300
+msgid "Amount of new weekly infections"
+msgstr ""
+
+#: common/interventions.py:300
+msgid "infections/week"
+msgstr ""
+
+#: common/interventions.py:311
 msgid "Build new hospital beds"
 msgstr ""
 
-#: common/interventions.py:290
+#: common/interventions.py:313
 msgid "Number of new beds built"
 msgstr ""
 
-#: common/interventions.py:290 common/metrics.py:89
+#: common/interventions.py:313 common/metrics.py:97
 msgid "beds"
 msgstr ""
 
-#: common/interventions.py:295
+#: common/interventions.py:318
 msgid "Build new ICU units"
 msgstr ""
 
-#: common/interventions.py:297
+#: common/interventions.py:320
 msgid "Number of new ICU units built"
 msgstr ""
 
-#: common/interventions.py:297 common/metrics.py:96 components/results.py:239
+#: common/interventions.py:320 common/metrics.py:104 components/results.py:239
 msgid "ICU units"
 msgstr ""
 
@@ -241,87 +257,91 @@ msgstr ""
 msgid "Susceptible"
 msgstr ""
 
-#: common/metrics.py:22 common/metrics.py:30 common/metrics.py:38 common/metrics.py:78
+#: common/metrics.py:22 common/metrics.py:30 common/metrics.py:38 common/metrics.py:46 common/metrics.py:86
 msgid "residents"
 msgstr ""
 
-#: common/metrics.py:28 components/results.py:30
+#: common/metrics.py:28
+msgid "Vaccinated"
+msgstr ""
+
+#: common/metrics.py:36 components/results.py:30
 msgid "Active infections"
 msgstr ""
 
-#: common/metrics.py:36
+#: common/metrics.py:44
 msgid "Total infections (cum.)"
 msgstr ""
 
-#: common/metrics.py:44 components/results.py:31
+#: common/metrics.py:52 components/results.py:31
 msgid "Detected cases"
 msgstr ""
 
-#: common/metrics.py:46 common/metrics.py:133
+#: common/metrics.py:54 common/metrics.py:141
 msgid "cases (cum.)"
 msgstr ""
 
-#: common/metrics.py:52 components/results.py:32
+#: common/metrics.py:60 components/results.py:32
 msgid "Hospitalized"
 msgstr ""
 
-#: common/metrics.py:54 common/metrics.py:142
+#: common/metrics.py:62 common/metrics.py:150
 msgid "beds in use"
 msgstr ""
 
-#: common/metrics.py:60 components/results.py:33
+#: common/metrics.py:68 components/results.py:33
 msgid "In ICU"
 msgstr ""
 
-#: common/metrics.py:62 common/metrics.py:151
+#: common/metrics.py:70 common/metrics.py:159
 msgid "ICU units in use"
 msgstr ""
 
-#: common/metrics.py:68 components/results.py:34
+#: common/metrics.py:76 components/results.py:34
 msgid "Dead"
 msgstr ""
 
-#: common/metrics.py:70 common/metrics.py:160
+#: common/metrics.py:78 common/metrics.py:168
 msgid "deaths (cum.)"
 msgstr ""
 
-#: common/metrics.py:76 components/results.py:35
+#: common/metrics.py:84 components/results.py:35
 msgid "Recovered"
 msgstr ""
 
-#: common/metrics.py:87
+#: common/metrics.py:95
 msgid "Available hospital beds"
 msgstr ""
 
-#: common/metrics.py:94
+#: common/metrics.py:102
 msgid "Available ICU units"
 msgstr ""
 
-#: common/metrics.py:101 components/results.py:266
+#: common/metrics.py:109 components/results.py:266
 msgid "Reproductive number (Rₜ)"
 msgstr ""
 
-#: common/metrics.py:109
+#: common/metrics.py:117
 msgid "Infection fatality ratio (IFR)"
 msgstr ""
 
-#: common/metrics.py:117
+#: common/metrics.py:125
 msgid "Case fatality ratio (CFR)"
 msgstr ""
 
-#: common/metrics.py:131
+#: common/metrics.py:139
 msgid "Detected cases (real)"
 msgstr ""
 
-#: common/metrics.py:140
+#: common/metrics.py:148
 msgid "Hospitalized (real)"
 msgstr ""
 
-#: common/metrics.py:149
+#: common/metrics.py:157
 msgid "In ICU (real)"
 msgstr ""
 
-#: common/metrics.py:158
+#: common/metrics.py:166
 msgid "Dead (real)"
 msgstr ""
 

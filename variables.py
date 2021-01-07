@@ -20,15 +20,37 @@ VARIABLE_OVERRIDE_SETS = {
             ['test-all-with-symptoms', '2020-04-01'],
             ['test-with-contact-tracing', '2020-06-01', 10],
             ['test-with-contact-tracing', '2020-07-01', 20],
-            ['test-with-contact-tracing', '2020-09-01', 60],
+            ['test-with-contact-tracing', '2020-09-01', 70],
+            ['test-with-contact-tracing', '2020-12-01', 60],
+            ['test-with-contact-tracing', '2020-12-14', 70],
             # ['test-with-contact-tracing', '2020-12-01', 60],
 
-            ['limit-mobility', '2020-03-23', 100, 7, 25, 'school'],
-            ['limit-mobility', '2020-08-12', 0, 7, 25, 'school'],
-            ['limit-mobility', '2020-12-19', 100, 7, 25, 'school'],
-            ['limit-mobility', '2021-01-07', 0, 7, 25, 'school'],
-            ['limit-mobility', '2021-01-07', 0, 7, 12, 'school'],
-            ['limit-mobility', '2021-01-07', 100, 13, 25, 'school'],
+            # All education
+            ['limit-mobility', '2020-03-23', 100, 7, None, 'school'],
+            ['limit-mobility', '2020-08-12', 0, 7, None, 'school'],
+            # Christmas
+            ['limit-mobility', '2020-12-19', 100, 7, None, 'school'],
+            ['limit-mobility', '2020-01-07', 0, 7, None, 'school'],
+
+            # Higher education
+            ['limit-mobility', '2020-08-12', 80, 19, None, 'school'],
+
+            # Upper secondary level
+            ['limit-mobility', '2020-11-01', 45, 16, 19, 'school'],
+            ['limit-mobility', '2020-12-07', 70, 16, 19, 'school'],
+
+            # Junior high school
+            ['limit-mobility', '2020-08-12', 0, 13, 15, 'school'],
+            ['limit-mobility', '2020-11-01', 20, 13, 15, 'school'],
+            ['limit-mobility', '2020-11-21', 0, 13, 15, 'school'],
+            ['limit-mobility', '2020-12-01', 20, 13, 15, 'school'],
+            ['limit-mobility', '2020-12-16', 100, 13, 15, 'school'],
+            ['limit-mobility', '2020-01-07', 0, 13, 15, 'school'],
+
+            # Elementary school
+            ['limit-mobility', '2020-08-12', 0, 7, 12, 'school'],
+            ['limit-mobility', '2020-11-01', 10, 7, 12, 'school'],
+            ['limit-mobility', '2020-11-15', 0, 7, 12, 'school'],
 
             ['limit-mobility', '2020-03-15', 10, None, None, 'leisure'],
             ['limit-mobility', '2020-03-18', 20, None, None, 'leisure'],
@@ -73,9 +95,21 @@ VARIABLE_OVERRIDE_SETS = {
             ['limit-mobility', '2020-11-16', 30, None, None, 'transport'],
             ['limit-mobility', '2020-12-12', 40, None, None, 'transport'],
 
-            ['wear-masks', '2020-09-01', 30, None, None, 'transport'],
-            ['wear-masks', '2020-10-01', 35, None, None, 'transport'],
+            ['wear-masks', '2020-10-01', 20, None, None, 'transport'],
+            ['wear-masks', '2020-10-01', 20, None, None, 'leisure'],
+            ['wear-masks', '2020-10-01', 20, None, None, 'work'],
+            ['wear-masks', '2020-10-01', 20, None, None, 'other'],
+
             ['wear-masks', '2020-11-01', 40, None, None, 'transport'],
+            ['wear-masks', '2020-11-01', 40, None, None, 'leisure'],
+            ['wear-masks', '2020-11-01', 40, None, None, 'work'],
+            ['wear-masks', '2020-11-01', 40, None, None, 'other'],
+
+            ['wear-masks', '2020-12-01', 70, None, None, 'transport'],
+            ['wear-masks', '2020-12-01', 70, None, None, 'leisure'],
+            ['wear-masks', '2020-12-01', 70, None, None, 'work'],
+            ['wear-masks', '2020-12-01', 70, None, None, 'other'],
+
             # Protect over 65-year-olds
             # ['wear-masks', '2020-10-01', 40, 65, None],
 
@@ -88,22 +122,25 @@ VARIABLE_OVERRIDE_SETS = {
             ['limit-mobility', '2020-08-15', 10],
             ['limit-mobility', '2020-09-01', 0],
 
+            # Vaccinate healthcare professionals
+            ['vaccinate', '2021-01-01', 1250, 25, 65],
+            ['vaccinate', '2021-01-31', 0, 25, 65],
+
+            # Elderly
+            ['vaccinate', '2021-01-01', 1250, 80, None],
+            ['vaccinate', '2021-02-01', 2500, 80, None],
+            ['vaccinate', '2021-03-01', 0, 80, None],
+            ['vaccinate', '2021-03-01', 5000, 70, None],
+
             ['import-infections', '2020-03-01', 10],
             ['import-infections', '2020-03-07', 5],
             ['import-infections', '2020-03-09', 5],
             ['import-infections', '2020-07-15', 15],
             ['import-infections', '2020-08-01', 10],
-            ['import-infections', '2020-09-01', 10],
-            ['import-infections', '2020-09-15', 10],
-            ['import-infections', '2020-10-01', 20],
-            ['import-infections', '2020-10-13', 20],
-            ['import-infections', '2020-10-15', 20],
-            ['import-infections', '2020-10-18', 20],
-            ['import-infections', '2020-11-01', 5],
-            ['import-infections', '2020-11-07', 15],
-            ['import-infections', '2020-11-15', 30],
-            ['import-infections', '2020-11-22', 25],
-            ['import-infections', '2020-12-01', 25],
+            ['import-infections-weekly', '2020-09-01', 10],
+            ['import-infections-weekly', '2020-10-01', 20],
+            ['import-infections-weekly', '2020-11-01', 80],
+            ['import-infections-weekly', '2020-12-01', 240],
         ],
         # Commenting these away for now, until we decide on whether to use
         # setting initial state or interventions to set state for start date
@@ -157,6 +194,9 @@ VARIABLE_DEFAULTS = {
         [70, 25.0],
         [80, 70.0],
     ],
+    # Probability modifier for an asymptomatic person to spread the infection
+    # https://www.medrxiv.org/content/10.1101/2020.11.04.20225573v1
+    'p_asymptomatic_infection': 0.25,
 
     # Chance to die after regular hospital care
     'p_hospital_death': 0.0,  # %
@@ -317,7 +357,6 @@ VARIABLE_DEFAULTS = {
     'variants': [
         {
             'name': 'b1.1.7',
-            'infectiousness_multiplier': 1.5 * 1.5
         },
     ],
     'preset_scenario': 'default',
@@ -327,6 +366,11 @@ VARIABLE_DEFAULTS = {
     # Used for Monte Carlo simulation
     'random_seed': 0
 }
+
+# Variant has 50 % higher infectiousness
+VARIABLE_DEFAULTS['variants'][0]['infectiousness_multiplier'] = \
+    VARIABLE_DEFAULTS['infectiousness_multiplier'] * 1.5
+
 if _variable_override_set:
     VARIABLE_DEFAULTS.update(VARIABLE_OVERRIDE_SETS[_variable_override_set])
 

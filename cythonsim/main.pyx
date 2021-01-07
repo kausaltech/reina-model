@@ -60,14 +60,16 @@ cdef enum SimulationProblem:
 
 
 cdef enum ContactPlace:
-    ALL
-    HOME
-    WORK
-    SCHOOL
-    TRANSPORT
-    LEISURE
-    OTHER
+    HOME = 0
+    WORK = 1
+    SCHOOL = 2
+    TRANSPORT = 3
+    LEISURE = 4
+    OTHER = 5
 
+    ALL = 100
+
+DEF NR_CONTACT_PLACES = 6
 
 cdef enum PlaceOfDeath:
     DEATH_IN_HOSPITAL
@@ -509,7 +511,7 @@ cdef class HealthcareSystem:
 
     cdef iterate(self, Context context):
         cdef Person *person
-        cdef int idx
+        cdef int idx, nr
 
         queue = self.testing_queue
         self.ct_cases_per_day = len(queue)
@@ -550,7 +552,8 @@ cdef class HealthcareSystem:
                 min_age = 0
             if max_age == None:
                 max_age = pop_max_age
-            self.vaccinate_people(v.get('nr_daily'), min_age, max_age, context)
+            nr = v['nr_daily']
+            self.vaccinate_people(nr, min_age, max_age, context)
 
     cdef void vaccinate_people(self, int nr_to_vaccinate, int min_age, int max_age, Context context) nogil:
         cdef Person *person
@@ -772,8 +775,8 @@ cdef inline int round_to_int(float f) nogil:
 DISEASE_PARAMS = (
     'p_infection', 'p_asymptomatic', 'p_severe', 'p_critical', 'p_hospital_death',
     'p_icu_death', 'p_hospital_death_no_beds', 'p_icu_death_no_beds',
-    'p_death_outside_hospital', 'infectiousness_multiplier',
-    'mean_incubation_duration',
+    'p_death_outside_hospital', 'p_asymptomatic_infection',
+    'infectiousness_multiplier', 'mean_incubation_duration',
     'mean_duration_from_onset_to_death', 'mean_duration_from_onset_to_recovery',
     'ratio_of_duration_before_hospitalisation', 'ratio_of_duration_in_ward',
     'p_mask_protects_wearer', 'p_mask_protects_others', 'variants',
@@ -788,6 +791,7 @@ cdef struct Variant:
     float ratio_of_duration_before_hospitalisation
     float ratio_of_duration_in_ward
     float infectiousness_multiplier
+    float p_asymptomatic_infection
 
     ClassifiedValues p_infection
     ClassifiedValues p_severe
@@ -806,6 +810,7 @@ cdef variant_init(Variant *self, object params):
     self.p_hospital_death_no_beds = params['p_hospital_death_no_beds']
     self.p_icu_death_no_beds = params['p_icu_death_no_beds']
     self.infectiousness_multiplier = params['infectiousness_multiplier']
+    self.p_asymptomatic_infection = params['p_asymptomatic_infection']
 
     self.mean_incubation_duration = params['mean_incubation_duration']
     self.mean_duration_from_onset_to_death = params['mean_duration_from_onset_to_death']
@@ -888,7 +893,10 @@ cdef class Disease:
 
         p_infection = cv_get_greatest_lte(&variant.p_infection, person.age)
 
-        # FIXME: Smaller chance for asymptomatic people?
+        # FIXME!
+        # if source.symptom_severity == SymptomSeverity.ASYMPTOMATIC:
+        #     p_infection *= variant.p_asymptomatic_infection
+
         infection = context.random.chance(chance * p_infection * variant.infectiousness_multiplier)
         if not infection:
             return False
@@ -1271,15 +1279,19 @@ cdef class Population:
 
     # Stats
     cdef int[::1] infected, detected, all_detected, all_infected, hospitalized, \
-        in_icu, dead, susceptible, recovered, vaccinated
+        in_icu, cum_hospitalized, cum_icu, dead, susceptible, recovered, vaccinated
     cdef int nr_ages
+
+    cdef int[::1] daily_contacts
+    cdef cnp.ndarray age_groups
 
     cdef ContactMatrix contact_matrix
 
+    cdef list weekly_infections
     # Effects of interventions
     cdef int limit_mass_gatherings
 
-    def __init__(self, age_structure, contacts_per_day):
+    def __init__(self, age_structure, contacts_per_day, age_groups):
         self.nr_ages = age_structure.index.max() + 1
 
         age_counts = np.empty(self.nr_ages, dtype=np.int32)
@@ -1291,7 +1303,20 @@ cdef class Population:
         self._init_stats(age_counts)
         self._create_agents(age_counts)
 
+        self.weekly_infections = []
         self.contact_matrix = ContactMatrix(contacts_per_day, self.nr_ages)
+
+        """
+        grps = dict()
+        c = 0
+        for age, grp in age_groups:
+            if grp not in grps:
+                grps[grp] = c
+                c += 1
+        self.age_groups_idx = np.array()
+
+        self.age_groups = np.array([x[1] for x in age_groups])
+        """
 
     def _init_stats(self, age_counts):
         cdef int nr_ages = self.nr_ages
@@ -1306,6 +1331,7 @@ cdef class Population:
         self.in_icu = np.zeros(nr_ages, dtype=np.int32)
         self.dead = np.zeros(nr_ages, dtype=np.int32)
         self.vaccinated = np.zeros(nr_ages, dtype=np.int32)
+        self.daily_contacts = np.zeros(NR_CONTACT_PLACES, dtype=np.int32)
 
     cdef void _free_people(self) nogil:
         cdef Person * p
@@ -1453,6 +1479,8 @@ cdef class Population:
             c.place = cp.place
             c.mask_p = cp.mask_p
 
+            self.daily_contacts[<int> c.place] += 1
+
         return nr_contacts
 
     @cython.initializedcheck(False)
@@ -1507,6 +1535,47 @@ cdef class Population:
         # if person.state == PersonState.SUSCEPTIBLE:
         #    self.susceptible[person.age] -= 1
 
+    cdef infect_people(self, int count, int variant, Context context):
+        cdef int idx
+        cdef Person * person
+
+        for i in range(count):
+            for x in range(10):
+                person = self.get_random_person(context)
+                if person.state == PersonState.SUSCEPTIBLE:
+                    break
+            else:
+                print('Unable to find person to infect')
+                continue
+            person_infect(person, context, NULL, variant)
+
+    cdef infect_weekly(self, int amount, int variant, Context context):
+        for w in self.weekly_infections:
+            if w['variant'] == variant:
+                break
+        else:
+            w = dict(variant=variant)
+            self.weekly_infections.append(w)
+        w['amount'] = amount
+
+    cdef infect_people_daily(self, Context context):
+        cdef float leftover
+        cdef int amount_today
+
+        for w in self.weekly_infections:
+            leftover = w.get('leftover', 0.0) + w['amount'] / 7
+            amount_today = <int> leftover
+
+            if amount_today:
+                self.infect_people(amount_today, w['variant'], context)
+                leftover -= amount_today
+            w['leftover'] = leftover
+
+    cdef init_day(self, Context context):
+        for i in range(NR_CONTACT_PLACES):
+            self.daily_contacts[i] = 0
+        self.infect_people_daily(context)
+
 
 cdef class Context:
     cdef public Population pop
@@ -1545,7 +1614,6 @@ cdef class Context:
         if ipc and ipc.has_initial_state():
             self.pop.set_initial_state(ipc, self)
 
-
     cdef void set_problem(self, SimulationProblem problem, Person *p = NULL) nogil:
         self.problem = problem
         self.problem_person = p
@@ -1579,6 +1647,7 @@ cdef class Context:
     def generate_state(self):
         p = self.pop
         hc = self.hc
+        # self.generate_age_grouped_state(p.infected)
         r = self.total_infections / self.total_infectors if self.total_infectors > 5 else 0
         s = dict(
             infected=p.infected, susceptible=p.susceptible,
@@ -1586,7 +1655,7 @@ cdef class Context:
             recovered=p.recovered, hospitalized=p.hospitalized,
             in_icu=p.in_icu,
             detected=p.detected, all_detected=p.all_detected,
-            dead=p.dead,
+            dead=p.dead, vaccinated=p.vaccinated,
             available_icu_units=hc.available_icu_units,
             available_hospital_beds=hc.available_beds,
             total_icu_units=hc.icu_units,
@@ -1595,6 +1664,10 @@ cdef class Context:
             ct_cases_per_day=self.hc.ct_cases_per_day,
             mobility_limitation=1 - self.pop.contact_matrix.mobility_factor,
         )
+        daily_contacts = {}
+        for i in range(NR_CONTACT_PLACES):
+            daily_contacts[CONTACT_PLACE_TO_STR[i]] = self.pop.daily_contacts[i]
+        s['daily_contacts'] = daily_contacts
         return s
 
     def get_population_stats(self, what):
@@ -1606,29 +1679,17 @@ cdef class Context:
             return np.array(self.pop.all_detected)
         raise Exception()
 
-    def infect_people(self, count, variant):
-        cdef int idx
-        cdef Person * person
-
-        if variant is None:
+    def find_variant(self, variant_str):
+        if variant_str is None:
             variant_idx = 0
         else:
             for idx, vn in enumerate(self.disease.variant_names):
-                if variant == vn:
+                if variant_str == vn:
                     variant_idx = idx
                     break
             else:
-                raise Exception('Variant %s not found' % variant)
-
-        for i in range(count):
-            for x in range(10):
-                person = self.pop.get_random_person(self)
-                if person.state == PersonState.SUSCEPTIBLE:
-                    break
-            else:
-                print('Unable to find person to infect')
-                continue
-            person_infect(person, self, NULL, variant_idx)
+                raise Exception('Variant %s not found' % variant_str)
+        return variant_idx
 
     def apply_intervention(self, iv):
         params = iv.get_param_values()
@@ -1649,7 +1710,10 @@ cdef class Context:
             self.hc.available_beds += params['beds']
         elif iv.type == 'import-infections':
             # Introduce infections from elsewhere
-            self.infect_people(params['amount'], params.get('variant'))
+            self.pop.infect_people(params['amount'], self.find_variant(params.get('variant')), self)
+        elif iv.type == 'import-infections-weekly':
+            # Introduce infections from elsewhere
+            self.pop.infect_weekly(params['weekly_amount'], self.find_variant(params.get('variant')), self)
         # elif iv.type == 'limit-cross-border-mobility':
         #    # Introduce infections from elsewhere
         #    self.context.cross_border_mobility_factor = (100 - value) / 100.0
@@ -1690,7 +1754,7 @@ cdef class Context:
                 place=place,
             )
         elif iv.type == 'vaccinate':
-            nr = params['daily_vaccinations']
+            nr = params['weekly_vaccinations'] / 7
             min_age = params.get('min_age')
             max_age = params.get('max_age')
 
@@ -1731,6 +1795,7 @@ cdef class Context:
             self._process_person(person)
 
     cdef void _iterate(self):
+        self.pop.init_day(self)
         self.import_infections()
 
         self.total_infectors = 0

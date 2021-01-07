@@ -3,6 +3,7 @@ from dataclasses import dataclass
 from datetime import date, timedelta
 
 import pandas as pd
+import numpy as np
 
 from calc import ExecutionInterrupted, calcfunc
 from calc.datasets import (
@@ -15,6 +16,7 @@ from utils.perf import PerfCounter
 
 POP_ATTRS = [
     'susceptible',
+    'vaccinated',
     'infected',
     'all_detected',
     'hospitalized',
@@ -22,6 +24,14 @@ POP_ATTRS = [
     'dead',
     'recovered',
     'all_infected',
+]
+EXPOSURES_ATTRS = [
+    'exposures_home',
+    'exposures_work',
+    'exposures_school',
+    'exposures_transport',
+    'exposures_leisure',
+    'exposures_other',
 ]
 STATE_ATTRS = [
     'exposed_per_day',
@@ -89,6 +99,22 @@ def get_contacts_per_day():
 
 
 @calcfunc(
+    variables=['max_age']
+)
+def make_age_groups(variables):
+    groups = []
+    for i in range(0, variables['max_age'] + 1):
+        grp = i // 10
+        if grp >= 8:
+            s = '80+'
+        else:
+            s = '%d–%d' % (grp * 10, grp * 10 + 9)
+        groups.append((i, s))
+
+    return groups
+
+
+@calcfunc(
     variables=list(model.DISEASE_PARAMS) + [
         'simulation_days',
         'interventions',
@@ -96,6 +122,7 @@ def get_contacts_per_day():
         'hospital_beds',
         'icu_units',
         'random_seed',
+        'max_age',
     ],
     funcs=[get_contacts_per_day, get_population_for_area],
     filedeps=[model.__file__],
@@ -108,8 +135,10 @@ def simulate_individuals(variables, step_callback=None):
     pop_params = dict(
         age_structure=age_structure,
         contacts_per_day=get_contacts_per_day(),
-        initial_population_condition=ipc
+        initial_population_condition=ipc,
+        age_groups=make_age_groups()
     )
+    age_groups = np.unique(np.array([x[1] for x in make_age_groups()]))
 
     df = get_contacts_per_day()
 
@@ -130,16 +159,41 @@ def simulate_individuals(variables, step_callback=None):
 
     days = variables['simulation_days']
 
+    date_index = pd.date_range(start_date, periods=days)
     df = pd.DataFrame(
-        columns=POP_ATTRS + STATE_ATTRS + ['us_per_infected'],
-        index=pd.date_range(start_date, periods=days)
+        columns=POP_ATTRS + STATE_ATTRS + EXPOSURES_ATTRS + ['us_per_infected'],
+        index=date_index,
     )
+    age_group_df = pd.DataFrame(
+        columns=POP_ATTRS,
+        index=pd.MultiIndex.from_product(
+            [date_index, age_groups],
+            names=['date', 'age_group']
+        )
+    )
+
     for day in range(days):
         s = context.generate_state()
 
+        today_date = (start_date + timedelta(days=day)).isoformat()
+
+        """
+        for attr in POP_ATTRS:
+            ags = {x: 0 for x in age_groups}
+            for age in range(s[attr].size):
+                ag = age_to_group[age]
+                ags[ag] += s[attr][age]
+        """
+
         rec = {attr: sum(s[attr]) for attr in POP_ATTRS}
+
         for state_attr in STATE_ATTRS:
             rec[state_attr] = s[state_attr]
+
+        for place, nr in s['daily_contacts'].items():
+            key = 'exposures_%s' % place
+            assert key in df.columns
+            rec[key] = nr
 
         rec['us_per_infected'] = pc.measure() * 1000 / rec['infected'] if rec['infected'] else 0
 
@@ -172,8 +226,9 @@ def simulate_individuals(variables, step_callback=None):
             #zdf['ifr'] = zdf.dead.divide(zdf.infected.replace(0, np.inf)) * 100
             #print(zdf)
 
-        d = start_date + timedelta(days=day)
-        df.loc[d.isoformat()] = rec
+        df.loc[today_date] = rec
+
+        by_age_group = POP_ATTRS
 
         if step_callback is not None:
             ret = step_callback(df)
@@ -311,20 +366,26 @@ if __name__ == '__main__':
         state_attrs.remove('available_icu_units')
         state_attrs.remove('total_icu_units')
         state_attrs.remove('mobility_limitation')
-        for attr in POP_ATTRS + state_attrs + ['us_per_infected']:
+        state_attrs.remove('exposed_per_day')
+        for attr in POP_ATTRS + state_attrs + ['exposures', 'us_per_infected']:
             header += '%15s' % attr
         print(header)
 
         def step_callback(df):
             rec = df.dropna().iloc[-1]
 
-            s = '%-12s' % rec.name.date().isoformat()
+            s = '%-12s' % rec.name.isoformat()
             for attr in POP_ATTRS:
                 s += '%15d' % rec[attr]
 
-            for attr in ['exposed_per_day', 'ct_cases_per_day']:
+            for attr in ['ct_cases_per_day']:
                 s += '%15d' % rec[attr]
             s += '%13.2f' % rec['r']
+            contacts = 0
+            for x in rec.index:
+                if 'exposures_' in x:
+                    contacts += rec[x]
+            s += '%15d' % contacts
             if rec['infected']:
                 s += '%13.2f' % rec['us_per_infected']
             print(s)

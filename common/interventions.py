@@ -257,8 +257,8 @@ INTERVENTIONS = [
         _('Vaccinate people against disease'),
         parameters=[
             IntParameter(
-                id='daily_vaccinations',
-                label=_('Number of people vaccinated daily'),
+                id='weekly_vaccinations',
+                label=_('Number of people vaccinated weekly'),
                 min_value=0,
                 unit=_('persons/day'),
             ),
@@ -285,6 +285,19 @@ INTERVENTIONS = [
         _('Import infections from outside the area'),
         parameters=[
             IntParameter(id='amount', label=_('Amount of new infections'), unit=_('infections')),
+            ChoiceParameter(
+                id='variant',
+                label=_('Variant of the disease'),
+                choices=[Choice(x[0], x[1]) for x in VARIANTS],
+                required=False,
+            ),
+        ]
+    ),
+    Intervention(
+        'import-infections-weekly',
+        _('Import infections from outside the area every week'),
+        parameters=[
+            IntParameter(id='weekly_amount', label=_('Amount of new weekly infections'), unit=_('infections/week')),
             ChoiceParameter(
                 id='variant',
                 label=_('Variant of the disease'),

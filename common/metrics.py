@@ -24,6 +24,14 @@ METRICS = [
         is_integer=True,
     ),
     Metric(
+        'vaccinated',
+        _('Vaccinated'),
+        None,
+        _('residents'),
+        color='#78C091',
+        is_integer=True,
+    ),
+    Metric(
         'infected',
         _('Active infections'),
         None,
@@ -76,7 +84,7 @@ METRICS = [
         _('Recovered'),
         None,
         _('residents'),
-        'green',
+        '#84b082',
         is_integer=True,
     ),
     #
