@@ -96,7 +96,6 @@ def calcfunc(variables=None, datasets=None, funcs=None, filedeps=None):
         assert isinstance(filedeps, (list, tuple))
         for filedep in filedeps:
             assert isinstance(filedep, str)
-            assert os.path.getmtime(filedep)
 
     def wrapper_factory(func):
         func.variables = variables
@@ -111,6 +110,10 @@ def calcfunc(variables=None, datasets=None, funcs=None, filedeps=None):
             only_if_in_cache = kwargs.pop('only_if_in_cache', False)
             skip_cache = kwargs.pop('skip_cache', False)
             var_store = kwargs.pop('variable_store', None)
+
+            if filedeps:
+                for filedep in filedeps:
+                    assert os.path.getmtime(filedep)
 
             if should_profile:
                 pc = PerfCounter('%s.%s' % (func.__module__, func.__name__))
