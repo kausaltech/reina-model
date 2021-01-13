@@ -1,7 +1,11 @@
+import os
 from dataclasses import dataclass
+from zipfile import ZipFile
 
 import pandas as pd
 from utils import add_root_path, get_root_path
+from utils.data import get_dataset_path
+from data_import.google_covid_mobility import DATASET_ZIP_NAME as MOBILITY_DATASET_FILENAME
 
 from . import calcfunc
 
@@ -33,10 +37,16 @@ def get_healthcare_districts():
 
 @calcfunc(variables=['area_name'])
 def get_population_for_area(variables):
-    df = get_healthcare_districts()
-    muni_names = df[df['sairaanhoitopiiri'] == variables['area_name']]['kunta'].unique()
+    area = variables['area_name']
     df = get_population()
-    df = df[df.index.isin(muni_names)]
+    if area not in df.index:
+        # It's the name of a HCD
+        hdf = get_healthcare_districts()
+        muni_names = hdf[hdf['sairaanhoitopiiri'] == variables['area_name']]['kunta'].unique()
+        df = df[df.index.isin(muni_names)]
+    else:
+        df = df[df.index == variables['area_name']]
+
     df = df.reset_index().drop(columns='Area').groupby(['Age']).sum()
     return df
 
@@ -61,7 +71,8 @@ def get_contacts_for_country(variables):
 
 AREA_CASEFILES = {
     'HUS': add_root_path('data/hosp_cases_hus.csv'),
-    'Varsinais-Suomi': add_root_path('data/hosp_cases_varsinais-suomi.csv')
+    'Varsinais-Suomi': add_root_path('data/hosp_cases_varsinais-suomi.csv'),
+    'Turku': add_root_path('data/hosp_cases_turku.csv'),
 }
 
 
@@ -150,33 +161,49 @@ def get_initial_population_condition(variables) -> InitialPopulationCondition:
         ill=ill, incubating=incubating, recovered=recovered)
 
 
-MOBILITY_DATA_FILE = add_root_path('data/2020_FI_Region_Mobility_Report.csv')
+MOBILITY_FILE_PATH = os.path.join(get_dataset_path(), MOBILITY_DATASET_FILENAME)
 
 
 @calcfunc(
-    variables=['area_name'],
-    filedeps=[MOBILITY_DATA_FILE]
+    variables=['area_name', 'country'],
+    filedeps=[MOBILITY_FILE_PATH]
 )
 def get_mobility_data(variables):
-    df = pd.read_csv(MOBILITY_DATA_FILE, header=0, index_col='date')
+    csv_fn = '2020_%s_Region_Mobility_Report.csv' % variables['country']
+    with ZipFile(MOBILITY_FILE_PATH) as zipf:
+        with zipf.open(csv_fn) as csvf:
+            df = pd.read_csv(csvf, header=0, index_col='date')
+
     df = df.drop(columns=[
         'country_region_code', 'country_region', 'metro_area', 'iso_3166_2_code',
         'census_fips_code',
     ])
     REGIONS = {
-        'HUS': 'Uusimaa',
-        'Varsinais-Suomi': 'Southwest Finland',
+        'HUS': (1, 'Uusimaa'),
+        'Varsinais-Suomi': (1, 'Southwest Finland'),
+        'Turku': (2, 'Turku'),
+        'Helsinki': (2, 'Helsinki'),
     }
-    region = REGIONS[variables['area_name']]
-    df = df[(df['sub_region_1'] == region) & df.sub_region_2.isna()]
+    region_id, region = REGIONS[variables['area_name']]
+    if region_id == 1:
+        df = df[(df['sub_region_1'] == region) & df.sub_region_2.isna()]
+    elif region_id == 2:
+        df = df[df['sub_region_2'] == region]
+
     df = df.drop(columns=['sub_region_1', 'sub_region_2'])
+    renames = {x: x.replace('_percent_change_from_baseline', '') for x in df.columns}
+    df = df.rename(columns=renames)
     df.index = pd.to_datetime(df.index)
     return df
 
 
 if __name__ == '__main__':
-    ic = get_initial_population_condition()
-    print(ic)
+    df = get_mobility_data()
+    pd.set_option('display.max_rows', None)
+    pd.set_option('display.max_columns', None)
+    pd.set_option('display.width', None)
+    pd.set_option('display.max_colwidth', -1)
+    print(df.rolling(window=7).mean())
     exit()
 
     f = open(get_root_path() + '/data/hospitalizations_fin.csv', 'r')

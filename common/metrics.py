@@ -1,6 +1,7 @@
 from dataclasses import dataclass
 
 from flask_babel import lazy_gettext as _
+from .mobility import MOBILITY_PLACES
 
 
 @dataclass
@@ -172,7 +173,17 @@ VALIDATION_METRICS = [
     ),
 ]
 
-ALL_METRICS = METRICS + VALIDATION_METRICS
+MOBILITY_METRICS = [
+    Metric(
+        '%s_mobility_change' % p_id,
+        p['name'],
+        description=_('Change in mobility compared to baseline'),
+        unit='%',
+        is_integer=True,
+    ) for p_id, p in MOBILITY_PLACES.items()
+]
+
+ALL_METRICS = METRICS + VALIDATION_METRICS + MOBILITY_METRICS
 
 
 def get_metric(metric_id):

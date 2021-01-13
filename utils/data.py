@@ -1,3 +1,4 @@
+import os
 import pandas as pd
 
 
@@ -42,3 +43,15 @@ def get_contributions_from_multipliers(df, a_column, ef_column, a_contributors=[
             out[col] = (df[col] / a_change) * out[a_column]
 
     return out
+
+
+def get_dataset_path():
+    if os.getenv('DATASET_PATH', None):
+        ds_path = os.getenv('DATASET_PATH')
+    else:
+        ds_path = os.path.join(os.path.dirname(os.path.abspath(__file__)), '..', 'datasets')
+        try:
+            os.mkdir(ds_path)
+        except FileExistsError:
+            pass
+    return ds_path
