@@ -14,10 +14,13 @@ services:
         environment:
             - REDIS_URL=redis://redis:6379
             - FLASK_APP=graphql_backend.py
+            - DATASET_PATH=/datasets
             - VARIABLE_OVERRIDE_SET
         # If we want to examine graphql API directly, without proxying
         #ports:
         #    - "127.0.0.1:5000:5000"
+        volumes:
+            - dataset-volume:/datasets
         depends_on:
             - redis
     redis:
@@ -35,3 +38,6 @@ services:
         environment:
             - SERVER_GRAPHQL_API_URL=http://reina-model:5000/graphql
             - BROWSER_GRAPHQL_API_URL=/graphql
+
+volumes:
+  dataset-volume:
