@@ -1,3 +1,4 @@
+from datetime import date, timedelta
 import numpy as np
 from flask import session
 from graphene import (
@@ -6,7 +7,7 @@ from graphene import (
 )
 from graphql import GraphQLError
 
-from calc.datasets import get_detected_cases, get_population_for_area
+from calc.datasets import get_detected_cases, get_population_for_area, get_mobility_data
 from common import cache
 from common.interventions import (
     INTERVENTIONS, ChoiceParameter, IntParameter, get_intervention,
@@ -197,6 +198,7 @@ class Query(ObjectType):
     active_events = List(Event)
     simulation_results = Field(SimulationResults, run_id=ID(required=True))
     validation_metrics = Field(DailyMetrics)
+    mobility_change_metrics = Field(DailyMetrics)
     area = Field(SimulationArea)
 
     def resolve_available_events(query, info):
@@ -245,7 +247,11 @@ class Query(ObjectType):
 
     def resolve_validation_metrics(query, info):
         df = get_detected_cases()
+        sim_start = date.fromisoformat(get_variable('start_date'))
+        sim_end = sim_start + timedelta(days=get_variable('simulation_days'))
+        df = df[df.index < sim_end]
         dates = df.index.astype(str).values
+
         metrics = []
 
         for col in df.columns:
@@ -266,6 +272,29 @@ class Query(ObjectType):
                     int_values=int_values
                 )
             )
+        return DailyMetrics(dates=dates, metrics=metrics)
+
+    def resolve_mobility_change_metrics(self, info):
+        df = get_mobility_data().rolling(7).mean().round().dropna()
+        metrics = []
+        dates = list(df.index.astype(str).values)
+
+        for col in df:
+            s = df[col]
+
+            m = get_metric('%s_mobility_change' % col)
+            m_obj = Metric(
+                type=m.id,
+                label=m.label,
+                description=m.description,
+                unit=m.unit,
+                color=m.color,
+                is_integer=m.is_integer,
+                is_simulated=False,
+                int_values=s.values,
+            )
+            metrics.append(m_obj)
+
         return DailyMetrics(dates=dates, metrics=metrics)
 
     def resolve_area(query, info):
