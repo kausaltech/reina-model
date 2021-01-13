@@ -1,14 +1,10 @@
 import pandas as pd
 import numpy as np
-from datetime import date
 from collections import OrderedDict
-from pprint import pprint
 
 import requests
-import requests_cache
 from pyjstat import pyjstat
 
-requests_cache.install_cache('thl')
 
 BASE_URL = 'https://sampo.thl.fi/pivot/prod/fi/epirapo/covid19case/fact_epirapo_covid19case.json'
 DIMENSIONS_BASE_URL = 'https://sampo.thl.fi/pivot/prod/fi/epirapo/covid19case/fact_epirapo_covid19case.dimensions.json'
@@ -91,7 +87,11 @@ if True:
     pd.set_option('display.max_colwidth', None)
 
 
-def get_cases(hcd_name, muni_name):
+def get_hcd_cases():
+    return get_daily_data('hcdmunicipality2020-445222')
+
+
+def get_muni_cases(hcd_name, muni_name):
     hcd, hcd_totals = get_weekly_data('hcdmunicipality2020-445222')
     muni, muni_totals = get_weekly_data('hcdmunicipality2020-445257L')
 
@@ -132,8 +132,13 @@ def get_cases(hcd_name, muni_name):
     for day, val in df['fix'].dropna().items():
         df.loc[(df.index > last_day) & (df.index <= day), 'emunisum'] /= val
         last_day = day
-    df['cases'] = df['emunisum'].astype(int)
-    df = df[['cases', 'ratio']]
+
+    df['emunisum'] = df['emunisum'].astype(int).cummax()
+
+    df['muni_cases'] = df['emunisum'].astype(int)
+    df['hcd_cases'] = df['hcd'].cumsum()
+    df = df[['hcd_cases', 'muni_cases']]
+
     return df
 
 

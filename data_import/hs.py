@@ -3,9 +3,6 @@ import pandas as pd
 import requests
 from calc.datasets import get_healthcare_districts, get_population
 
-import requests_cache
-requests_cache.install_cache('hs')
-
 
 def get_deaths():
     resp = requests.get('https://w3qa5ydb4l.execute-api.eu-west-1.amazonaws.com/prod/finnishCoronaData/v2')
