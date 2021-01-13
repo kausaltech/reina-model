@@ -10,12 +10,11 @@ from graphql import GraphQLError
 from calc.datasets import get_detected_cases, get_population_for_area, get_mobility_data
 from common import cache
 from common.interventions import (
-    INTERVENTIONS, ChoiceParameter, IntParameter, get_intervention,
-    iv_tuple_to_obj,
+    INTERVENTIONS, ChoiceParameter, IntParameter, get_intervention, get_active_interventions
 )
 from common.metrics import ALL_METRICS, METRICS, VALIDATION_METRICS, get_metric
 from simulation_thread import SimulationProcess
-from variables import get_variable, reset_variables, set_variable
+from variables import get_variable, reset_variables, set_variable, get_session_variables
 
 EventType = Enum(
     'EventType', [(iv.type.upper().replace('-', '_'), iv.type) for iv in INTERVENTIONS]
@@ -77,6 +76,13 @@ class Metric(ObjectType):
 class DailyMetrics(ObjectType):
     dates = List(String)
     metrics = List(Metric, only=List(MetricType))
+
+
+class Scenario(ObjectType):
+    id = ID(required=True)
+    label = String(required=True)
+    description = String()
+    active = Boolean(required=True)
 
 
 class SimulationResults(ObjectType):
@@ -198,6 +204,7 @@ class Query(ObjectType):
     active_events = List(Event)
     simulation_results = Field(SimulationResults, run_id=ID(required=True))
     validation_metrics = Field(DailyMetrics)
+    scenarios = List(Scenario)
     mobility_change_metrics = Field(DailyMetrics)
     area = Field(SimulationArea)
 
@@ -209,10 +216,10 @@ class Query(ObjectType):
         return out
 
     def resolve_active_events(query, info):
-        interventions = get_variable('interventions')
+        interventions = get_active_interventions()
         out = []
         for idx, iv in enumerate(interventions):
-            obj = iv_to_graphql_obj(iv_tuple_to_obj(iv), obj_id=idx)
+            obj = iv_to_graphql_obj(iv, obj_id=idx)
             out.append(obj)
         return out
 
@@ -308,6 +315,27 @@ class Query(ObjectType):
             total_population=population,
         )
 
+    def resolve_scenarios(query, info):
+        scenarios = get_variable('scenarios')
+        active_scenario = get_variable('active_scenario')
+        out = []
+        customized_variables = list(get_session_variables().keys())
+        if 'active_scenario' in customized_variables:
+            customized_variables.remove('active_scenario')
+        if len(customized_variables):
+            customized = True
+        else:
+            customized = False
+        for s in scenarios:
+            if s['id'] == active_scenario and not customized:
+                active = True
+            else:
+                active = False
+            out.append(Scenario(
+                id=s['id'], label=s['label'], description=s['description'], active=active
+            ))
+        return out
+
 
 class RunSimulation(Mutation):
     class Arguments:
@@ -394,11 +422,33 @@ class ResetVariables(Mutation):
         return dict(ok=True)
 
 
+class ActivateScenario(Mutation):
+    class Arguments:
+        scenario_id = ID(required=True)
+
+    ok = Boolean()
+
+    def mutate(root, info, scenario_id):
+        scenarios = get_variable('scenarios')
+        if scenario_id:
+            for s in scenarios:
+                if scenario_id == s['id']:
+                    break
+            else:
+                raise GraphQLError('invalid scenario ID')
+        else:
+            scenario_id = ''
+
+        set_variable('active_scenario', scenario_id)
+        return dict(ok=True)
+
+
 class RootMutation(ObjectType):
     run_simulation = RunSimulation.Field()
     add_event = AddEvent.Field()
     delete_event = DeleteEvent.Field()
     reset_variables = ResetVariables.Field()
+    activate_scenario = ActivateScenario.Field()
 
 
 schema = Schema(query=Query, mutation=RootMutation, types=[EventChoiceParameter, EventIntParameter])

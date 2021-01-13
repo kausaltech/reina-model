@@ -337,3 +337,30 @@ def get_intervention(iv_type):
 def iv_tuple_to_obj(iv):
     obj = get_intervention(iv[0])
     return obj.make_from_iv_tuple(iv)
+
+
+def get_active_interventions(variables=None):
+    if variables:
+        scenarios = variables['scenarios']
+        active_scenario = variables['active_scenario']
+        interventions = variables['interventions']
+    else:
+        scenarios = get_variable('scenarios')
+        active_scenario = get_variable('active_scenario')
+        interventions = get_variable('interventions')
+
+    out = []
+    for iv in interventions:
+        out.append(iv_tuple_to_obj(iv))
+
+    if active_scenario:
+        for s in scenarios:
+            if s['id'] == active_scenario:
+                break
+        else:
+            raise Exception('Invalid active scenario: %s' % active_scenario)
+        added_ivs = s.get('add_interventions', [])
+        for iv in added_ivs:
+            out.append(iv_tuple_to_obj(iv))
+
+    return out

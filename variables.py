@@ -145,11 +145,26 @@ VARIABLE_OVERRIDE_SETS = {
             ['import-infections-weekly', '2020-11-01', 20],
             ['import-infections-weekly', '2020-12-01', 60],
         ],
+        'scenarios': [
+            {
+                'id': 'default',
+                'label': 'Oletus',
+                'description': """Nykytiedon mukaiset toimenpiteet toteutuvat.""",
+            }, {
+                'id': 'astra-zeneca',
+                'label': 'Astra Zeneca -rokote',
+                'description': """Astra Zeneca -yritys saa myyntiluvan ja rokottamista lisätään.""",
+                'add_interventions': [
+                    ['vaccinate', '2021-03-01', 2000, 25, 55],
+                ],
+            }
+        ],
+
         # Commenting these away for now, until we decide on whether to use
         # setting initial state or interventions to set state for start date
-        #'incubating_at_simulation_start': 150,
-        #'ill_at_simulation_start': 50,
-        #'recovered_at_simulation_start': 1000
+        # 'incubating_at_simulation_start': 150,
+        # 'ill_at_simulation_start': 50,
+        # 'recovered_at_simulation_start': 1000
     },
 }
 _variable_override_set = os.getenv('VARIABLE_OVERRIDE_SET')
@@ -367,7 +382,14 @@ VARIABLE_DEFAULTS = {
             'name': 'b1.1.7',
         },
     ],
-    'preset_scenario': 'default',
+    'scenarios': [
+        {
+            'id': 'default',
+            'label': 'Oletus',
+            'description': """Nykytiedon mukaiset toimenpiteet toteutuvat.""",
+        }
+    ],
+    'active_scenario': 'default',
 
     # Used for sampling the model
     'sample_limit_mobility': 0,
@@ -452,6 +474,14 @@ def reset_variables():
             del session[var_name]
     else:
         _variable_overrides.clear()
+
+
+def get_session_variables():
+    out = {}
+    for var_name in VARIABLE_DEFAULTS.keys():
+        if var_name in session:
+            out[var_name] = session[var_name]
+    return out
 
 
 def copy_variables():

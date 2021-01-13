@@ -10,7 +10,7 @@ from calc.datasets import (
     get_contacts_for_country, get_initial_population_condition,
     get_population_for_area,
 )
-from common.interventions import Intervention, iv_tuple_to_obj
+from common.interventions import Intervention, iv_tuple_to_obj, get_active_interventions
 from cythonsim import model
 from utils.perf import PerfCounter
 
@@ -117,6 +117,8 @@ def make_age_groups(variables):
     variables=list(model.DISEASE_PARAMS) + [
         'simulation_days',
         'interventions',
+        'active_scenario',
+        'scenarios',
         'start_date',
         'hospital_beds',
         'icu_units',
@@ -152,8 +154,10 @@ def simulate_individuals(variables, step_callback=None):
     )
     start_date = date.fromisoformat(variables['start_date'])
 
-    for iv in variables['interventions']:
-        context.add_intervention(iv_tuple_to_obj(iv))
+    ivs = get_active_interventions(variables)
+    for iv in ivs:
+        context.add_intervention(iv)
+
     pc.measure()
 
     days = variables['simulation_days']
