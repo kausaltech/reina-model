@@ -101,16 +101,16 @@ def get_contacts_per_day():
     variables=['max_age']
 )
 def make_age_groups(variables):
-    groups = []
+    age_map = []
     for i in range(0, variables['max_age'] + 1):
         grp = i // 10
         if grp >= 8:
             s = '80+'
         else:
             s = '%d–%d' % (grp * 10, grp * 10 + 9)
-        groups.append((i, s))
+        age_map.append(s)
 
-    return groups
+    return age_map
 
 
 @calcfunc(
@@ -133,13 +133,16 @@ def simulate_individuals(variables, step_callback=None):
 
     age_structure = get_population_for_area().sum(axis=1)
     ipc = get_initial_population_condition()
+
+    age_to_group = make_age_groups()
+
+    age_groups = list(np.unique(age_to_group))
     pop_params = dict(
         age_structure=age_structure,
         contacts_per_day=get_contacts_per_day(),
         initial_population_condition=ipc,
-        age_groups=make_age_groups()
+        age_groups=dict(labels=age_groups, age_indices=[age_groups.index(x) for x in age_to_group])
     )
-    age_groups = np.unique(np.array([x[1] for x in make_age_groups()]))
 
     df = get_contacts_per_day()
 
@@ -167,28 +170,18 @@ def simulate_individuals(variables, step_callback=None):
         columns=POP_ATTRS + STATE_ATTRS + EXPOSURES_ATTRS + ['us_per_infected'],
         index=date_index,
     )
-    age_group_df = pd.DataFrame(
-        columns=POP_ATTRS,
-        index=pd.MultiIndex.from_product(
-            [date_index, age_groups],
-            names=['date', 'age_group']
-        )
-    )
+
+    ag_array = np.empty((days, len(POP_ATTRS), len(age_groups)), dtype='i')
 
     for day in range(days):
         s = context.generate_state()
 
         today_date = (start_date + timedelta(days=day)).isoformat()
 
-        """
-        for attr in POP_ATTRS:
-            ags = {x: 0 for x in age_groups}
-            for age in range(s[attr].size):
-                ag = age_to_group[age]
-                ags[ag] += s[attr][age]
-        """
+        for idx, attr in enumerate(POP_ATTRS):
+            ag_array[day, idx, :] = s[attr]
 
-        rec = {attr: sum(s[attr]) for attr in POP_ATTRS}
+        rec = {attr: s[attr].sum() for attr in POP_ATTRS}
 
         for state_attr in STATE_ATTRS:
             rec[state_attr] = s[state_attr]
@@ -246,7 +239,19 @@ def simulate_individuals(variables, step_callback=None):
             s = pstats.Stats("profile.prof")
             s.strip_dirs().sort_stats("cumtime").print_stats()
 
-    return df
+    arr = ag_array.flatten()
+    adf = pd.DataFrame(
+        arr,
+        index=pd.MultiIndex.from_product(
+            [date_index, POP_ATTRS, age_groups],
+            names=['date', 'attr', 'age_group']
+        ),
+        columns=['pop']
+    )
+    adf = adf.unstack('attr').unstack('age_group')
+    adf.columns = adf.columns.droplevel()
+
+    return df, adf
 
 
 @calcfunc(
@@ -395,10 +400,11 @@ if __name__ == '__main__':
             return True
 
         with allow_set_variable():
-            set_variable('simulation_days', 465)
+            # set_variable('simulation_days', 465)
 
             def run_simulation():
-                simulate_individuals(step_callback=step_callback, skip_cache=True)
+                df, adf = simulate_individuals(step_callback=step_callback, skip_cache=True)
+                print(adf)
 
             if False:
                 import cProfile

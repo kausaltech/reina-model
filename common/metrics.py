@@ -13,6 +13,7 @@ class Metric:
     color: str = None
     is_integer: bool = False
     is_simulated: bool = True
+    is_categorized: bool = False
 
 
 METRICS = [
@@ -31,6 +32,7 @@ METRICS = [
         _('residents'),
         color='#78C091',
         is_integer=True,
+        is_categorized=True,
     ),
     Metric(
         'infected',

@@ -1298,7 +1298,9 @@ cdef class Population:
     cdef int nr_ages
 
     cdef int[::1] daily_contacts
-    cdef cnp.ndarray age_groups
+
+    cdef int[::1] age_group_indices
+    cdef list age_group_labels
 
     cdef ContactMatrix contact_matrix
 
@@ -1321,17 +1323,8 @@ cdef class Population:
         self.weekly_infections = []
         self.contact_matrix = ContactMatrix(contacts_per_day, self.nr_ages)
 
-        """
-        grps = dict()
-        c = 0
-        for age, grp in age_groups:
-            if grp not in grps:
-                grps[grp] = c
-                c += 1
-        self.age_groups_idx = np.array()
-
-        self.age_groups = np.array([x[1] for x in age_groups])
-        """
+        self.age_group_labels = age_groups['labels']
+        self.age_group_indices = np.array(age_groups['age_indices'], dtype=np.int32)
 
     def _init_stats(self, age_counts):
         cdef int nr_ages = self.nr_ages
@@ -1591,6 +1584,42 @@ cdef class Population:
             self.daily_contacts[i] = 0
         self.infect_people_daily(context)
 
+    cdef int[:] _group_by_age(self, const int[:] series):
+        cdef int[:] grp_sum
+        cdef int age, max_age
+
+        grp_sum = np.zeros(len(self.age_group_labels), dtype=np.int32)
+        max_age = len(self.age_group_indices)
+        with nogil:
+            for age in range(max_age):
+                grp_sum[self.age_group_indices[age]] += series[age]
+        return grp_sum
+
+    cdef cnp.ndarray get_age_group_series(self, str attr):
+        if attr == 'infected':
+            arr = self.infected
+        elif attr == 'susceptible':
+            arr = self.susceptible
+        elif attr == 'vaccinated':
+            arr = self.vaccinated
+        elif attr == 'infected':
+            arr = self.infected
+        elif attr == 'all_infected':
+            arr = self.all_infected
+        elif attr == 'detected':
+            arr = self.detected
+        elif attr == 'all_detected':
+            arr = self.all_detected
+        elif attr == 'hospitalized':
+            arr = self.hospitalized
+        elif attr == 'in_icu':
+            arr = self.in_icu
+        elif attr == 'dead':
+            arr = self.dead
+        elif attr == 'recovered':
+            arr = self.recovered
+
+        return np.asarray(self._group_by_age(arr))
 
 cdef class Context:
     cdef public Population pop
@@ -1662,15 +1691,23 @@ cdef class Context:
     def generate_state(self):
         p = self.pop
         hc = self.hc
-        # self.generate_age_grouped_state(p.infected)
+
         r = self.total_infections / self.total_infectors if self.total_infectors > 5 else 0
+
+        pop_attrs = [
+            'susceptible',
+            'vaccinated',
+            'infected',
+            'all_infected',
+            'detected',
+            'all_detected',
+            'hospitalized',
+            'in_icu',
+            'dead',
+            'recovered',
+        ]
+
         s = dict(
-            infected=p.infected, susceptible=p.susceptible,
-            all_infected=p.all_infected,
-            recovered=p.recovered, hospitalized=p.hospitalized,
-            in_icu=p.in_icu,
-            detected=p.detected, all_detected=p.all_detected,
-            dead=p.dead, vaccinated=p.vaccinated,
             available_icu_units=hc.available_icu_units,
             available_hospital_beds=hc.available_beds,
             total_icu_units=hc.icu_units,
@@ -1679,10 +1716,14 @@ cdef class Context:
             ct_cases_per_day=self.hc.ct_cases_per_day,
             mobility_limitation=1 - self.pop.contact_matrix.mobility_factor,
         )
+        for attr in pop_attrs:
+            s[attr] = p.get_age_group_series(attr)
+
         daily_contacts = {}
         for i in range(NR_CONTACT_PLACES):
             daily_contacts[CONTACT_PLACE_TO_STR[i]] = self.pop.daily_contacts[i]
         s['daily_contacts'] = daily_contacts
+
         return s
 
     def get_population_stats(self, what):

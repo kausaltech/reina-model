@@ -35,17 +35,18 @@ class SimulationProcess(multiprocessing.Process):
         self.last_results = None
         logger.info('%s: run process (cache key %s)' % (self.uuid, self.cache_key))
 
-        def step_callback(df, force=False):
+        def step_callback(total, age_groups=None, force=False):
             now = time.time()
+            res = dict(total=total, age_groups=age_groups)
             if force or self.last_results is None or now - self.last_results > 0.5:
                 logger.debug('%s: set results to %s' % (self.uuid, self.cache_key))
-                cache.set('%s-results' % self.cache_key, df, timeout=self.cache_expiration)
+                cache.set('%s-results' % self.cache_key, res, timeout=self.cache_expiration)
                 self.last_results = now
 
             return True
 
         try:
-            df = simulate_individuals(step_callback=step_callback, variable_store=self.variables)
+            df, adf = simulate_individuals(step_callback=step_callback, variable_store=self.variables)
         except ExecutionInterrupted:
             logger.error('%s: process cancelled' % self.uuid)
         except Exception as e:
@@ -54,7 +55,7 @@ class SimulationProcess(multiprocessing.Process):
             raise
         else:
             logger.info('%s: computation finished' % self.uuid)
-            step_callback(df, force=True)
+            step_callback(df, age_groups=adf, force=True)
 
         cache.set('%s-finished' % self.cache_key, True, self.cache_expiration)
         logger.info('%s: process finished' % self.uuid)

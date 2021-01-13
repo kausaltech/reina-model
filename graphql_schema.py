@@ -61,6 +61,11 @@ class Event(ObjectType):
     modified_by_user = Boolean()
 
 
+class CategorizedIntValues(ObjectType):
+    categories = List(String)
+    values = List(List(Int))
+
+
 class Metric(ObjectType):
     type = MetricType(required=True)
     label = String(required=True)
@@ -69,8 +74,10 @@ class Metric(ObjectType):
     color = String()
     is_integer = Boolean(required=True)
     is_simulated = Boolean(required=True)
+    is_categorized = Boolean(required=True)
     int_values = List(Int)
     float_values = List(Float)
+    categorized_int_values = Field(CategorizedIntValues)
 
 
 class DailyMetrics(ObjectType):
@@ -141,7 +148,10 @@ def iv_to_graphql_obj(iv, obj_id=None):
     )
 
 
-def results_to_metrics(df, only=None):
+def results_to_metrics(results, only=None):
+    df = results['total']
+    adf = results['age_groups']
+
     dates = df.index.astype(str).values
 
     selected_metrics = []
@@ -166,18 +176,24 @@ def results_to_metrics(df, only=None):
     df['r'] = df['r'].rolling(window=7).mean()
 
     for m in selected_metrics:
-        if m.id not in df.columns:
-            print(m.id)
-            continue
-
-        vals = df[m.id]
         int_values = None
         float_values = None
-        if m.is_integer:
-            int_values = vals.astype('Int32').replace({np.nan: None})
+        categorized_int_values = None
+
+        if m.is_categorized:
+            if adf is None:
+                continue
+            s = adf[m.id]
+            categorized_int_values = CategorizedIntValues(categories=s.columns, values=s.values)
         else:
-            vals = vals.astype('float')
-            float_values = vals.replace({np.nan: None})
+            if m.id not in df.columns:
+                raise Exception('metric %s not found in dataset' % m.id())
+            vals = df[m.id]
+            if m.is_integer:
+                int_values = vals.astype('Int32').replace({np.nan: None})
+            else:
+                vals = vals.astype('float')
+                float_values = vals.replace({np.nan: None})
 
         metrics.append(
             Metric(
@@ -188,8 +204,10 @@ def results_to_metrics(df, only=None):
                 color=m.color,
                 is_integer=m.is_integer,
                 is_simulated=m.is_simulated,
+                is_categorized=m.is_categorized,
                 int_values=int_values,
-                float_values=float_values
+                float_values=float_values,
+                categorized_int_values=categorized_int_values,
             )
         )
 
