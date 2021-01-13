@@ -8,15 +8,14 @@ from flask import session
 
 VARIABLE_OVERRIDE_SETS = {
     'turku': {
-        'area_name': 'Varsinais-Suomi',
-        'area_name_long': 'Varsinais-Suomen sairaanhoitopiiri',
+        'area_name': 'Turku',
+        'area_name_long': 'Turun kaupunki',
         'hospital_beds': 900,
         'icu_units': 55,
         # 'start_date': '2020-09-01',
         'interventions': [
             ['test-all-with-symptoms', '2020-02-20'],
-            ['test-only-severe-symptoms', '2020-03-15', 25],
-            ['test-only-severe-symptoms', '2020-03-23', 50],
+            ['test-only-severe-symptoms', '2020-03-15', 50],
             ['test-all-with-symptoms', '2020-04-01'],
             ['test-with-contact-tracing', '2020-06-01', 10],
             ['test-with-contact-tracing', '2020-07-01', 20],
@@ -30,14 +29,14 @@ VARIABLE_OVERRIDE_SETS = {
             ['limit-mobility', '2020-08-12', 0, 7, None, 'school'],
             # Christmas
             ['limit-mobility', '2020-12-19', 100, 7, None, 'school'],
-            ['limit-mobility', '2020-01-07', 0, 7, None, 'school'],
+            ['limit-mobility', '2021-01-07', 0, 7, None, 'school'],
 
             # Higher education
             ['limit-mobility', '2020-08-12', 80, 19, None, 'school'],
 
             # Upper secondary level
-            ['limit-mobility', '2020-11-01', 45, 16, 19, 'school'],
-            ['limit-mobility', '2020-12-07', 70, 16, 19, 'school'],
+            ['limit-mobility', '2020-11-01', 45, 16, 18, 'school'],
+            ['limit-mobility', '2020-12-07', 70, 16, 18, 'school'],
 
             # Junior high school
             ['limit-mobility', '2020-08-12', 0, 13, 15, 'school'],
@@ -45,7 +44,7 @@ VARIABLE_OVERRIDE_SETS = {
             ['limit-mobility', '2020-11-21', 0, 13, 15, 'school'],
             ['limit-mobility', '2020-12-01', 20, 13, 15, 'school'],
             ['limit-mobility', '2020-12-16', 100, 13, 15, 'school'],
-            ['limit-mobility', '2020-01-07', 0, 13, 15, 'school'],
+            ['limit-mobility', '2021-01-07', 0, 13, 15, 'school'],
 
             # Elementary school
             ['limit-mobility', '2020-08-12', 0, 7, 12, 'school'],
@@ -114,9 +113,9 @@ VARIABLE_OVERRIDE_SETS = {
             # ['wear-masks', '2020-10-01', 40, 65, None],
 
             # Overall mobility limitation
-            ['limit-mobility', '2020-03-20', 10],
-            ['limit-mobility', '2020-04-04', 20],
-            ['limit-mobility', '2020-05-15', 30],
+            ['limit-mobility', '2020-03-20', 12],
+            ['limit-mobility', '2020-04-04', 15],
+            ['limit-mobility', '2020-05-15', 25],
             ['limit-mobility', '2020-06-01', 35],  # summer effect?
             ['limit-mobility', '2020-08-05', 10],
             ['limit-mobility', '2020-08-15', 10],
@@ -133,14 +132,18 @@ VARIABLE_OVERRIDE_SETS = {
             ['vaccinate', '2021-03-01', 5000, 70, None],
 
             ['import-infections', '2020-03-01', 10],
-            ['import-infections', '2020-03-07', 5],
-            ['import-infections', '2020-03-09', 5],
+            ['import-infections-weekly', '2020-03-01', 10],
+            ['import-infections-weekly', '2020-03-15', 5],
+            ['import-infections-weekly', '2020-04-01', 0],
+
+            ['import-infections-weekly', '2020-06-01', 3],
+
             ['import-infections', '2020-07-15', 15],
             ['import-infections', '2020-08-01', 10],
             ['import-infections-weekly', '2020-09-01', 10],
-            ['import-infections-weekly', '2020-10-01', 40],
-            ['import-infections-weekly', '2020-11-01', 60],
-            ['import-infections-weekly', '2020-12-01', 240],
+            ['import-infections-weekly', '2020-10-01', 10],
+            ['import-infections-weekly', '2020-11-01', 20],
+            ['import-infections-weekly', '2020-12-01', 60],
         ],
         # Commenting these away for now, until we decide on whether to use
         # setting initial state or interventions to set state for start date
@@ -175,43 +178,89 @@ VARIABLE_DEFAULTS = {
     'p_mask_protects_wearer': 45.0,  # %
     'p_mask_protects_others': 90.0,  # %
 
-    # Chance to be asymptomatic
-    'p_asymptomatic': 50.0,  # %
-
-    'infectiousness_multiplier': 1.5,
+    'infectiousness_multiplier': 0.55,
 
     # Overall chance to become infected after being exposed.
+    # from Zhang et al., https://science.sciencemag.org/content/early/2020/05/04/science.abb8001
+    #
     # This is modified by viral load of the infector, which
     # depends on the day of the illness.
-    'p_infection': [
-        [0, 5.0],
-        [10, 7.0],
-        [20, 18.0],
-        [30, 18.0],
-        [40, 18.0],
-        [50, 18.0],
-        [60, 22.0],
-        [70, 25.0],
-        [80, 70.0],
+    #
+    # Parameters copied from Covasim (https://github.com/InstituteforDiseaseModeling/covasim/blob/master/covasim/parameters.py)
+    'p_susceptibility': [
+        [0, 34.0],
+        [10, 67.0],
+        [20, 100.0],
+        [30, 100.0],
+        [40, 100.0],
+        [50, 100.0],
+        [60, 124.0],
+        [70, 147.0],
+        [80, 147.0],
+        [90, 147.0],
     ],
     # Probability modifier for an asymptomatic person to spread the infection
     # https://www.medrxiv.org/content/10.1101/2020.11.04.20225573v1
     'p_asymptomatic_infection': 0.25,
 
+    # Probabilities updated from covasim: https://github.com/InstituteforDiseaseModeling/covasim
+    # Overall probability of developing symptoms (based on https://www.medrxiv.org/content/10.1101/2020.03.24.20043018v1.full.pdf, scaled for overall symptomaticity)
+    'p_symptomatic': [
+        [0, 50.0],
+        [10, 55.0],
+        [20, 60.0],
+        [30, 65.0],
+        [40, 70.0],
+        [50, 75.0],
+        [60, 80.0],
+        [70, 85.0],
+        [80, 90.0],
+        [90, 90.0],
+    ],
+    # Overall probability of developing severe symptoms (derived from Table 1 of https://www.imperial.ac.uk/media/imperial-college/medicine/mrc-gida/2020-03-16-COVID19-Report-9.pdf)
+    'p_severe': [
+        [0, 0.0500],
+        [10, 0.1650],
+        [20, 0.7200],
+        [30, 2.0800],
+        [40, 3.4300],
+        [50, 7.6500],
+        [60, 13.2800],
+        [70, 20.6550],
+        [80, 24.5700],
+        [90, 24.5700],
+    ],
+
+    # Overall probability of developing critical symptoms (derived from Table 1 of https://www.imperial.ac.uk/media/imperial-college/medicine/mrc-gida/2020-03-16-COVID19-Report-9.pdf)
+    'p_critical': [
+        [0, 0.0030],
+        [10, 0.0080],
+        [20, 0.0360],
+        [30, 0.1040],
+        [40, 0.2160],
+        [50, 0.9330],
+        [60, 3.6390],
+        [70, 8.9230],
+        [80, 17.4200],
+        [90, 17.4200],
+    ],
+    # Overall probability of dying -- from O'Driscoll et al., https://www.nature.com/articles/s41586-020-2918-0; last data point from Brazeau et al., https://www.imperial.ac.uk/mrc-global-infectious-disease-analysis/covid-19/report-34-ifr/
+    'p_fatal': [
+        [0, 0.0020],
+        [10, 0.0020],
+        [20, 0.0100],
+        [30, 0.0320],
+        [40, 0.0980],
+        [50, 0.2650],
+        [60, 0.7660],
+        [70, 2.4390],
+        [80, 8.2920],
+        [90, 16.1900],
+    ],
+
     # Chance to die after regular hospital care
     'p_hospital_death': 0.0,  # %
     # Chance to die after ICU care
-    'p_icu_death': [
-        [0, 40.0],
-        [10, 40.0],
-        [20, 50.0],
-        [30, 50.0],
-        [40, 50.0],
-        [50, 50.0],
-        [60, 50.0],
-        [70, 50.0],
-        [80, 50.0]
-    ],
     'p_death_outside_hospital': [
         [0, 0.0],
         [10, 0.0],
@@ -240,46 +289,6 @@ VARIABLE_DEFAULTS = {
     'ill_at_simulation_start': 0,
     'recovered_at_simulation_start': 0,
 
-    # Ratio of all symptomatic people that require hospitalization
-    # (more than mild symptoms) by age group
-    # Numbers scaled, because source assumes 50% asymptomatic people.
-    # Source: https://www.medrxiv.org/content/10.1101/2020.03.09.20033357v1.full.pdf
-    #'p_severe': [
-    #    [0, 0.0],
-    #    [10, 0.0816],
-    #    [20, 2.08],
-    #    [30, 6.86],
-    #    [40, 8.5],
-    #    [50, 16.32],
-    #    [60, 23.6],
-    #    [70, 33.2],
-    #    [80, 36.8]
-    #],
-    'p_severe': [
-        [0, 0.0],
-        [10, 0.0816],
-        [20, 2.08/2],
-        [30, 6.86/2],
-        [40, 8.5/2],
-        [50, 16.32/2],
-        [60, 23.6/2],
-        [70, 33.2],
-        [80, 36.8],
-    ],
-
-    # Ratio of hospitalized cases requiring critical (ICU) care
-    # Source: https://www.imperial.ac.uk/media/imperial-college/medicine/sph/ide/gida-fellowships/Imperial-College-COVID19-NPI-modelling-16-03-2020.pdf
-    'p_critical': [
-        [0, 5.0],
-        [10, 5.0],
-        [20, 5.0],
-        [30, 5.0],
-        [40, 6.3],
-        [50, 12.2],
-        [60, 27.4],
-        [70, 43.2],
-        [80, 70.9]
-    ],
     'interventions': [
         ['test-all-with-symptoms', '2020-02-20'],
         ['test-only-severe-symptoms', '2020-03-15', 25],
@@ -293,10 +302,9 @@ VARIABLE_DEFAULTS = {
 
         ['limit-mobility', '2020-03-15', 80, 0, 70, 'other'],
         ['limit-mobility', '2020-08-15', 50, 0, 70, 'other'],
-        ['limit-mobility', '2020-08-15', 50, 0, 70, 'other'],
-        ['limit-mobility', '2020-04-01', 10],
-        ['limit-mobility', '2020-05-01', 25],
-        ['limit-mobility', '2020-05-15', 30],
+        ['limit-mobility', '2020-04-01', 5],
+        ['limit-mobility', '2020-05-01', 20],
+        ['limit-mobility', '2020-05-15', 15],
         ['limit-mobility', '2020-09-01', 20],
         ['limit-mobility', '2020-09-15', 10],
         ['limit-mobility', '2020-10-01', 0],

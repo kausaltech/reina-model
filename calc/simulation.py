@@ -48,12 +48,11 @@ def create_disease_params(variables):
     kwargs = {}
     for key in model.DISEASE_PARAMS:
         val = variables[key]
-        if key in (
-            'p_infection', 'p_severe', 'p_critical', 'p_icu_death', 'p_death_outside_hospital'
-        ):
-            val = [(age, sev / 100) for age, sev in val]
-        elif key.startswith('p_') or key.startswith('ratio_'):
-            val = val / 100
+        if key.startswith('p_') or key.startswith('ratio_'):
+            if isinstance(val, list):
+                val = [(age, sev / 100) for age, sev in val]
+            else:
+                val = val / 100
         kwargs[key] = val
 
     return kwargs
@@ -374,7 +373,7 @@ if __name__ == '__main__':
         def step_callback(df):
             rec = df.dropna().iloc[-1]
 
-            s = '%-12s' % rec.name.isoformat()
+            s = '%-12s' % rec.name.date().isoformat()
             for attr in POP_ATTRS:
                 s += '%15d' % rec[attr]
 
