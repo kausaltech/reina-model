@@ -8,6 +8,8 @@ aniso8601==8.1.0          # via graphene
 babel==2.9.0              # via flask-babel
 brotli==1.0.9             # via flask-compress
 cachelib==0.1.1           # via flask-session
+certifi==2020.12.5        # via requests
+chardet==4.0.0            # via requests
 click==7.1.2              # via flask
 colour==0.1.5             # via -r requirements.in
 cycler==0.10.0            # via matplotlib
@@ -34,7 +36,7 @@ graphene==3.0b6           # via -r requirements.in
 graphql-core==3.1.2       # via gql, graphene, graphql-relay, graphql-server
 graphql-relay==3.0.0      # via graphene
 graphql-server[flask]==3.0.0b2  # via -r requirements.in
-idna==2.10                # via yarl
+idna==2.10                # via requests, yarl
 itsdangerous==1.1.0       # via flask
 jinja2==2.11.2            # via flask, flask-babel
 kiwisolver==1.3.1         # via matplotlib
@@ -53,12 +55,14 @@ python-dateutil==2.8.1    # via faker, matplotlib, pandas
 python-dotenv==0.15.0     # via -r requirements.in
 pytz==2020.4              # via babel, flask-babel, pandas
 redis==3.5.3              # via -r requirements.in
+requests==2.25.1          # via -r requirements.in
 retrying==1.3.3           # via plotly
 scipy==1.5.4              # via -r requirements.in
 six==1.15.0               # via cycler, fastparquet, flask-cors, plotly, python-dateutil, retrying, thrift
 text-unidecode==1.3       # via faker
 thrift==0.13.0            # via fastparquet
 typing-extensions==3.7.4.3  # via graphql-server
+urllib3==1.26.2           # via requests
 werkzeug==1.0.1           # via -r requirements.in, flask
 xlrd==2.0.1               # via -r requirements.in
 yarl==1.6.3               # via gql
