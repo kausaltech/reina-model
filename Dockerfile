@@ -14,6 +14,7 @@ COPY ./docker/docker-entrypoint.sh /
 
 RUN export PYTHONPATH="${PYTHONPATH}:/src"
 RUN pybabel compile -d locale
+RUN python -m cythonsim.build
 
 EXPOSE 5000
 ENTRYPOINT ["/bin/sh", "/docker-entrypoint.sh"]
