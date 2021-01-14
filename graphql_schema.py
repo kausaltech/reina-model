@@ -467,6 +467,7 @@ class ActivateScenario(Mutation):
         else:
             scenario_id = ''
 
+        reset_variables()
         set_variable('active_scenario', scenario_id)
         return dict(ok=True)
 
