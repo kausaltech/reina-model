@@ -345,9 +345,8 @@ cdef void person_transfer_to_icu(Person *self, Context context) nogil:
             return
 
     self.days_left = context.disease.get_icu_days(self, context)
-    self.state = PersonState.IN_ICU
-
     context.pop.transfer_to_icu(self)
+    self.state = PersonState.IN_ICU
 
 
 cdef void person_release_from_hospital(Person *self, Context context) nogil:
@@ -355,7 +354,6 @@ cdef void person_release_from_hospital(Person *self, Context context) nogil:
 
     if self.state == PersonState.IN_ICU:
         death = context.disease.dies_in_hospital(self, context, care_available=True)
-        context.pop.release_from_icu(self)
         context.hc.release_from_icu()
     else:
         death = context.disease.dies_in_hospital(self, context, care_available=True)
@@ -1293,7 +1291,7 @@ cdef class Population:
     cdef int32[::1] age_start
 
     # Stats
-    cdef int[::1] infected, detected, all_detected, all_infected, hospitalized, \
+    cdef int[::1] infected, detected, all_detected, all_infected, in_ward, hospitalized, \
         in_icu, cum_hospitalized, cum_icu, dead, susceptible, recovered, vaccinated
     cdef int nr_ages
 
@@ -1336,6 +1334,7 @@ cdef class Population:
         self.all_infected = np.zeros(nr_ages, dtype=np.int32)
         self.recovered = np.zeros(nr_ages, dtype=np.int32)
         self.hospitalized = np.zeros(nr_ages, dtype=np.int32)
+        self.in_ward = np.zeros(nr_ages, dtype=np.int32)
         self.in_icu = np.zeros(nr_ages, dtype=np.int32)
         self.dead = np.zeros(nr_ages, dtype=np.int32)
         self.vaccinated = np.zeros(nr_ages, dtype=np.int32)
@@ -1515,17 +1514,21 @@ cdef class Population:
     @cython.initializedcheck(False)
     cdef void hospitalize(self, Person * person) nogil:
         self.hospitalized[person.age] += 1
+        self.in_ward[person.age] += 1
 
     @cython.initializedcheck(False)
     cdef void transfer_to_icu(self, Person * person) nogil:
+        assert person.state == PersonState.HOSPITALIZED
+        self.in_ward[person.age] -= 1
         self.in_icu[person.age] += 1
 
     @cython.initializedcheck(False)
-    cdef void release_from_icu(self, Person * person) nogil:
-        self.in_icu[person.age] -= 1
-
-    @cython.initializedcheck(False)
     cdef void release_from_hospital(self, Person * person) nogil:
+        if person.state == PersonState.IN_ICU:
+            self.in_icu[person.age] -= 1
+        else:
+            assert person.state == PersonState.HOSPITALIZED
+            self.in_ward[person.age] -= 1
         self.hospitalized[person.age] -= 1
 
     @cython.initializedcheck(False)
@@ -1610,14 +1613,16 @@ cdef class Population:
             arr = self.detected
         elif attr == 'all_detected':
             arr = self.all_detected
-        elif attr == 'hospitalized':
-            arr = self.hospitalized
         elif attr == 'in_icu':
             arr = self.in_icu
+        elif attr == 'in_ward':
+            arr = self.in_ward
         elif attr == 'dead':
             arr = self.dead
         elif attr == 'recovered':
             arr = self.recovered
+        else:
+            raise Exception('Unknown attribute: %s' % attr)
 
         return np.asarray(self._group_by_age(arr))
 
@@ -1701,8 +1706,8 @@ cdef class Context:
             'all_infected',
             'detected',
             'all_detected',
-            'hospitalized',
             'in_icu',
+            'in_ward',
             'dead',
             'recovered',
         ]

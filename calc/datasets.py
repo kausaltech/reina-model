@@ -88,6 +88,8 @@ def get_detected_cases(variables):
     df = pd.read_csv(casefile, header=0)
     df['date'] = pd.to_datetime(df['date']).dt.date
     df = df.set_index('date')
+    df = df.drop(columns='hospitalized').rename(columns=dict(confirmed='all_detected'))
+
     return df
 
 
@@ -198,6 +200,10 @@ def get_mobility_data(variables):
 
 
 if __name__ == '__main__':
+    df = get_detected_cases()
+    print(df)
+    exit()
+
     df = get_mobility_data()
     pd.set_option('display.max_rows', None)
     pd.set_option('display.max_columns', None)

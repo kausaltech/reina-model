@@ -8,11 +8,12 @@ from graphene import (
 from graphql import GraphQLError
 
 from calc.datasets import get_detected_cases, get_population_for_area, get_mobility_data
+from calc.simulation import get_age_grouped_population
 from common import cache
 from common.interventions import (
     INTERVENTIONS, ChoiceParameter, IntParameter, get_intervention, get_active_interventions
 )
-from common.metrics import ALL_METRICS, METRICS, VALIDATION_METRICS, get_metric
+from common.metrics import ALL_METRICS, METRICS, get_metric
 from simulation_thread import SimulationProcess
 from variables import get_variable, reset_variables, set_variable, get_session_variables
 
@@ -99,10 +100,16 @@ class SimulationResults(ObjectType):
     predicted_metrics = Field(DailyMetrics, required=True)
 
 
+class PopulationAgeGroup(ObjectType):
+    label = String(required=True)
+    count = Int(required=True)
+
+
 class SimulationArea(ObjectType):
     name = String(required=True)
     name_long = String(required=True)
     total_population = Int(required=True)
+    age_groups = List(PopulationAgeGroup)
 
 
 def iv_to_graphql_obj(iv, obj_id=None):
@@ -280,10 +287,9 @@ class Query(ObjectType):
         metrics = []
 
         for col in df.columns:
-            m_id = f"{col}_real"
-            m = get_metric(m_id)
+            m = get_metric(col)
             if not m:
-                continue
+                raise Exception('no metric found for %s' % col)
             int_values = df[col].to_numpy()
             metrics.append(
                 Metric(
@@ -327,12 +333,14 @@ class Query(ObjectType):
     def resolve_area(query, info):
         name = get_variable('area_name')
         name_long = get_variable('area_name_long')
-        df = get_population_for_area()
-        population = df.sum().sum()
+        s = get_age_grouped_population()
+        total = s.sum()
+        age_groups = [dict(label=x, count=y) for x, y in zip(s.index, s)]
         return dict(
             name=name,
             name_long=name_long,
-            total_population=population,
+            total_population=total,
+            age_groups=age_groups,
         )
 
     def resolve_scenarios(query, info):

@@ -19,7 +19,7 @@ POP_ATTRS = [
     'vaccinated',
     'infected',
     'all_detected',
-    'hospitalized',
+    'in_ward',
     'in_icu',
     'dead',
     'recovered',
@@ -111,6 +111,18 @@ def make_age_groups(variables):
         age_map.append(s)
 
     return age_map
+
+
+@calcfunc(
+    funcs=[make_age_groups, get_population_for_area],
+)
+def get_age_grouped_population():
+    ags = list(make_age_groups())
+    df = get_population_for_area()
+    df = pd.DataFrame(df.sum(axis=1), columns=['count'])
+    df['ag'] = df.index.map(lambda x: ags[x])
+    df = df.groupby('ag')['count'].sum()
+    return df
 
 
 @calcfunc(

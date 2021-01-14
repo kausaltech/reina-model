@@ -59,8 +59,8 @@ METRICS = [
         is_integer=True,
     ),
     Metric(
-        'hospitalized',
-        _('Hospitalized'),
+        'in_ward',
+        _('In hospital ward'),
         None,
         _('beds in use'),
         'orange',
@@ -133,48 +133,6 @@ METRICS = [
     ),
 ]
 
-VALIDATION_METRICS = [
-    #
-    # Real observed metrics
-    #
-    Metric(
-        'confirmed_real',
-        _('Detected cases (real)'),
-        description=None,
-        unit=_('cases (cum.)'),
-        color='teal',
-        is_integer=True,
-        is_simulated=False,
-    ),
-    Metric(
-        'hospitalized_real',
-        _('Hospitalized (real)'),
-        description=None,
-        unit=_('beds in use'),
-        color='orange',
-        is_integer=True,
-        is_simulated=False,
-    ),
-    Metric(
-        'in_icu_real',
-        _('In ICU (real)'),
-        description=None,
-        unit=_('ICU units in use'),
-        color='red',
-        is_integer=True,
-        is_simulated=False,
-    ),
-    Metric(
-        'dead_real',
-        _('Dead (real)'),
-        description=None,
-        unit=_('deaths (cum.)'),
-        color='indigo',
-        is_integer=True,
-        is_simulated=False,
-    ),
-]
-
 MOBILITY_METRICS = [
     Metric(
         '%s_mobility_change' % p_id,
@@ -185,7 +143,7 @@ MOBILITY_METRICS = [
     ) for p_id, p in MOBILITY_PLACES.items()
 ]
 
-ALL_METRICS = METRICS + VALIDATION_METRICS + MOBILITY_METRICS
+ALL_METRICS = METRICS + MOBILITY_METRICS
 
 
 def get_metric(metric_id):

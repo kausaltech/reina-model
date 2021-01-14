@@ -8,7 +8,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: PROJECT VERSION\n"
 "Report-Msgid-Bugs-To: EMAIL@ADDRESS\n"
-"POT-Creation-Date: 2021-01-07 13:22+0200\n"
+"POT-Creation-Date: 2021-01-14 18:24+0200\n"
 "PO-Revision-Date: YEAR-MO-DA HO:MI+ZONE\n"
 "Last-Translator: FULL NAME <EMAIL@ADDRESS>\n"
 "Language-Team: LANGUAGE <LL@li.org>\n"
@@ -237,7 +237,7 @@ msgstr ""
 msgid "Number of new beds built"
 msgstr ""
 
-#: common/interventions.py:313 common/metrics.py:97
+#: common/interventions.py:313 common/metrics.py:100
 msgid "beds"
 msgstr ""
 
@@ -249,100 +249,112 @@ msgstr ""
 msgid "Number of new ICU units built"
 msgstr ""
 
-#: common/interventions.py:320 common/metrics.py:104 components/results.py:239
+#: common/interventions.py:320 common/metrics.py:107 components/results.py:239
 msgid "ICU units"
 msgstr ""
 
-#: common/metrics.py:20 components/results.py:29
+#: common/metrics.py:22 components/results.py:29
 msgid "Susceptible"
 msgstr ""
 
-#: common/metrics.py:22 common/metrics.py:30 common/metrics.py:38 common/metrics.py:46 common/metrics.py:86
+#: common/metrics.py:24 common/metrics.py:32 common/metrics.py:41 common/metrics.py:49 common/metrics.py:89
 msgid "residents"
 msgstr ""
 
-#: common/metrics.py:28
+#: common/metrics.py:30
 msgid "Vaccinated"
 msgstr ""
 
-#: common/metrics.py:36 components/results.py:30
+#: common/metrics.py:39 components/results.py:30
 msgid "Active infections"
 msgstr ""
 
-#: common/metrics.py:44
+#: common/metrics.py:47
 msgid "Total infections (cum.)"
 msgstr ""
 
-#: common/metrics.py:52 components/results.py:31
+#: common/metrics.py:55 components/results.py:31
 msgid "Detected cases"
 msgstr ""
 
-#: common/metrics.py:54 common/metrics.py:141
+#: common/metrics.py:57
 msgid "cases (cum.)"
 msgstr ""
 
-#: common/metrics.py:60 components/results.py:32
-msgid "Hospitalized"
+#: common/metrics.py:63
+msgid "In hospital ward"
 msgstr ""
 
-#: common/metrics.py:62 common/metrics.py:150
+#: common/metrics.py:65
 msgid "beds in use"
 msgstr ""
 
-#: common/metrics.py:68 components/results.py:33
+#: common/metrics.py:71 components/results.py:33
 msgid "In ICU"
 msgstr ""
 
-#: common/metrics.py:70 common/metrics.py:159
+#: common/metrics.py:73
 msgid "ICU units in use"
 msgstr ""
 
-#: common/metrics.py:76 components/results.py:34
+#: common/metrics.py:79 components/results.py:34
 msgid "Dead"
 msgstr ""
 
-#: common/metrics.py:78 common/metrics.py:168
+#: common/metrics.py:81
 msgid "deaths (cum.)"
 msgstr ""
 
-#: common/metrics.py:84 components/results.py:35
+#: common/metrics.py:87 components/results.py:35
 msgid "Recovered"
 msgstr ""
 
-#: common/metrics.py:95
+#: common/metrics.py:98
 msgid "Available hospital beds"
 msgstr ""
 
-#: common/metrics.py:102
+#: common/metrics.py:105
 msgid "Available ICU units"
 msgstr ""
 
-#: common/metrics.py:109 components/results.py:266
+#: common/metrics.py:112 components/results.py:266
 msgid "Reproductive number (Rₜ)"
 msgstr ""
 
-#: common/metrics.py:117
+#: common/metrics.py:120
 msgid "Infection fatality ratio (IFR)"
 msgstr ""
 
-#: common/metrics.py:125
+#: common/metrics.py:128
 msgid "Case fatality ratio (CFR)"
 msgstr ""
 
-#: common/metrics.py:139
-msgid "Detected cases (real)"
+#: common/metrics.py:140
+msgid "Change in mobility compared to baseline"
 msgstr ""
 
-#: common/metrics.py:148
-msgid "Hospitalized (real)"
+#: common/mobility.py:5
+msgid "Retail and recreation"
 msgstr ""
 
-#: common/metrics.py:157
-msgid "In ICU (real)"
+#: common/mobility.py:6
+msgid "Grocery and pharmacy"
 msgstr ""
 
-#: common/metrics.py:166
-msgid "Dead (real)"
+#: common/mobility.py:7
+msgid "Parks"
+msgstr ""
+
+#: common/mobility.py:8
+msgid "Transit stations"
+msgstr ""
+
+#: common/mobility.py:9
+msgid "Workplaces"
+msgstr ""
+
+#: common/mobility.py:10
+msgid "Residential"
 msgstr ""
 
 #: components/params.py:16
@@ -467,6 +479,10 @@ msgstr ""
 
 #: components/params.py:237
 msgid "Age of person"
+msgstr ""
+
+#: components/results.py:32
+msgid "Hospitalized"
 msgstr ""
 
 #: components/results.py:43
