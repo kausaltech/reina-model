@@ -300,7 +300,9 @@ class Query(ObjectType):
         return DailyMetrics(dates=dates, metrics=metrics)
 
     def resolve_mobility_change_metrics(self, info):
-        df = get_mobility_data().rolling(7).mean().round().dropna()
+        df = get_mobility_data().rolling(7).mean().round().dropna(how='all')
+        df = df.astype('Int32').replace({np.nan: None})
+
         metrics = []
         dates = list(df.index.astype(str).values)
 
