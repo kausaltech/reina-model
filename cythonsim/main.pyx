@@ -773,7 +773,7 @@ cdef inline int round_to_int(float f) nogil:
 
 
 DISEASE_PARAMS = (
-    'p_susceptibility', 'p_symptomatic', 'p_severe', 'p_critical', 'p_hospital_death',
+    'p_susceptibility', 'p_symptomatic', 'p_severe', 'p_critical',
     'p_fatal', 'p_hospital_death_no_beds', 'p_icu_death_no_beds',
     'p_death_outside_hospital', 'p_asymptomatic_infection',
     'infectiousness_multiplier', 'mean_incubation_duration',
@@ -783,7 +783,6 @@ DISEASE_PARAMS = (
 )
 
 cdef struct Variant:
-    float p_hospital_death
     float p_icu_death_no_beds, p_hospital_death_no_beds
     float mean_incubation_duration
     float mean_duration_from_onset_to_death
@@ -804,8 +803,19 @@ cdef struct Variant:
     float p_mask_protects_wearer
     float p_mask_protects_others
 
+def cv_div(a, b):
+    k1 = [x[0] for x in a]
+    k2 = [x[0] for x in b]
+    assert k1 == k2
+
+    kls = [x[0] for x in a]
+    v1 = [x[1] for x in a]
+    v2 = [x[1] for x in b]
+    vals = [x1 / x2 for x1, x2 in zip(v1, v2)]
+    return list(zip(kls, vals))
+
+
 cdef variant_init(Variant *self, object params):
-    self.p_hospital_death = params['p_hospital_death']
     self.p_hospital_death_no_beds = params['p_hospital_death_no_beds']
     self.p_icu_death_no_beds = params['p_icu_death_no_beds']
     self.infectiousness_multiplier = params['infectiousness_multiplier']
@@ -818,10 +828,18 @@ cdef variant_init(Variant *self, object params):
     self.ratio_of_duration_before_hospitalisation = params['ratio_of_duration_before_hospitalisation']
 
     cv_init(&self.p_susceptibility, params['p_susceptibility'])
+
+    # Convert absolute probabilities to conditional ones
     cv_init(&self.p_symptomatic, params['p_symptomatic'])
-    cv_init(&self.p_severe, params['p_severe'])
-    cv_init(&self.p_critical, params['p_critical'])
-    cv_init(&self.p_fatal, params['p_fatal'])
+    p = cv_div(params['p_severe'], params['p_symptomatic'])
+    cv_init(&self.p_severe, p)
+
+    p = cv_div(params['p_critical'], params['p_severe'])
+    cv_init(&self.p_critical, p)
+
+    p = cv_div(params['p_fatal'], params['p_critical'])
+    cv_init(&self.p_fatal, p)
+
     cv_init(&self.p_death_outside_hospital, params['p_death_outside_hospital'])
 
     self.p_mask_protects_others = params['p_mask_protects_others']
@@ -1038,25 +1056,37 @@ cdef class Disease:
         if val >= syc:
             return SymptomSeverity.ASYMPTOMATIC
 
-        sc = cv_get_greatest_lte(&variant.p_severe, person.age)
-        if val >= sc * vmod:
-            return SymptomSeverity.MILD
+        # Vaccine doesn't modify the portion of asymptomatics [citation needed]
+        # but just reduces the symptom severity.
+        syc *= vmod
 
-        cc = cv_get_greatest_lte(&variant.p_critical, person.age)
-        if val >= cc * vmod:
-            return SymptomSeverity.SEVERE
-
-        fc = cv_get_greatest_lte(&variant.p_fatal, person.age)
-        if val >= fc * vmod:
-            return SymptomSeverity.CRITICAL
-
-        person.place_of_death = PlaceOfDeath.DEATH_IN_HOSPITAL
+        # Deaths outside the hospital increase the symptom severity
         dohc = cv_get_greatest_lte(&variant.p_death_outside_hospital, person.age)
         if dohc:
-            if context.random.chance(dohc):
+            if val < dohc * syc:
                 person.place_of_death = PlaceOfDeath.DEATH_OUTSIDE_HOSPITAL
+                return SymptomSeverity.FATAL
+            val = (val - dohc) / (1 - dohc)
 
-        return SymptomSeverity.FATAL
+        sc = cv_get_greatest_lte(&variant.p_severe, person.age)
+        cc = cv_get_greatest_lte(&variant.p_critical, person.age)
+        fc = cv_get_greatest_lte(&variant.p_fatal, person.age)
+
+        if val < fc * cc * sc * syc:
+            person.place_of_death = PlaceOfDeath.DEATH_OUTSIDE_HOSPITAL
+            return SymptomSeverity.FATAL
+
+        if val < fc * cc * sc * syc:
+            person.place_of_death = PlaceOfDeath.DEATH_IN_HOSPITAL
+            return SymptomSeverity.FATAL
+
+        if val < cc * sc * syc:
+            return SymptomSeverity.CRITICAL
+
+        if val < sc * syc:
+            return SymptomSeverity.SEVERE
+
+        return SymptomSeverity.MILD
 
 
 cdef struct ContactProbability:
@@ -1091,6 +1121,7 @@ cdef class ContactMatrix:
     cdef AgeContactProbabilities *p_by_age
     cdef int nr_ages
     cdef list mobility_factors
+    cdef bint mobility_factor_changed
 
     cdef float mobility_factor
     cdef object stats  # pandas.DataFrame
@@ -1103,6 +1134,7 @@ cdef class ContactMatrix:
         self.nr_ages = nr_ages
         self.mobility_factor = 1.0
         self.mobility_factors = []
+        self.mobility_factor_changed = False
 
         cdef AgeContactProbabilities *acp
         self.p_by_age = <AgeContactProbabilities *> PyMem_Malloc(nr_ages * sizeof(AgeContactProbabilities))
@@ -1229,7 +1261,7 @@ cdef class ContactMatrix:
             mf = MobilityFactor(place, min_age, max_age, factor)
             self.mobility_factors.append(mf)
 
-        self.generate_contact_probabilities()
+        self.mobility_factor_changed = True
 
     def set_mask_probability(self, p, place=None, min_age=None, max_age=None):
         if min_age == None:
@@ -1247,6 +1279,11 @@ cdef class ContactMatrix:
 
         places_str = [CONTACT_PLACE_TO_STR[x] for x in places]
         df.loc[filters, places_str] = p
+
+    def init_day(self):
+        if self.mobility_factor_changed:
+            self.generate_contact_probabilities()
+            self.mobility_factor_changed = False
 
     cdef ContactProbability * get_one_contact(self, Person *person, Context context) nogil:
         cdef AgeContactProbabilities *acp
@@ -1292,7 +1329,8 @@ cdef class Population:
 
     # Stats
     cdef int[::1] infected, detected, all_detected, all_infected, in_ward, hospitalized, \
-        in_icu, cum_hospitalized, cum_icu, dead, susceptible, recovered, vaccinated
+        in_icu, cum_hospitalized, cum_icu, dead, susceptible, recovered, vaccinated, \
+        non_hospital_deaths
     cdef int nr_ages
 
     cdef int[::1] daily_contacts
@@ -1336,6 +1374,8 @@ cdef class Population:
         self.hospitalized = np.zeros(nr_ages, dtype=np.int32)
         self.in_ward = np.zeros(nr_ages, dtype=np.int32)
         self.in_icu = np.zeros(nr_ages, dtype=np.int32)
+        self.cum_icu = np.zeros(nr_ages, dtype=np.int32)
+        self.non_hospital_deaths = np.zeros(nr_ages, dtype=np.int32)
         self.dead = np.zeros(nr_ages, dtype=np.int32)
         self.vaccinated = np.zeros(nr_ages, dtype=np.int32)
         self.daily_contacts = np.zeros(NR_CONTACT_PLACES, dtype=np.int32)
@@ -1521,6 +1561,7 @@ cdef class Population:
         assert person.state == PersonState.HOSPITALIZED
         self.in_ward[person.age] -= 1
         self.in_icu[person.age] += 1
+        self.cum_icu[person.age] += 1
 
     @cython.initializedcheck(False)
     cdef void release_from_hospital(self, Person * person) nogil:
@@ -1536,6 +1577,8 @@ cdef class Population:
         cdef int age = person.age
         self.infected[age] -= 1
         self.dead[age] += 1
+        if person.place_of_death == PlaceOfDeath.DEATH_OUTSIDE_HOSPITAL:
+            self.non_hospital_deaths[age] += 1
         if person.was_detected:
             self.detected[age] -= 1
 
@@ -1585,6 +1628,7 @@ cdef class Population:
     cdef init_day(self, Context context):
         for i in range(NR_CONTACT_PLACES):
             self.daily_contacts[i] = 0
+        self.contact_matrix.init_day()
         self.infect_people_daily(context)
 
     cdef int[:] _group_by_age(self, const int[:] series):
@@ -1615,12 +1659,16 @@ cdef class Population:
             arr = self.all_detected
         elif attr == 'in_icu':
             arr = self.in_icu
+        elif attr == 'cum_icu':
+            arr = self.cum_icu
         elif attr == 'in_ward':
             arr = self.in_ward
         elif attr == 'dead':
             arr = self.dead
         elif attr == 'recovered':
             arr = self.recovered
+        elif attr == 'non_hospital_deaths':
+            arr = self.non_hospital_deaths
         else:
             raise Exception('Unknown attribute: %s' % attr)
 
@@ -1707,9 +1755,11 @@ cdef class Context:
             'detected',
             'all_detected',
             'in_icu',
+            'cum_icu',
             'in_ward',
             'dead',
             'recovered',
+            'non_hospital_deaths',
         ]
 
         s = dict(
@@ -1942,8 +1992,7 @@ cdef class Context:
                     out[i] = self.pop.get_contacts(&p, contacts, self)
             elif what == 'symptom_severity':
                 for i in range(sample_size):
-                    self.disease.get_symptom_severity(&p, self)
-                    out[i] = p.symptom_severity
+                    out[i] = self.disease.get_symptom_severity(&p, self)
             elif what == 'incubation_period':
                 for i in range(sample_size):
                     out[i] = self.disease.get_incubation_days(&p, self)

@@ -15,30 +15,30 @@ VARIABLE_OVERRIDE_SETS = {
         # 'start_date': '2020-09-01',
         'interventions': [
             ['test-all-with-symptoms', '2020-02-20'],
-            ['test-only-severe-symptoms', '2020-03-15', 50],
+            ['test-only-severe-symptoms', '2020-03-15', 30],
+            ['test-only-severe-symptoms', '2020-03-25', 80],
+            ['test-only-severe-symptoms', '2020-03-25', 80],
             ['test-all-with-symptoms', '2020-04-01'],
-            ['test-with-contact-tracing', '2020-06-01', 10],
+            #['test-only-severe-symptoms', '2020-05-01', 80],
+            #['test-only-severe-symptoms', '2020-06-01', 80],
+            #['test-all-with-symptoms', '2020-06-20'],
             ['test-with-contact-tracing', '2020-07-01', 20],
             ['test-with-contact-tracing', '2020-09-01', 70],
             ['test-with-contact-tracing', '2020-12-01', 60],
             ['test-with-contact-tracing', '2020-12-14', 70],
             # ['test-with-contact-tracing', '2020-12-01', 60],
 
-            # All education
-            ['limit-mobility', '2020-03-23', 100, 7, None, 'school'],
-            ['limit-mobility', '2020-08-12', 0, 7, None, 'school'],
-            # Christmas
-            ['limit-mobility', '2020-12-19', 100, 7, None, 'school'],
-            ['limit-mobility', '2021-01-07', 0, 7, None, 'school'],
-
-            # Higher education
-            ['limit-mobility', '2020-08-12', 80, 19, None, 'school'],
-
-            # Upper secondary level
-            ['limit-mobility', '2020-11-01', 45, 16, 18, 'school'],
-            ['limit-mobility', '2020-12-07', 70, 16, 18, 'school'],
+            # Elementary school
+            ['limit-mobility', '2020-03-23', 0, 7, 12, 'school'],
+            ['limit-mobility', '2020-05-30', 100, 7, 12, 'school'],
+            ['limit-mobility', '2020-08-12', 0, 7, 12, 'school'],
+            ['limit-mobility', '2020-11-01', 10, 7, 12, 'school'],
+            ['limit-mobility', '2020-11-15', 0, 7, 12, 'school'],
+            ['limit-mobility', '2021-01-07', 0, 7, 12, 'school'],
 
             # Junior high school
+            ['limit-mobility', '2020-03-23', 100, 13, 15, 'school'],
+            ['limit-mobility', '2020-05-30', 100, 13, 15, 'school'],
             ['limit-mobility', '2020-08-12', 0, 13, 15, 'school'],
             ['limit-mobility', '2020-11-01', 20, 13, 15, 'school'],
             ['limit-mobility', '2020-11-21', 0, 13, 15, 'school'],
@@ -46,10 +46,18 @@ VARIABLE_OVERRIDE_SETS = {
             ['limit-mobility', '2020-12-16', 100, 13, 15, 'school'],
             ['limit-mobility', '2021-01-07', 0, 13, 15, 'school'],
 
-            # Elementary school
-            ['limit-mobility', '2020-08-12', 0, 7, 12, 'school'],
-            ['limit-mobility', '2020-11-01', 10, 7, 12, 'school'],
-            ['limit-mobility', '2020-11-15', 0, 7, 12, 'school'],
+            # Upper secondary level
+            ['limit-mobility', '2020-03-23', 100, 16, 18, 'school'],
+            ['limit-mobility', '2020-05-30', 100, 16, 18, 'school'],
+            ['limit-mobility', '2020-08-12', 0, 16, 18, 'school'],
+            ['limit-mobility', '2020-11-01', 45, 16, 18, 'school'],
+            ['limit-mobility', '2020-12-07', 70, 16, 18, 'school'],
+            ['limit-mobility', '2020-12-19', 100, 16, 18, 'school'],
+            ['limit-mobility', '2021-01-07', 70, 16, 18, 'school'],
+
+            # Higher education
+            ['limit-mobility', '2020-03-23', 100, 19, None, 'school'],
+            ['limit-mobility', '2020-08-12', 80, 19, None, 'school'],
 
             ['limit-mobility', '2020-03-15', 10, None, None, 'leisure'],
             ['limit-mobility', '2020-03-18', 20, None, None, 'leisure'],
@@ -94,36 +102,50 @@ VARIABLE_OVERRIDE_SETS = {
             ['limit-mobility', '2020-11-16', 30, None, None, 'transport'],
             ['limit-mobility', '2020-12-12', 40, None, None, 'transport'],
 
+
+            ['wear-masks', '2020-03-15', 80, 65, None],
+            ['wear-masks', '2020-09-15', 90, 65, None],
+
             ['wear-masks', '2020-10-01', 20, None, None, 'transport'],
             ['wear-masks', '2020-10-01', 20, None, None, 'leisure'],
             ['wear-masks', '2020-10-01', 20, None, None, 'work'],
             ['wear-masks', '2020-10-01', 20, None, None, 'other'],
+            ['wear-masks', '2020-10-01', 90, 65, None],
 
             ['wear-masks', '2020-11-01', 40, None, None, 'transport'],
             ['wear-masks', '2020-11-01', 40, None, None, 'leisure'],
             ['wear-masks', '2020-11-01', 40, None, None, 'work'],
             ['wear-masks', '2020-11-01', 40, None, None, 'other'],
+            ['wear-masks', '2020-11-01', 90, 65, None],
 
             ['wear-masks', '2020-12-01', 70, None, None, 'transport'],
             ['wear-masks', '2020-12-01', 70, None, None, 'leisure'],
             ['wear-masks', '2020-12-01', 70, None, None, 'work'],
             ['wear-masks', '2020-12-01', 70, None, None, 'other'],
-
-            # Protect over 65-year-olds
-            # ['wear-masks', '2020-10-01', 40, 65, None],
+            ['wear-masks', '2020-12-01', 90, 65, None],
 
             # Overall mobility limitation
-            ['limit-mobility', '2020-03-20', 12],
+            ['limit-mobility', '2020-03-20', 20],
             ['limit-mobility', '2020-04-04', 15],
-            ['limit-mobility', '2020-05-15', 25],
-            ['limit-mobility', '2020-06-01', 35],  # summer effect?
+            ['limit-mobility', '2020-04-15', 20],
+            ['limit-mobility', '2020-05-01', 30],
+            ['limit-mobility', '2020-05-15', 60],
             ['limit-mobility', '2020-08-05', 10],
-            ['limit-mobility', '2020-08-15', 10],
-            ['limit-mobility', '2020-09-01', 0],
+            ['limit-mobility', '2020-08-15', 0],
+            ['limit-mobility', '2020-09-15', 0],
 
             # Vaccinate healthcare professionals
-            ['vaccinate', '2021-01-01', 1250, 25, 65],
-            ['vaccinate', '2021-01-31', 0, 25, 65],
+            ['vaccinate', '2021-01-01', 250, 22, 29],
+            ['vaccinate', '2021-01-01', 250, 30, 39],
+            ['vaccinate', '2021-01-01', 250, 40, 49],
+            ['vaccinate', '2021-01-01', 250, 50, 59],
+            ['vaccinate', '2021-01-01', 250, 60, 64],
+
+            ['vaccinate', '2021-01-31', 0, 22, 29],
+            ['vaccinate', '2021-01-31', 0, 30, 39],
+            ['vaccinate', '2021-01-31', 0, 40, 49],
+            ['vaccinate', '2021-01-31', 0, 50, 59],
+            ['vaccinate', '2021-01-31', 0, 60, 64],
 
             # Elderly
             ['vaccinate', '2021-01-01', 1250, 80, None],
@@ -133,17 +155,18 @@ VARIABLE_OVERRIDE_SETS = {
 
             ['import-infections', '2020-03-01', 10],
             ['import-infections-weekly', '2020-03-01', 10],
-            ['import-infections-weekly', '2020-03-15', 5],
-            ['import-infections-weekly', '2020-04-01', 0],
-
-            ['import-infections-weekly', '2020-06-01', 3],
+            ['import-infections-weekly', '2020-03-15', 10],
+            ['import-infections-weekly', '2020-04-01', 10],
+            ['import-infections-weekly', '2020-06-01', 5],
 
             ['import-infections', '2020-07-15', 15],
             ['import-infections', '2020-08-01', 10],
-            ['import-infections-weekly', '2020-09-01', 10],
-            ['import-infections-weekly', '2020-10-01', 10],
-            ['import-infections-weekly', '2020-11-01', 20],
-            ['import-infections-weekly', '2020-12-01', 60],
+            ['import-infections-weekly', '2020-09-01', 5],
+            ['import-infections-weekly', '2020-09-15', 30],
+            ['import-infections-weekly', '2020-10-01', 50],
+            ['import-infections-weekly', '2020-11-01', 120],
+            ['import-infections-weekly', '2020-11-15', 150],
+            ['import-infections-weekly', '2020-12-01', 240],
         ],
         'scenarios': [
             {
@@ -156,6 +179,13 @@ VARIABLE_OVERRIDE_SETS = {
                 'description': """Astra Zeneca -yritys saa myyntiluvan ja rokottamista lisätään.""",
                 'add_interventions': [
                     ['vaccinate', '2021-03-01', 2000, 25, 55],
+                ],
+            }, {
+                'id': 'b117-variant',
+                'label': 'Tarttuvampi variantti',
+                'description': """Alueelle on tullut tarttuvampaa virusvarianttia.""",
+                'add_interventions': [
+                    ['import-infections', '2020-12-15', 30, 'b1.1.7'],
                 ],
             }
         ],
@@ -216,7 +246,7 @@ VARIABLE_DEFAULTS = {
     ],
     # Probability modifier for an asymptomatic person to spread the infection
     # https://www.medrxiv.org/content/10.1101/2020.11.04.20225573v1
-    'p_asymptomatic_infection': 0.25,
+    'p_asymptomatic_infection': 0.8,
 
     # Probabilities updated from covasim: https://github.com/InstituteforDiseaseModeling/covasim
     # Overall probability of developing symptoms (based on https://www.medrxiv.org/content/10.1101/2020.03.24.20043018v1.full.pdf, scaled for overall symptomaticity)
@@ -260,6 +290,7 @@ VARIABLE_DEFAULTS = {
         [90, 17.4200],
     ],
     # Overall probability of dying -- from O'Driscoll et al., https://www.nature.com/articles/s41586-020-2918-0; last data point from Brazeau et al., https://www.imperial.ac.uk/mrc-global-infectious-disease-analysis/covid-19/report-34-ifr/
+    # Model assumes the death happens through a hospitalization period.
     'p_fatal': [
         [0, 0.0020],
         [10, 0.0020],
@@ -273,9 +304,7 @@ VARIABLE_DEFAULTS = {
         [90, 16.1900],
     ],
 
-    # Chance to die after regular hospital care
-    'p_hospital_death': 0.0,  # %
-    # Chance to die after ICU care
+    # Increased probability of dying outside a hospital (e.g. care-home deaths)
     'p_death_outside_hospital': [
         [0, 0.0],
         [10, 0.0],
@@ -283,9 +312,10 @@ VARIABLE_DEFAULTS = {
         [30, 0.0],
         [40, 0.0],
         [50, 0.0],
-        [60, 0.0],
-        [70, 40.0],
-        [80, 50.0]
+        [60, 1.0],
+        [70, 6.0],
+        [80, 50.0],
+        [90, 55.0]
     ],
     # Chance to die if no hospital beds are available (but not
     # needing ICU care)
@@ -309,22 +339,19 @@ VARIABLE_DEFAULTS = {
         ['test-only-severe-symptoms', '2020-03-15', 25],
         ['test-only-severe-symptoms', '2020-03-30', 50],
         ['test-only-severe-symptoms', '2020-04-15', 70],
-        ['test-all-with-symptoms', '2020-05-01'],
         ['test-with-contact-tracing', '2020-06-15', 30],
-        ['test-with-contact-tracing', '2020-09-15', 50],
-
-        # ['limit-mass-gatherings', '2020-03-12', 50],
+        ['test-with-contact-tracing', '2020-09-15', 30],
 
         ['limit-mobility', '2020-03-15', 80, 0, 70, 'other'],
         ['limit-mobility', '2020-08-15', 50, 0, 70, 'other'],
         ['limit-mobility', '2020-04-01', 5],
         ['limit-mobility', '2020-05-01', 20],
-        ['limit-mobility', '2020-05-15', 15],
-        ['limit-mobility', '2020-09-01', 20],
+        ['limit-mobility', '2020-07-01', 10],
+        ['limit-mobility', '2020-09-01', 10],
         ['limit-mobility', '2020-09-15', 10],
         ['limit-mobility', '2020-10-01', 0],
 
-        ['wear-masks', '2020-09-15', 50, 65, None, None],
+        ['wear-masks', '2020-07-01', 80, 65, None, None],
 
         ['limit-mobility', '2020-03-15', 10, None, None, 'leisure'],
         ['limit-mobility', '2020-03-22', 40, None, None, 'leisure'],
@@ -356,22 +383,29 @@ VARIABLE_DEFAULTS = {
         ['limit-mobility', '2020-09-01', 30, None, None, 'transport'],
         ['limit-mobility', '2020-11-20', 40, None, None, 'transport'],
 
-        ['limit-mobility', '2020-03-12', 0, 7, 15, 'school'],
-        ['limit-mobility', '2020-05-30', 100, 7, 15, 'school'],
-        ['limit-mobility', '2020-08-12', 0, 7, 15, 'school'],
+        ['limit-mobility', '2020-03-12', 0, 7, 12, 'school'],
+        ['limit-mobility', '2020-04-01', 100, 19, None, 'school'],
+        ['limit-mobility', '2020-05-30', 100, 7, 12, 'school'],
+        ['limit-mobility', '2020-05-30', 100, 13, 15, 'school'],
+        ['limit-mobility', '2020-05-30', 100, 16, 18, 'school'],
+        ['limit-mobility', '2020-08-12', 0, 7, 12, 'school'],
+        ['limit-mobility', '2020-08-12', 0, 13, 15, 'school'],
+        ['limit-mobility', '2020-08-12', 0, 16, 18, 'school'],
+        ['limit-mobility', '2020-08-12', 20, 19, None, 'school'],
 
         # FIXME: Fully remove import interventions
         ['import-infections', '2020-02-22', 20],
         ['import-infections', '2020-03-05', 50],
         ['import-infections', '2020-03-07', 80],
-        ['import-infections', '2020-03-09', 160],
-        ['import-infections', '2020-03-11', 120],
+        ['import-infections', '2020-03-09', 120],
+        ['import-infections', '2020-03-11', 80],
         ['import-infections', '2020-03-13', 20],
         ['import-infections', '2020-03-15', 20],
+        ['import-infections-weekly', '2020-07-01', 50],
         ['import-infections', '2020-08-15', 50],
-        ['import-infections', '2020-09-01', 150],
-        ['import-infections', '2020-09-07', 150],
-        ['import-infections', '2020-09-15', 150],
+        ['import-infections', '2020-09-01', 100],
+        ['import-infections', '2020-09-07', 100],
+        ['import-infections', '2020-09-15', 100],
         ['import-infections', '2020-10-01', 50],
         ['import-infections', '2020-10-15', 100],
         ['import-infections', '2020-11-01', 100],

@@ -22,6 +22,7 @@ POP_ATTRS = [
     'in_ward',
     'in_icu',
     'dead',
+    'non_hospital_deaths',
     'recovered',
     'all_infected',
 ]
@@ -140,7 +141,7 @@ def get_age_grouped_population():
     funcs=[get_contacts_per_day, get_population_for_area],
     filedeps=[model.__file__],
 )
-def simulate_individuals(variables, step_callback=None):
+def simulate_individuals(variables, step_callback=None, callback_day_interval=1):
     pc = PerfCounter()
 
     age_structure = get_population_for_area().sum(axis=1)
@@ -206,6 +207,18 @@ def simulate_individuals(variables, step_callback=None):
         rec['us_per_infected'] = pc.measure() * 1000 / rec['infected'] if rec['infected'] else 0
 
         if False:
+            st = '\n%-15s' % today_date
+            for ag in age_groups:
+                st += '%8s' % ag
+            print(st)
+            for attr in ('all_detected', 'in_ward', 'dead', 'cum_icu'):
+                st = '%-15s' % attr
+                t = s[attr].sum()
+                for val in s[attr]:
+                    st += '%8.2f' % ((val / t) * 100)
+                print(st)
+
+        if False:
             dead = context.get_population_stats('dead')
             all_infected = context.get_population_stats('all_infected')
             detected = context.get_population_stats('all_detected')
@@ -238,7 +251,7 @@ def simulate_individuals(variables, step_callback=None):
 
         by_age_group = POP_ATTRS
 
-        if step_callback is not None:
+        if step_callback is not None and (day % callback_day_interval == 0 or day == range(days) - 1):
             ret = step_callback(df)
             if not ret:
                 raise ExecutionInterrupted()
@@ -275,11 +288,14 @@ def simulate_individuals(variables, step_callback=None):
     filedeps=[model.__file__],
 )
 def sample_model_parameters(what, age, severity=None, variables=None):
+    age_to_group = make_age_groups()
     max_age = variables['max_age']
     age_structure = pd.Series([1] * (max_age + 1), index=range(0, max_age + 1))
+    age_groups = list(np.unique(age_to_group))
     pop_params = dict(
         age_structure=age_structure,
         contacts_per_day=get_contacts_per_day(),
+        age_groups=dict(labels=age_groups, age_indices=[age_groups.index(x) for x in age_to_group])
     )
     hc_params = dict(hospital_beds=0, icu_units=0)
     disease_params = create_disease_params(variables)
@@ -305,10 +321,11 @@ def sample_model_parameters(what, age, severity=None, variables=None):
     if what == 'symptom_severity':
         c.index = c.index.map(model.SEVERITY_TO_STR)
 
-    if False:
-        # c /= c.sum()
+    if True:
+        c /= c.sum()
         for a, b in c.iteritems():
-            print('    (%d, %.2f),' % (a, b))
+            # print('    (%d, %.2f),' % (a, b))
+            print('    (%s, %.2f),' % (a, b))
         import matplotlib.pyplot as plt
         fig = plt.figure()
         print('Mean: %f, median: %f' % (s.mean(), s.median()))
@@ -374,7 +391,7 @@ if __name__ == '__main__':
         exit()
 
     if False:
-        sample_model_parameters('contacts_per_day', 50)
+        sample_model_parameters('symptom_severity', 90)
         exit()
 
     if True:
