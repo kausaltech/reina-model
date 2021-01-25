@@ -4,6 +4,7 @@ from data_import.hs import get_deaths, get_hospitalisations
 
 
 MUNI_NAME = 'Turku'
+HOSPITALIZATION_MULTIPLIER = 0.5
 
 def update_case_data():
     df = get_healthcare_districts()
@@ -41,8 +42,8 @@ def update_case_data():
     df['ca_in_icu'] = df['ca_in_icu'].fillna(method='ffill').fillna(0).astype(int)
     df['ca_in_ward'] = df['ca_in_ward'].fillna(method='ffill').fillna(0).astype(int)
 
-    df['in_icu'] = (df['ca_in_icu'] * df['ratio']).astype(int)
-    df['in_ward'] = (df['ca_in_ward'] * df['ratio']).astype(int)
+    df['in_icu'] = (df['ca_in_icu'] * df['ratio'] * HOSPITALIZATION_MULTIPLIER).astype(int)
+    df['in_ward'] = (df['ca_in_ward'] * df['ratio'] * HOSPITALIZATION_MULTIPLIER).astype(int)
     df['dead'] = (df['ca_deaths'].diff() * df['ratio']).cumsum().fillna(0).astype(int)
     df = df.rename(columns=dict(hcd_cases='confirmed'))
     df['hospitalized'] = df['in_icu'] + df['in_ward']
