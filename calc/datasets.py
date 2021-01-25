@@ -10,19 +10,29 @@ from data_import.google_covid_mobility import DATASET_ZIP_NAME as MOBILITY_DATAS
 from . import calcfunc
 
 
-@calcfunc()
+POPULATION_CSV_PATH = add_root_path('data/005_11re_2019.csv')
+
+
+@calcfunc(
+    filedeps=[POPULATION_CSV_PATH]
+)
 def get_population():
-    f = open(get_root_path() + '/data/005_11re_2018.csv', 'r', encoding='iso8859-1')
+    f = open(POPULATION_CSV_PATH, 'r', encoding='iso8859-1')
     f.readline()
     f.readline()
-    df = pd.read_csv(f)
+    df = pd.read_csv(f, delimiter=';', quotechar='"')
     df = df[(df.Alue != 'KOKO MAA') & (df['Ikä'] != 'Yhteensä')]
     df = df.rename(columns={
-        'Miehet 2018 Väestö 31.12.': 'Male',
-        'Naiset 2018 Väestö 31.12.': 'Female',
+        'Miehet 2019 Väestö 31.12.': 'Male',
+        'Naiset 2019 Väestö 31.12.': 'Female',
         'Alue': 'Area',
         'Ikä': 'Age',
     })
+    drop_cols = []
+    for col in df.columns:
+        if 'yhteensä' in col.lower():
+            drop_cols.append(col)
+    df = df.drop(columns=drop_cols)
     df['Age'] = df['Age'].replace('100 -', '100').astype(int)
     return df.set_index('Area')
 
