@@ -137,6 +137,7 @@ def get_age_grouped_population():
         'icu_units',
         'random_seed',
         'max_age',
+        'imported_infection_ages',
     ],
     funcs=[get_contacts_per_day, get_population_for_area],
     filedeps=[model.__file__],
@@ -154,7 +155,8 @@ def simulate_individuals(variables, step_callback=None, callback_day_interval=1)
         age_structure=age_structure,
         contacts_per_day=get_contacts_per_day(),
         initial_population_condition=ipc,
-        age_groups=dict(labels=age_groups, age_indices=[age_groups.index(x) for x in age_to_group])
+        age_groups=dict(labels=age_groups, age_indices=[age_groups.index(x) for x in age_to_group]),
+        imported_infection_ages=variables['imported_infection_ages'],
     )
 
     df = get_contacts_per_day()

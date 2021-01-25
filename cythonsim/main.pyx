@@ -1323,6 +1323,8 @@ cdef class Population:
     cdef Person *people
     cdef int total_people
 
+    cdef ClassifiedValues imported_infection_ages
+
     # Indexes
     cdef int32[::1] people_sorted_by_age
     cdef int32[::1] age_start
@@ -1344,11 +1346,11 @@ cdef class Population:
     # Effects of interventions
     cdef int limit_mass_gatherings
 
-    def __init__(self, age_structure, contacts_per_day, age_groups):
-        self.nr_ages = age_structure.index.max() + 1
+    def __init__(self, params):
+        self.nr_ages = params['age_structure'].index.max() + 1
 
         age_counts = np.empty(self.nr_ages, dtype=np.int32)
-        for age, count in age_structure.items():
+        for age, count in params['age_structure'].items():
             age_counts[age] = count
 
         self.limit_mass_gatherings = 0
@@ -1357,15 +1359,27 @@ cdef class Population:
         self._create_agents(age_counts)
 
         self.weekly_infections = []
-        self.contact_matrix = ContactMatrix(contacts_per_day, self.nr_ages)
+        self.contact_matrix = ContactMatrix(params['contacts_per_day'], self.nr_ages)
 
-        self.age_group_labels = age_groups['labels']
-        self.age_group_indices = np.array(age_groups['age_indices'], dtype=np.int32)
+        self.age_group_labels = params['age_groups']['labels']
+        self.age_group_indices = np.array(params['age_groups']['age_indices'], dtype=np.int32)
+
+        ages = params['imported_infection_ages']
+        weight_sum = sum([x[1] for x in ages])
+        weighed = []
+        total = 0
+        for age, weight in ages:
+            weight /= weight_sum
+            weighed.append((age, weight + total))
+            total += weight
+        cv_init(&self.imported_infection_ages, weighed)
+
 
     def _init_stats(self, age_counts):
         cdef int nr_ages = self.nr_ages
 
         self.susceptible = age_counts
+
         self.infected = np.zeros(nr_ages, dtype=np.int32)
         self.detected = np.zeros(nr_ages, dtype=np.int32)
         self.all_detected = np.zeros(nr_ages, dtype=np.int32)
@@ -1390,6 +1404,8 @@ cdef class Population:
     def __dealloc__(self):
         self._free_people()
         PyMem_Free(self.people)
+        cv_free(&self.imported_infection_ages)
+
 
     cdef _create_agents(self, age_counts):
         cdef int idx, person_idx, age
@@ -1494,6 +1510,20 @@ cdef class Population:
 
     @cython.cdivision(True)
     @cython.initializedcheck(False)
+    cdef int get_person_from_age_range(self, int min_age, int max_age, Context context) nogil:
+        cdef int person_idx, idx_start, idx_end
+
+        idx_start = self.age_start[min_age]
+        if max_age < self.nr_ages - 1:
+            idx_end = self.age_start[max_age + 1]
+        else:
+            idx_end = self.total_people
+
+        person_idx = self.people_sorted_by_age[idx_start + context.random.getint() % (idx_end - idx_start)]
+        return person_idx
+
+    @cython.cdivision(True)
+    @cython.initializedcheck(False)
     cdef int get_contacts(self, Person *person, Contact *contacts, Context context, float factor=1.0, int limit=100) nogil:
         if self.limit_mass_gatherings and self.limit_mass_gatherings < limit:
             limit = self.limit_mass_gatherings
@@ -1508,7 +1538,7 @@ cdef class Population:
 
         cdef Contact *c
         cdef ContactProbability *cp
-        cdef int i, person_idx, idx_start, idx_end
+        cdef int i, person_idx
         for i in range(nr_contacts):
             cp = self.contact_matrix.get_one_contact(person, context)
             if cp == NULL:
@@ -1519,7 +1549,7 @@ cdef class Population:
             else:
                 idx_end = self.total_people
 
-            person_idx = self.people_sorted_by_age[idx_start + context.random.getint() % (idx_end - idx_start)]
+            person_idx = self.get_person_from_age_range(cp.contact_age_min, cp.contact_age_max, context)
 
             c = contacts + i
             c.person_idx = person_idx
@@ -1589,13 +1619,34 @@ cdef class Population:
         # if person.state == PersonState.SUSCEPTIBLE:
         #    self.susceptible[person.age] -= 1
 
+    cdef int get_import_infection_person(self, Context context) nogil:
+        cdef ClassifiedValues * ages = &self.imported_infection_ages
+        cdef int idx = 0, age = 0, max_age, min_age
+        cdef float cumprob, p
+
+        p = context.random.get()
+        for idx in range(ages.num_classes):
+            age = ages.classes[idx]
+            cumprob = ages.values[idx]
+            if p <= cumprob:
+                break
+
+        min_age = age
+        if idx == ages.num_classes:
+            max_age = self.nr_ages
+        else:
+            max_age = ages.classes[idx + 1] - 1
+
+        return self.get_person_from_age_range(min_age, max_age, context)
+
     cdef infect_people(self, int count, int variant, Context context):
-        cdef int idx
+        cdef int i, person_idx
         cdef Person * person
 
         for i in range(count):
             for x in range(10):
-                person = self.get_random_person(context)
+                person_idx = self.get_import_infection_person(context)
+                person = &self.people[person_idx]
                 if person.state == PersonState.SUSCEPTIBLE:
                     break
             else:
@@ -1694,7 +1745,7 @@ cdef class Context:
         self.problem_person = NULL
 
         ipc = population_params.pop('initial_population_condition', None)
-        self.pop = Population(**population_params)
+        self.pop = Population(population_params)
         self.disease = Disease(disease_params)
         self.hc = HealthcareSystem(**healthcare_params)
 

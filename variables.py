@@ -330,6 +330,15 @@ VARIABLE_DEFAULTS = {
     'ratio_of_duration_before_hospitalisation': 30.0,  # %
     'ratio_of_duration_in_ward': 15.0,  # %
 
+    # Age class weights for imported infections
+    'imported_infection_ages': [
+        [0, 15.0],
+        [20, 40.0],
+        [40, 40.0],
+        [60, 5.0],
+        [70, 0],
+    ],
+
     'incubating_at_simulation_start': 0,
     'ill_at_simulation_start': 0,
     'recovered_at_simulation_start': 0,
