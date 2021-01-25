@@ -9,6 +9,8 @@ __pycache__/
 /cythonsim/*.html
 /cache.sqlite
 /locale/**/*.mo
+/datasets
+/Attic
 
 # Environment
 .DS_Store
