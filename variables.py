@@ -13,6 +13,18 @@ VARIABLE_OVERRIDE_SETS = {
         'hospital_beds': 900,
         'icu_units': 55,
         # 'start_date': '2020-09-01',
+        'p_death_outside_hospital': [
+            [0, 0.0],
+            [10, 0.0],
+            [20, 0.0],
+            [30, 0.0],
+            [40, 0.0],
+            [50, 0.0],
+            [60, 0.0],
+            [70, 0.0],
+            [80, 12.0],
+            [90, 25.0]
+        ],
         'interventions': [
             ['test-all-with-symptoms', '2020-02-20'],
             ['test-only-severe-symptoms', '2020-03-15', 30],
