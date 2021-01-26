@@ -35,6 +35,8 @@ VARIABLE_OVERRIDE_SETS = {
             #['test-only-severe-symptoms', '2020-06-01', 80],
             #['test-all-with-symptoms', '2020-06-20'],
             ['test-with-contact-tracing', '2020-07-01', 20],
+            ['test-with-contact-tracing', '2020-08-01', 40],
+            ['test-with-contact-tracing', '2020-08-15', 50],
             ['test-with-contact-tracing', '2020-09-01', 70],
             ['test-with-contact-tracing', '2020-12-01', 60],
             ['test-with-contact-tracing', '2020-12-14', 70],
@@ -65,7 +67,7 @@ VARIABLE_OVERRIDE_SETS = {
             ['limit-mobility', '2020-11-01', 45, 16, 18, 'school'],
             ['limit-mobility', '2020-12-07', 70, 16, 18, 'school'],
             ['limit-mobility', '2020-12-19', 100, 16, 18, 'school'],
-            ['limit-mobility', '2021-01-07', 70, 16, 18, 'school'],
+            ['limit-mobility', '2021-01-07', 20, 16, 18, 'school'],
 
             # Higher education
             ['limit-mobility', '2020-03-23', 100, 19, None, 'school'],
@@ -82,6 +84,7 @@ VARIABLE_OVERRIDE_SETS = {
             ['limit-mobility', '2020-06-01', 20, None, None, 'leisure'],
             ['limit-mobility', '2020-10-31', 10, None, None, 'leisure'],
             ['limit-mobility', '2020-12-11', 15, None, None, 'leisure'],
+            ['limit-mobility', '2021-01-02', 25, None, None, 'leisure'],
 
             ['limit-mobility', '2020-03-17', 10, None, None, 'work'],
             ['limit-mobility', '2020-03-19', 20, None, None, 'work'],
@@ -94,14 +97,12 @@ VARIABLE_OVERRIDE_SETS = {
             ['limit-mobility', '2020-05-13', 30, None, None, 'work'],
             ['limit-mobility', '2020-06-01', 15, None, None, 'work'],
             ['limit-mobility', '2020-06-19', 30, None, None, 'work'],
-            ['limit-mobility', '2020-06-19', 30, None, None, 'work'],
-            ['limit-mobility', '2020-06-19', 30, None, None, 'work'],
             ['limit-mobility', '2020-07-01', 35, None, None, 'work'],
             ['limit-mobility', '2020-08-13', 25, None, None, 'work'],
             ['limit-mobility', '2020-08-24', 20, None, None, 'work'],
             ['limit-mobility', '2020-09-11', 15, None, None, 'work'],
-            ['limit-mobility', '2020-10-14', 20, None, None, 'work'],
-            ['limit-mobility', '2020-10-23', 10, None, None, 'work'],
+            ['limit-mobility', '2020-10-12', 30, None, None, 'work'],
+            ['limit-mobility', '2020-10-19', 15, None, None, 'work'],
             ['limit-mobility', '2020-12-14', 20, None, None, 'work'],
 
             ['limit-mobility', '2020-03-17', 20, None, None, 'transport'],
@@ -109,11 +110,9 @@ VARIABLE_OVERRIDE_SETS = {
             ['limit-mobility', '2020-03-22', 40, None, None, 'transport'],
             ['limit-mobility', '2020-04-04', 50, None, None, 'transport'],
             ['limit-mobility', '2020-08-15', 10, None, None, 'transport'],
-            ['limit-mobility', '2020-10-10', 20, None, None, 'transport'],
-            ['limit-mobility', '2020-10-16', 25, None, None, 'transport'],
-            ['limit-mobility', '2020-11-16', 30, None, None, 'transport'],
-            ['limit-mobility', '2020-12-12', 40, None, None, 'transport'],
-
+            ['limit-mobility', '2020-09-01', 15, None, None, 'transport'],
+            ['limit-mobility', '2020-10-20', 30, None, None, 'transport'],
+            ['limit-mobility', '2020-12-09', 40, None, None, 'transport'],
 
             ['wear-masks', '2020-03-15', 80, 65, None],
             ['wear-masks', '2020-09-15', 90, 65, None],
@@ -125,25 +124,28 @@ VARIABLE_OVERRIDE_SETS = {
             ['wear-masks', '2020-10-01', 90, 65, None],
 
             ['wear-masks', '2020-11-01', 40, None, None, 'transport'],
-            ['wear-masks', '2020-11-01', 40, None, None, 'leisure'],
+            ['wear-masks', '2020-11-01', 30, None, None, 'leisure'],
             ['wear-masks', '2020-11-01', 40, None, None, 'work'],
             ['wear-masks', '2020-11-01', 40, None, None, 'other'],
             ['wear-masks', '2020-11-01', 90, 65, None],
 
             ['wear-masks', '2020-12-01', 70, None, None, 'transport'],
-            ['wear-masks', '2020-12-01', 70, None, None, 'leisure'],
+            ['wear-masks', '2020-12-01', 40, None, None, 'leisure'],
             ['wear-masks', '2020-12-01', 70, None, None, 'work'],
             ['wear-masks', '2020-12-01', 70, None, None, 'other'],
             ['wear-masks', '2020-12-01', 90, 65, None],
 
+            ['wear-masks', '2021-01-07', 60, 10, None, 'school'],
+
             # Overall mobility limitation
             ['limit-mobility', '2020-03-20', 20],
-            ['limit-mobility', '2020-04-04', 15],
+            # ['limit-mobility', '2020-04-04', 15],
             ['limit-mobility', '2020-04-15', 20],
-            ['limit-mobility', '2020-05-01', 30],
+            ['limit-mobility', '2020-04-21', 40],
+            ['limit-mobility', '2020-05-01', 50],
             ['limit-mobility', '2020-05-15', 60],
             ['limit-mobility', '2020-08-05', 10],
-            ['limit-mobility', '2020-08-15', 0],
+            ['limit-mobility', '2020-08-15', 5],
             ['limit-mobility', '2020-09-15', 0],
 
             # Vaccinate healthcare professionals
@@ -171,16 +173,17 @@ VARIABLE_OVERRIDE_SETS = {
             ['import-infections-weekly', '2020-04-01', 10],
             ['import-infections-weekly', '2020-06-01', 5],
 
-            ['import-infections', '2020-07-15', 15],
             ['import-infections', '2020-08-01', 10],
-            ['import-infections-weekly', '2020-09-01', 5],
-            ['import-infections-weekly', '2020-09-15', 30],
-            ['import-infections-weekly', '2020-10-01', 50],
-            ['import-infections-weekly', '2020-11-01', 120],
-            ['import-infections-weekly', '2020-11-15', 150],
-            ['import-infections-weekly', '2020-12-01', 240],
-            ['import-infections-weekly', '2021-01-27', 120],
-            ['import-infections-weekly', '2021-02-03', 80],
+            ['import-infections-weekly', '2020-09-15', 20],
+            ['import-infections-weekly', '2020-10-01', 30],
+            ['import-infections', '2020-10-19', 20],
+            ['import-infections', '2020-10-21', 20],
+            ['import-infections', '2020-10-23', 20],
+            ['import-infections-weekly', '2020-11-01', 50],
+            ['import-infections-weekly', '2020-11-15', 120],
+            ['import-infections-weekly', '2020-12-01', 280],
+            ['import-infections-weekly', '2020-12-15', 120],
+            ['import-infections-weekly', '2021-01-27', 80],
         ],
         'scenarios': [
             {
@@ -197,9 +200,25 @@ VARIABLE_OVERRIDE_SETS = {
             }, {
                 'id': 'b117-variant',
                 'label': 'Tarttuvampi variantti',
-                'description': """Alueelle on tullut tarttuvampaa virusvarianttia.""",
+                'description': """Alueelle tulee tarttuvampaa virusvarianttia.""",
                 'add_interventions': [
-                    ['import-infections', '2020-12-15', 30, 'b1.1.7'],
+                    ['import-infections-weekly', '2020-12-26', 20, 'b1.1.7'],
+                ],
+            }, {
+                'id': 'stop-wearing-masks',
+                'label': 'Tarttuvampi variantti ja koronaväsymys',
+                'description': """Alueelle tulee tarttuvampaa B1.1.7-virusvarianttia ja ihmiset väsyvät rajoituksiin. Maskien käyttö vähenee ja liikkuvuus lisääntyy. Kontaktiketjujen jäljitystehokkuus heikkenee hieman.""",
+                'add_interventions': [
+                    ['import-infections-weekly', '2020-12-26', 20, 'b1.1.7'],
+                    ['import-infections-weekly', '2020-01-15', 0],
+                    ['wear-masks', '2021-02-01', 30, None, None, 'transport'],
+                    ['wear-masks', '2021-02-01', 30, None, None, 'leisure'],
+                    ['wear-masks', '2021-02-01', 30, None, None, 'work'],
+                    ['wear-masks', '2021-02-01', 30, None, None, 'other'],
+                    ['limit-mobility', '2021-02-01', 5, None, None, 'work'],
+                    ['limit-mobility', '2021-02-01', 20, None, None, 'transport'],
+                    ['limit-mobility', '2021-02-01', 10, None, None, 'leisure'],
+                    ['test-with-contact-tracing', '2021-02-01', 50],
                 ],
             }
         ],
