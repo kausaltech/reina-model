@@ -260,7 +260,7 @@ INTERVENTIONS = [
                 id='weekly_vaccinations',
                 label=_('Number of people vaccinated weekly'),
                 min_value=0,
-                unit=_('persons/day'),
+                unit=_('persons/week'),
             ),
             IntParameter(
                 id='min_age',

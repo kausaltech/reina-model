@@ -181,6 +181,8 @@ def results_to_metrics(results, only=None):
     df['ifr'] = df['ifr'].rolling(window=7).mean()
     df['cfr'] = df['cfr'].rolling(window=7).mean()
     df['r'] = df['r'].rolling(window=7).mean()
+    df['new_infections'] = df['new_infections'].rolling(window=14).mean().round().astype('Int64').replace({np.nan: None})
+    df['detected'] = df['detected'].rolling(window=14).mean().round().astype('Int64').replace({np.nan: None})
 
     for m in selected_metrics:
         int_values = None

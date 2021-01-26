@@ -51,6 +51,22 @@ METRICS = [
         is_integer=True,
     ),
     Metric(
+        'new_infections',
+        _('New daily infections (14 day avg.)'),
+        None,
+        _('infections'),
+        'purple',
+        is_integer=True,
+    ),
+    Metric(
+        'detected',
+        _('Detected cases (14 day avg.)'),
+        None,
+        _('cases'),
+        'teal',
+        is_integer=True,
+    ),
+    Metric(
         'all_detected',
         _('Detected cases'),
         None,

@@ -1332,7 +1332,7 @@ cdef class Population:
     # Stats
     cdef int[::1] infected, detected, all_detected, all_infected, in_ward, hospitalized, \
         in_icu, cum_hospitalized, cum_icu, dead, susceptible, recovered, vaccinated, \
-        non_hospital_deaths
+        non_hospital_deaths, new_infections
     cdef int nr_ages
 
     cdef int[::1] daily_contacts
@@ -1392,6 +1392,7 @@ cdef class Population:
         self.non_hospital_deaths = np.zeros(nr_ages, dtype=np.int32)
         self.dead = np.zeros(nr_ages, dtype=np.int32)
         self.vaccinated = np.zeros(nr_ages, dtype=np.int32)
+        self.new_infections = np.zeros(nr_ages, dtype=np.int32)
         self.daily_contacts = np.zeros(NR_CONTACT_PLACES, dtype=np.int32)
 
     cdef void _free_people(self) nogil:
@@ -1566,14 +1567,13 @@ cdef class Population:
         self.susceptible[age] -= 1
         self.infected[age] += 1
         self.all_infected[age] += 1
+        self.new_infections[age] += 1
 
     @cython.initializedcheck(False)
     cdef void recover(self, Person * person) nogil:
         cdef int age = person.age
         self.infected[age] -= 1
         self.recovered[age] += 1
-        if person.was_detected:
-            self.detected[age] -= 1
 
     @cython.initializedcheck(False)
     cdef void detect(self, Person * person) nogil:
@@ -1609,8 +1609,6 @@ cdef class Population:
         self.dead[age] += 1
         if person.place_of_death == PlaceOfDeath.DEATH_OUTSIDE_HOSPITAL:
             self.non_hospital_deaths[age] += 1
-        if person.was_detected:
-            self.detected[age] -= 1
 
     @cython.initializedcheck(False)
     cdef void vaccinate(self, Person * person) nogil:
@@ -1677,10 +1675,15 @@ cdef class Population:
             w['leftover'] = leftover
 
     cdef init_day(self, Context context):
+        cdef int i
+
         for i in range(NR_CONTACT_PLACES):
             self.daily_contacts[i] = 0
         self.contact_matrix.init_day()
         self.infect_people_daily(context)
+        for i in range(self.nr_ages):
+            self.new_infections[i] = 0
+            self.detected[i] = 0
 
     cdef int[:] _group_by_age(self, const int[:] series):
         cdef int[:] grp_sum
@@ -1720,6 +1723,8 @@ cdef class Population:
             arr = self.recovered
         elif attr == 'non_hospital_deaths':
             arr = self.non_hospital_deaths
+        elif attr == 'new_infections':
+            arr = self.new_infections
         else:
             raise Exception('Unknown attribute: %s' % attr)
 
@@ -1811,6 +1816,7 @@ cdef class Context:
             'dead',
             'recovered',
             'non_hospital_deaths',
+            'new_infections',
         ]
 
         s = dict(

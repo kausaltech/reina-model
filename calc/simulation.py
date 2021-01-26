@@ -18,6 +18,7 @@ POP_ATTRS = [
     'susceptible',
     'vaccinated',
     'infected',
+    'detected',
     'all_detected',
     'in_ward',
     'in_icu',
@@ -25,6 +26,7 @@ POP_ATTRS = [
     'non_hospital_deaths',
     'recovered',
     'all_infected',
+    'new_infections',
 ]
 EXPOSURES_ATTRS = [
     'exposures_home',
