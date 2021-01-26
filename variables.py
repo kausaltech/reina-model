@@ -210,7 +210,7 @@ VARIABLE_OVERRIDE_SETS = {
                 'description': """Alueelle tulee tarttuvampaa B1.1.7-virusvarianttia ja ihmiset väsyvät rajoituksiin. Maskien käyttö vähenee ja liikkuvuus lisääntyy. Kontaktiketjujen jäljitystehokkuus heikkenee hieman.""",
                 'add_interventions': [
                     ['import-infections-weekly', '2020-12-26', 20, 'b1.1.7'],
-                    ['import-infections-weekly', '2020-01-15', 0],
+                    ['import-infections-weekly', '2021-01-27', 60],
                     ['wear-masks', '2021-02-01', 30, None, None, 'transport'],
                     ['wear-masks', '2021-02-01', 30, None, None, 'leisure'],
                     ['wear-masks', '2021-02-01', 30, None, None, 'work'],
