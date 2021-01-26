@@ -284,6 +284,8 @@ class Query(ObjectType):
         sim_start = date.fromisoformat(get_variable('start_date'))
         sim_end = sim_start + timedelta(days=get_variable('simulation_days'))
         df = df[df.index < sim_end]
+        df['detected'] = df['all_detected'].diff()
+        df['detected'] = df['detected'].rolling(window=14).mean().round().astype('Int64').replace({np.nan: None})
         dates = df.index.astype(str).values
 
         metrics = []
