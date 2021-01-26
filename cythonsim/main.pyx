@@ -292,6 +292,8 @@ cdef void person_become_ill(Person *self, Context context) nogil:
 
 
 cdef void person_detect(Person *self, Context context) nogil:
+    if self.was_detected:
+        context.set_problem(SimulationProblem.WRONG_STATE)
     self.was_detected = 1
     context.pop.detect(self)
 
@@ -860,8 +862,8 @@ cdef variant_free(Variant *self):
 
 cdef class Disease:
     cdef Variant *variants
-    cdef object variant_names
-    cdef int nr_variants
+    cdef public object variant_names
+    cdef public int nr_variants
 
     def __init__(self, params):
         self.variant_names = []
@@ -1333,6 +1335,7 @@ cdef class Population:
     cdef int[::1] infected, detected, all_detected, all_infected, in_ward, hospitalized, \
         in_icu, cum_hospitalized, cum_icu, dead, susceptible, recovered, vaccinated, \
         non_hospital_deaths, new_infections
+    cdef int[::1] infected_by_variant
     cdef int nr_ages
 
     cdef int[::1] daily_contacts
@@ -1346,7 +1349,7 @@ cdef class Population:
     # Effects of interventions
     cdef int limit_mass_gatherings
 
-    def __init__(self, params):
+    def __init__(self, params, disease):
         self.nr_ages = params['age_structure'].index.max() + 1
 
         age_counts = np.empty(self.nr_ages, dtype=np.int32)
@@ -1373,6 +1376,8 @@ cdef class Population:
             weighed.append((age, weight + total))
             total += weight
         cv_init(&self.imported_infection_ages, weighed)
+
+        self.infected_by_variant = np.zeros(disease.nr_variants, dtype=np.int32)
 
 
     def _init_stats(self, age_counts):
@@ -1568,6 +1573,7 @@ cdef class Population:
         self.infected[age] += 1
         self.all_infected[age] += 1
         self.new_infections[age] += 1
+        self.infected_by_variant[person.variant_idx] += 1
 
     @cython.initializedcheck(False)
     cdef void recover(self, Person * person) nogil:
@@ -1679,11 +1685,14 @@ cdef class Population:
 
         for i in range(NR_CONTACT_PLACES):
             self.daily_contacts[i] = 0
-        self.contact_matrix.init_day()
-        self.infect_people_daily(context)
         for i in range(self.nr_ages):
             self.new_infections[i] = 0
             self.detected[i] = 0
+        for i in range(context.disease.nr_variants):
+            self.infected_by_variant[i] = 0
+
+        self.contact_matrix.init_day()
+        self.infect_people_daily(context)
 
     cdef int[:] _group_by_age(self, const int[:] series):
         cdef int[:] grp_sum
@@ -1750,8 +1759,8 @@ cdef class Context:
         self.problem_person = NULL
 
         ipc = population_params.pop('initial_population_condition', None)
-        self.pop = Population(population_params)
         self.disease = Disease(disease_params)
+        self.pop = Population(population_params, self.disease)
         self.hc = HealthcareSystem(**healthcare_params)
 
         self.start_date = start_date
@@ -1830,6 +1839,11 @@ cdef class Context:
         )
         for attr in pop_attrs:
             s[attr] = p.get_age_group_series(attr)
+
+        s['infected_by_variant'] = {
+            self.disease.variant_names[i]: self.pop.infected_by_variant[i]
+            for i in range(self.disease.nr_variants)
+        }
 
         daily_contacts = {}
         for i in range(NR_CONTACT_PLACES):
