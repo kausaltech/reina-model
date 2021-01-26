@@ -253,8 +253,10 @@ VARIABLE_DEFAULTS = {
     # Disease parameters
     #
 
-    'p_mask_protects_wearer': 45.0,  # %
-    'p_mask_protects_others': 90.0,  # %
+    # 'p_mask_protects_wearer': 25.0,  # %
+    # 'p_mask_protects_others': 80.0,  # %
+    'p_mask_protects_wearer': 15.0,  # %
+    'p_mask_protects_others': 80.0,  # %
 
     'infectiousness_multiplier': 0.55,
 
