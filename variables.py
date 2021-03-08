@@ -132,11 +132,14 @@ VARIABLE_OVERRIDE_SETS = {
             ['limit-mobility', '2020-08-15', 5],
             ['limit-mobility', '2020-09-15', 0],
 
-            ['limit-mobility', '2020-05-01', 10],
-            ['limit-mobility', '2020-05-15', 20],
-            ['limit-mobility', '2020-06-01', 30],
-            ['limit-mobility', '2020-06-15', 40],
+            ['limit-mobility', '2021-05-01', 10],
+            ['limit-mobility', '2021-05-15', 20],
+            ['limit-mobility', '2021-06-01', 30],
+            ['limit-mobility', '2021-06-15', 40],
 
+            # Summer vacations
+            ['limit-mobility', '2021-06-24', 30, None, None, 'work'],
+            ['limit-mobility', '2021-07-01', 40, None, None, 'work'],
 
             # Vaccinate healthcare professionals
             ['vaccinate', '2021-01-01', 250, 22, 29],
@@ -186,9 +189,13 @@ VARIABLE_OVERRIDE_SETS = {
             ['import-infections-weekly', '2021-02-22', 240, 60],
             ['import-infections-weekly', '2021-03-01', 240, 70],
             ['import-infections-weekly', '2021-03-08', 240, 80],
-            ['import-infections-weekly', '2021-03-15', 240, 85],
-            ['import-infections-weekly', '2021-03-22', 240, 90],
-            ['import-infections-weekly', '2021-03-27', 240, 95],
+            ['import-infections-weekly', '2021-03-15', 220, 85],
+            ['import-infections-weekly', '2021-03-22', 200, 90],
+            ['import-infections-weekly', '2021-03-27', 180, 95],
+
+            ['import-infections-weekly', '2021-05-01', 180, 99],
+            ['import-infections-weekly', '2021-05-15', 160, 99],
+            ['import-infections-weekly', '2021-06-01', 140, 99],
         ],
         'scenarios': [
             {
