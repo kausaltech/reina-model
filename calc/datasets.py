@@ -188,13 +188,14 @@ def get_mobility_data(variables):
 
     df = df.drop(columns=[
         'country_region_code', 'country_region', 'metro_area', 'iso_3166_2_code',
-        'census_fips_code',
+        'census_fips_code', 'place_id'
     ])
     REGIONS = {
         'HUS': (1, 'Uusimaa'),
         'Varsinais-Suomi': (1, 'Southwest Finland'),
         'Turku': (2, 'Turku'),
         'Helsinki': (2, 'Helsinki'),
+        'Espoo': (2, 'Helsinki'),
     }
     region_id, region = REGIONS[variables['area_name']]
     if region_id == 1:
@@ -207,6 +208,35 @@ def get_mobility_data(variables):
     df = df.rename(columns=renames)
     df.index = pd.to_datetime(df.index)
     return df
+
+
+@calcfunc(
+    funcs=[get_mobility_data],
+)
+def generate_mobility_ivs():
+    df = get_mobility_data()
+    COLS = (
+        ('retail_and_recreation', 'leisure'),
+        ('workplaces', 'work'),
+        ('transit_stations', 'transport'),
+    )
+    print(df.iloc[-20:])
+    df = df.groupby(pd.Grouper(freq='W')).mean().interpolate().shift(-1).dropna().astype(int)
+
+    ivs = []
+    for col_name, con_name in COLS:
+        last_val = None
+        for date, val in df[col_name].iteritems():
+            date_str = date.isoformat().split('T')[0]
+            if date_str < '2020-03-08':
+                continue
+            if val > 0:
+                continue
+            if last_val is not None and abs(last_val - val) < 5:
+                continue
+            ivs.append(['limit-mobility', date.isoformat().split('T')[0], -val, None, None, con_name])
+            last_val = val
+    return ivs
 
 
 if __name__ == '__main__':

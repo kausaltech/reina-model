@@ -59,6 +59,7 @@ class Event(ObjectType):
     description = String()
     type = EventType()
     parameters = List(EventParameter)
+    modifiable = Boolean()
     modified_by_user = Boolean()
 
 
@@ -146,11 +147,20 @@ def iv_to_graphql_obj(iv, obj_id=None):
             )
         else:
             raise Exception('Unknown parameter type')
+
+    modifiable = False
+    if iv.id:
+        obj_id = iv.id
+        modifiable = True
+    elif obj_id is not None:
+        obj_id = 'N%d' % obj_id
+
     return Event(
         id=obj_id,
         type=iv.type,
         description=iv.label,
         date=getattr(iv, 'date', None),
+        modifiable=modifiable,
         parameters=params
     )
 
@@ -243,10 +253,10 @@ class Query(ObjectType):
         return out
 
     def resolve_active_events(query, info):
-        interventions = get_active_interventions()
+        interventions = sorted(get_active_interventions(), key=lambda x: x.date)
         out = []
         for idx, iv in enumerate(interventions):
-            obj = iv_to_graphql_obj(iv, obj_id=idx)
+            obj = iv_to_graphql_obj(iv, idx)
             out.append(obj)
         return out
 
@@ -437,11 +447,22 @@ class DeleteEvent(Mutation):
     ok = Boolean()
 
     def mutate(root, info, event_id):
+        iv_objs = get_active_interventions()
+
+        for iv in iv_objs:
+            if iv.id and event_id == iv.id:
+                break
+
+        iv_tuple = iv.make_iv_tuple()
+
         iv_id = int(event_id)
         iv_list = list(get_variable('interventions'))
-        if iv_id >= len(iv_list):
+        for iv in iv_list:
+            if iv == iv_tuple:
+                break
+        else:
             raise GraphQLError('invalid intervention ID')
-        del iv_list[iv_id]
+        iv_list.remove(iv)
         set_variable('interventions', iv_list)
         return dict(ok=True)
 

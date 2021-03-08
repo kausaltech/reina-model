@@ -5,6 +5,7 @@ from enum import Enum
 
 from flask_babel import lazy_gettext as _
 from variables import get_variable
+from calc.datasets import generate_mobility_ivs
 
 
 class ContactPlace(Enum):
@@ -63,6 +64,7 @@ class Intervention:
 
     values: typing.Mapping[str, typing.Union[int, Choice, None]] = None
     date: str = None
+    id: str = None
 
     def __post_init__(self):
         if self.parameters is None:
@@ -298,12 +300,10 @@ INTERVENTIONS = [
         _('Import infections from outside the area every week'),
         parameters=[
             IntParameter(id='weekly_amount', label=_('Amount of new weekly infections'), unit=_('infections/week')),
-            ChoiceParameter(
-                id='variant',
-                label=_('Variant of the disease'),
-                choices=[Choice(x[0], x[1]) for x in VARIANTS],
+            *[IntParameter(
+                id='variant_%s' % vid, label=_('Share of variant %(variant)s', variant=vlabel), unit=_('%'),
                 required=False,
-            ),
+            ) for vid, vlabel in VARIANTS],
         ]
     ),
     Intervention(
@@ -350,7 +350,13 @@ def get_active_interventions(variables=None):
         interventions = get_variable('interventions')
 
     out = []
-    for iv in interventions:
+    for idx, iv in enumerate(interventions):
+        obj = iv_tuple_to_obj(iv)
+        obj.id = str(idx)
+        out.append(obj)
+
+    mobility_ivs = generate_mobility_ivs(variable_store=variables)
+    for iv in mobility_ivs:
         out.append(iv_tuple_to_obj(iv))
 
     if active_scenario:

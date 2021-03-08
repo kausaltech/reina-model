@@ -140,6 +140,7 @@ def get_age_grouped_population():
         'random_seed',
         'max_age',
         'imported_infection_ages',
+        'area_name',
     ],
     funcs=[get_contacts_per_day, get_population_for_area],
     filedeps=[model.__file__],
@@ -209,6 +210,12 @@ def simulate_individuals(variables, step_callback=None, callback_day_interval=1)
             rec[key] = nr
 
         rec['us_per_infected'] = pc.measure() * 1000 / rec['infected'] if rec['infected'] else 0
+
+        if False:
+            vsum = sum(s['infected_by_variant'].values())
+            if vsum:
+                for vid, vval in s['infected_by_variant'].items():
+                    print('%10s: %d %%' % (vid, vval / vsum * 100))
 
         if False:
             st = '\n%-15s' % today_date

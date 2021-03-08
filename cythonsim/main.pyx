@@ -1345,7 +1345,9 @@ cdef class Population:
 
     cdef ContactMatrix contact_matrix
 
-    cdef list weekly_infections
+    cdef int weekly_infections_amount
+    cdef list weekly_infections_leftover
+    cdef list weekly_infections_shares
     # Effects of interventions
     cdef int limit_mass_gatherings
 
@@ -1361,7 +1363,11 @@ cdef class Population:
         self._init_stats(age_counts)
         self._create_agents(age_counts)
 
-        self.weekly_infections = []
+        self.weekly_infections_amount = 0
+        self.weekly_infections_leftover = [0] * (disease.nr_variants + 1)
+        self.weekly_infections_shares = [0.0] * disease.nr_variants
+        self.weekly_infections_shares[0] = 1.0
+
         self.contact_matrix = ContactMatrix(params['contacts_per_day'], self.nr_ages)
 
         self.age_group_labels = params['age_groups']['labels']
@@ -1658,27 +1664,25 @@ cdef class Population:
                 continue
             person_infect(person, context, NULL, variant)
 
-    cdef infect_weekly(self, int amount, int variant, Context context):
-        for w in self.weekly_infections:
-            if w['variant'] == variant:
-                break
-        else:
-            w = dict(variant=variant)
-            self.weekly_infections.append(w)
-        w['amount'] = amount
+    cdef infect_weekly(self, int amount, list variant_shares, Context context):
+        self.weekly_infections_amount = amount
+        self.weekly_infections_shares = variant_shares
 
     cdef infect_people_daily(self, Context context):
         cdef float leftover
         cdef int amount_today
 
-        for w in self.weekly_infections:
-            leftover = w.get('leftover', 0.0) + w['amount'] / 7
+        for vid in range(context.disease.nr_variants):
+            leftover = self.weekly_infections_leftover[vid]
+            leftover += self.weekly_infections_amount / 7.0 * self.weekly_infections_shares[vid]
             amount_today = <int> leftover
 
             if amount_today:
-                self.infect_people(amount_today, w['variant'], context)
+                self.infect_people(amount_today, vid, context)
                 leftover -= amount_today
-            w['leftover'] = leftover
+
+            assert leftover >= 0
+            self.weekly_infections_leftover[vid] = leftover
 
     cdef init_day(self, Context context):
         cdef int i
@@ -1895,7 +1899,18 @@ cdef class Context:
             self.pop.infect_people(params['amount'], self.find_variant(params.get('variant')), self)
         elif iv.type == 'import-infections-weekly':
             # Introduce infections from elsewhere
-            self.pop.infect_weekly(params['weekly_amount'], self.find_variant(params.get('variant')), self)
+            variant_shares = [0] * len(self.disease.variant_names)
+            for pn in params.keys():
+                if not pn.startswith('variant_'):
+                    continue
+                vlabel = pn.replace('variant_', '')
+                vid = self.find_variant(vlabel)
+                share = params[pn]
+                variant_shares[vid] = share / 100 if share else 0
+
+            share_sum = sum(variant_shares)
+            variant_shares[0] = 1 - share_sum
+            self.pop.infect_weekly(params['weekly_amount'], variant_shares, self)
         # elif iv.type == 'limit-cross-border-mobility':
         #    # Introduce infections from elsewhere
         #    self.context.cross_border_mobility_factor = (100 - value) / 100.0
