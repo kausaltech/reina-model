@@ -80,7 +80,7 @@ VARIABLE_OVERRIDE_SETS = {
             ['limit-mobility', '2020-03-23', 100, 16, 18, 'school'],
             ['limit-mobility', '2020-05-30', 100, 16, 18, 'school'],
             ['limit-mobility', '2020-08-12', 0, 16, 18, 'school'],
-            ['limit-mobility', '2020-10-12', 100, 16, 12, 'school'],
+            ['limit-mobility', '2020-10-12', 100, 16, 18, 'school'],
             ['limit-mobility', '2020-10-18', 0, 16, 18, 'school'],
             ['limit-mobility', '2020-11-01', 45, 16, 18, 'school'],
             ['limit-mobility', '2020-12-07', 70, 16, 18, 'school'],

@@ -220,7 +220,6 @@ def generate_mobility_ivs():
         ('workplaces', 'work'),
         ('transit_stations', 'transport'),
     )
-    print(df.iloc[-20:])
     df = df.groupby(pd.Grouper(freq='W')).mean().interpolate().shift(-1).dropna().astype(int)
 
     ivs = []
