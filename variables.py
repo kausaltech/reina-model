@@ -187,7 +187,7 @@ VARIABLE_OVERRIDE_SETS = {
             ['import-infections-weekly', '2021-02-08', 240, 40],
             ['import-infections-weekly', '2021-02-15', 240, 50],
             ['import-infections-weekly', '2021-02-22', 240, 60],
-            ['import-infections-weekly', '2021-03-01', 240, 70],
+            ['import-infections-weekly', '2021-03-01', 280, 70],
             ['import-infections-weekly', '2021-03-08', 240, 80],
             ['import-infections-weekly', '2021-03-15', 220, 85],
             ['import-infections-weekly', '2021-03-22', 200, 90],
