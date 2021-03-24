@@ -174,17 +174,18 @@ VARIABLE_OVERRIDE_SETS = {
             ['import-infections-weekly', '2020-11-15', 100],
             ['import-infections-weekly', '2020-11-22', 180],
             ['import-infections-weekly', '2020-11-29', 220],
-            ['import-infections-weekly', '2020-12-01', 280],
-            ['import-infections-weekly', '2020-12-15', 120, 1],
-            ['import-infections-weekly', '2020-12-22', 120, 1],
+            ['import-infections-weekly', '2020-12-01', 260],
+            ['import-infections-weekly', '2020-12-07', 240],
+            ['import-infections-weekly', '2020-12-15', 100, 1],
+            ['import-infections-weekly', '2020-12-22', 100, 1],
             ['import-infections-weekly', '2021-01-04', 160, 2],
             ['import-infections-weekly', '2021-01-11', 160, 5],
             ['import-infections-weekly', '2021-01-18', 180, 10],
             ['import-infections-weekly', '2021-01-25', 120, 15],
             ['import-infections-weekly', '2021-02-01', 120, 20],
-            ['import-infections-weekly', '2021-02-08', 240, 40],
-            ['import-infections-weekly', '2021-02-15', 240, 50],
-            ['import-infections-weekly', '2021-02-22', 240, 60],
+            ['import-infections-weekly', '2021-02-08', 200, 40],
+            ['import-infections-weekly', '2021-02-15', 200, 50],
+            ['import-infections-weekly', '2021-02-22', 200, 60],
             ['import-infections-weekly', '2021-03-01', 280, 70],
             ['import-infections-weekly', '2021-03-08', 240, 80],
             ['import-infections-weekly', '2021-03-15', 220, 85],
@@ -254,8 +255,8 @@ VARIABLE_DEFAULTS = {
 
     # 'p_mask_protects_wearer': 25.0,  # %
     # 'p_mask_protects_others': 80.0,  # %
-    'p_mask_protects_wearer': 15.0,  # %
-    'p_mask_protects_others': 80.0,  # %
+    'p_mask_protects_wearer': 10.0,  # %
+    'p_mask_protects_others': 70.0,  # %
 
     'infectiousness_multiplier': 0.55,
 
@@ -444,7 +445,7 @@ VARIABLE_DEFAULTS = {
     'random_seed': 0
 }
 
-# Variant has 50 % higher infectiousness
+# Variant has 65 % higher infectiousness
 VARIABLE_DEFAULTS['variants'][0]['infectiousness_multiplier'] = \
     VARIABLE_DEFAULTS['infectiousness_multiplier'] * 1.65
 
