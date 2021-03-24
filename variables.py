@@ -73,7 +73,7 @@ VARIABLE_OVERRIDE_SETS = {
             ['limit-mobility', '2021-02-22', 100, 13, 15, 'school'],
             ['limit-mobility', '2021-02-28', 0, 13, 15, 'school'],
             ['limit-mobility', '2021-03-08', 100, 13, 15, 'school'],
-            ['limit-mobility', '2021-03-28', 0, 13, 15, 'school'],
+            ['limit-mobility', '2021-04-05', 0, 13, 15, 'school'],
             ['limit-mobility', '2021-06-05', 100, 13, 15, 'school'],
 
             # Upper secondary level
@@ -89,14 +89,12 @@ VARIABLE_OVERRIDE_SETS = {
             ['limit-mobility', '2021-02-22', 100, 16, 18, 'school'],
             ['limit-mobility', '2021-02-28', 20, 16, 18, 'school'],
             ['limit-mobility', '2021-03-08', 100, 16, 18, 'school'],
-            ['limit-mobility', '2021-03-28', 20, 16, 18, 'school'],
+            ['limit-mobility', '2021-04-05', 20, 16, 18, 'school'],
             ['limit-mobility', '2021-06-05', 100, 16, 18, 'school'],
 
             # Higher education
             ['limit-mobility', '2020-03-23', 100, 19, None, 'school'],
             ['limit-mobility', '2020-08-12', 80, 19, None, 'school'],
-
-            ['limit-mobility', '2021-03-08', 30, None, None, 'leisure'],
 
             ['wear-masks', '2020-03-15', 80, 65, None],
             ['wear-masks', '2020-09-15', 90, 65, None],
@@ -448,7 +446,7 @@ VARIABLE_DEFAULTS = {
 
 # Variant has 50 % higher infectiousness
 VARIABLE_DEFAULTS['variants'][0]['infectiousness_multiplier'] = \
-    VARIABLE_DEFAULTS['infectiousness_multiplier'] * 1.5
+    VARIABLE_DEFAULTS['infectiousness_multiplier'] * 1.65
 
 if _variable_override_set:
     VARIABLE_DEFAULTS.update(VARIABLE_OVERRIDE_SETS[_variable_override_set])
