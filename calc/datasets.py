@@ -176,14 +176,9 @@ def get_initial_population_condition(variables) -> InitialPopulationCondition:
 MOBILITY_FILE_PATH = os.path.join(get_dataset_path(), MOBILITY_DATASET_FILENAME)
 
 
-@calcfunc(
-    variables=['area_name', 'country'],
-    filedeps=[MOBILITY_FILE_PATH]
-)
-def get_mobility_data(variables):
-    csv_fn = '2020_%s_Region_Mobility_Report.csv' % variables['country']
+def read_mobility_file(fn, area_name):
     with ZipFile(MOBILITY_FILE_PATH) as zipf:
-        with zipf.open(csv_fn) as csvf:
+        with zipf.open(fn) as csvf:
             df = pd.read_csv(csvf, header=0, index_col='date')
 
     df = df.drop(columns=[
@@ -197,7 +192,7 @@ def get_mobility_data(variables):
         'Helsinki': (2, 'Helsinki'),
         'Espoo': (2, 'Helsinki'),
     }
-    region_id, region = REGIONS[variables['area_name']]
+    region_id, region = REGIONS[area_name]
     if region_id == 1:
         df = df[(df['sub_region_1'] == region) & df.sub_region_2.isna()]
     elif region_id == 2:
@@ -208,6 +203,19 @@ def get_mobility_data(variables):
     df = df.rename(columns=renames)
     df.index = pd.to_datetime(df.index)
     return df
+
+
+@calcfunc(
+    variables=['area_name', 'country'],
+    filedeps=[MOBILITY_FILE_PATH]
+)
+def get_mobility_data(variables):
+    csv_fn = '2020_%s_Region_Mobility_Report.csv' % variables['country']
+    df1 = read_mobility_file(csv_fn, variables['area_name'])
+    csv_fn = '2021_%s_Region_Mobility_Report.csv' % variables['country']
+    df2 = read_mobility_file(csv_fn, variables['area_name'])
+
+    return df1.append(df2)
 
 
 @calcfunc(
