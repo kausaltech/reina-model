@@ -43,6 +43,7 @@ VARIABLE_OVERRIDE_SETS = {
             ['test-with-contact-tracing', '2020-12-14', 70],
             ['test-with-contact-tracing', '2021-02-22', 55],
             ['test-with-contact-tracing', '2021-03-01', 50],
+            ['test-with-contact-tracing', '2021-04-02', 65],
 
             # Elementary school
             ['limit-mobility', '2020-03-23', 0, 7, 12, 'school'],
@@ -73,7 +74,8 @@ VARIABLE_OVERRIDE_SETS = {
             ['limit-mobility', '2021-02-22', 100, 13, 15, 'school'],
             ['limit-mobility', '2021-02-28', 0, 13, 15, 'school'],
             ['limit-mobility', '2021-03-08', 100, 13, 15, 'school'],
-            ['limit-mobility', '2021-04-11', 0, 13, 15, 'school'],
+            ['limit-mobility', '2021-04-11', 30, 13, 15, 'school'],
+            ['limit-mobility', '2021-05-01', 0, 13, 15, 'school'],
             ['limit-mobility', '2021-06-05', 100, 13, 15, 'school'],
 
             # Upper secondary level
@@ -89,7 +91,7 @@ VARIABLE_OVERRIDE_SETS = {
             ['limit-mobility', '2021-02-22', 100, 16, 18, 'school'],
             ['limit-mobility', '2021-02-28', 20, 16, 18, 'school'],
             ['limit-mobility', '2021-03-08', 100, 16, 18, 'school'],
-            ['limit-mobility', '2021-04-11', 20, 16, 18, 'school'],
+            ['limit-mobility', '2021-04-11', 50, 16, 18, 'school'],
             ['limit-mobility', '2021-06-05', 100, 16, 18, 'school'],
 
             # Higher education
