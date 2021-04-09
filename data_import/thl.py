@@ -109,24 +109,6 @@ def get_weekly_current_totals(df):
     return process_value_column(s)
 
 
-def get_vaccinations(area_name):
-    df = get_vacc_data(rows=['area-518349', 'dateweek20201226-525425'], columns='cov_vac_age-518413')
-    df = df[df['dateweek20201226'] != 'Kaikki ajat'].copy()
-    df = df[df['cov_vac_age'] != 'Kaikki iät']
-    df['date'] = pd.to_datetime(
-        df['dateweek20201226'].map(lambda x: x + '-7' if x != 'Time' else x),
-        format='Vuosi %G Viikko %V-%u', errors='coerce'
-    ).dt.date
-
-    df = df[df['area'] == area_name]
-
-    s = df.set_index(['date', 'area', 'cov_vac_age'])['value']
-    s = process_value_column(s)
-    df = s.unstack('cov_vac_age')
-    df = df.reset_index('area').drop(columns='area')
-    return df
-
-
 def get_daily_data(row, measure=None):
     df = get_case_data(row, 'dateweek20200101-508804L', filters=measure)
     df['date'] = pd.to_datetime(df['dateweek20200101']).dt.date
@@ -211,19 +193,33 @@ def get_country_muni_cases():
     return daily
 
 
+def get_vaccinations():
+    df = get_vacc_data(rows=['area-184578L', 'dateweek20201226-525425'], columns='cov_vac_age-518413')
+    df = df[df['dateweek20201226'] != 'Kaikki ajat'].copy()
+    df = df[df['cov_vac_age'] != 'Kaikki iät']
+    df['date'] = pd.to_datetime(
+        df['dateweek20201226'].map(lambda x: x + '-7' if x != 'Time' else x),
+        format='Vuosi %G Viikko %V-%u', errors='coerce'
+    ).dt.date
+
+    df = df.dropna()
+
+    s = df.set_index(['date', 'area', 'cov_vac_age'])['value']
+    s = process_value_column(s)
+    df = s.unstack('cov_vac_age').reset_index('area')
+    return df
+
+
 if __name__ == '__main__':
-    import requests_cache; requests_cache.install_cache('thl')
+    from utils.data import get_dataset_path
+    import os
 
+    df = get_vaccinations()
+    assert len(df[df.area == 'Turku']) > 10
+    fname = os.path.join(get_dataset_path(), 'fi_vaccinations.csv')
+    df.to_csv(fname, header=True)
 
-    if True:
-        # print(get_dimensions(VACC_PATH))
-        # df = get_vacc_data(rows='area-518349', columns='cov_vac_age-518413', filters='dateweek20201226-531437')
-        #df = get_vacc_data(rows=['area-518349', 'dateweek20201226-525425'], columns='cov_vac_age-518413')
-        df = get_vaccinations('Turku')
-        print(df)
-        exit()
-
-    if True:
+    if False:
         df = get_country_muni_cases()
         df = df.groupby(pd.Grouper(freq='W')).mean()
         df /= df.mean()

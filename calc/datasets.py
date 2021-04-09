@@ -82,7 +82,7 @@ def get_contacts_for_country(variables):
 AREA_CASEFILES = {
     'HUS': add_root_path('data/hosp_cases_hus.csv'),
     'Varsinais-Suomi': add_root_path('data/hosp_cases_varsinais-suomi.csv'),
-    'Turku': add_root_path('data/hosp_cases_turku.csv'),
+    'Turku': os.path.join(get_dataset_path(), 'hosp_cases_turku.csv'),
 }
 
 
@@ -245,17 +245,18 @@ def generate_mobility_ivs():
             last_val = val
     return ivs
 
+
+VACCINATIONS_FILE_PATH = os.path.join(get_dataset_path(), 'fi_vaccinations.csv')
+
 @calcfunc(
-    variables=['area_name']
+    variables=['area_name'],
+    filedeps=[VACCINATIONS_FILE_PATH],
 )
 def generate_vaccination_ivs(variables):
-    from data_import.thl import get_vaccinations
-    import requests_cache
-
-    requests_cache.install_cache('thl')
-    df = get_vaccinations(variables['area_name'])
-    requests_cache.uninstall_cache()
+    df = pd.read_csv(VACCINATIONS_FILE_PATH)
+    df = df[df.area == variables['area_name']].drop(columns='area')
     df = df.fillna(0)
+    df = df.set_index('date')
     # Drop the latest week because it will have incomplete data
     df = df.iloc[:-1]
     ivs = []
@@ -266,7 +267,7 @@ def generate_vaccination_ivs(variables):
             start_age, end_age = int(col_name.strip('+')), None
 
         for idx, val in df[[col_name]].itertuples():
-            date_str = idx.date().isoformat()
+            date_str = idx
             ivs.append(['vaccinate', date_str, int(val), start_age, end_age])
 
     return ivs
