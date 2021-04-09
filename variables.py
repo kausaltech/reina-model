@@ -73,7 +73,7 @@ VARIABLE_OVERRIDE_SETS = {
             ['limit-mobility', '2021-02-22', 100, 13, 15, 'school'],
             ['limit-mobility', '2021-02-28', 0, 13, 15, 'school'],
             ['limit-mobility', '2021-03-08', 100, 13, 15, 'school'],
-            ['limit-mobility', '2021-04-05', 0, 13, 15, 'school'],
+            ['limit-mobility', '2021-04-11', 0, 13, 15, 'school'],
             ['limit-mobility', '2021-06-05', 100, 13, 15, 'school'],
 
             # Upper secondary level
@@ -89,7 +89,7 @@ VARIABLE_OVERRIDE_SETS = {
             ['limit-mobility', '2021-02-22', 100, 16, 18, 'school'],
             ['limit-mobility', '2021-02-28', 20, 16, 18, 'school'],
             ['limit-mobility', '2021-03-08', 100, 16, 18, 'school'],
-            ['limit-mobility', '2021-04-05', 20, 16, 18, 'school'],
+            ['limit-mobility', '2021-04-11', 20, 16, 18, 'school'],
             ['limit-mobility', '2021-06-05', 100, 16, 18, 'school'],
 
             # Higher education
@@ -188,9 +188,9 @@ VARIABLE_OVERRIDE_SETS = {
             ['import-infections-weekly', '2021-02-22', 200, 60],
             ['import-infections-weekly', '2021-03-01', 280, 70],
             ['import-infections-weekly', '2021-03-08', 240, 80],
-            ['import-infections-weekly', '2021-03-15', 220, 85],
-            ['import-infections-weekly', '2021-03-22', 200, 90],
-            ['import-infections-weekly', '2021-03-27', 180, 95],
+            ['import-infections-weekly', '2021-03-15', 160, 85],
+            ['import-infections-weekly', '2021-03-22', 120, 90],
+            ['import-infections-weekly', '2021-03-27', 100, 90],
 
             ['import-infections-weekly', '2021-05-01', 180, 99],
             ['import-infections-weekly', '2021-05-15', 160, 99],
