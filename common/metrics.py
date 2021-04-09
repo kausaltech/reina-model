@@ -147,6 +147,15 @@ METRICS = [
         color=None,
         is_integer=False,
     ),
+    # Metric(
+    #     'infected_by_variant',
+    #     _('New infections by variant type'),
+    #     description=None,
+    #     unit=_('infections'),
+    #     color=None,
+    #     is_integer=True,
+    #     is_categorized=True,
+    # ),
 ]
 
 MOBILITY_METRICS = [

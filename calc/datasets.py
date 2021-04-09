@@ -245,11 +245,38 @@ def generate_mobility_ivs():
             last_val = val
     return ivs
 
+@calcfunc(
+    variables=['area_name']
+)
+def generate_vaccination_ivs(variables):
+    from data_import.thl import get_vaccinations
+    import requests_cache
+
+    requests_cache.install_cache('thl')
+    df = get_vaccinations(variables['area_name'])
+    requests_cache.uninstall_cache()
+    df = df.fillna(0)
+    # Drop the latest week because it will have incomplete data
+    df = df.iloc[:-1]
+    ivs = []
+    for col_name in df.columns:
+        if '-' in col_name:
+            start_age, end_age = [int(x) for x in col_name.split('-')]
+        elif col_name.endswith('+'):
+            start_age, end_age = int(col_name.strip('+')), None
+
+        for idx, val in df[[col_name]].itertuples():
+            date_str = idx.date().isoformat()
+            ivs.append(['vaccinate', date_str, int(val), start_age, end_age])
+
+    return ivs
 
 if __name__ == '__main__':
-    df = get_detected_cases()
-    print(df)
+    df = generate_vaccination_ivs()
     exit()
+    #df = get_detected_cases()
+    #print(df)
+    #exit()
 
     df = get_mobility_data()
     pd.set_option('display.max_rows', None)

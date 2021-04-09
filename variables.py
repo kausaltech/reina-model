@@ -139,25 +139,6 @@ VARIABLE_OVERRIDE_SETS = {
             ['limit-mobility', '2021-06-24', 30, None, None, 'work'],
             ['limit-mobility', '2021-07-01', 40, None, None, 'work'],
 
-            # Vaccinate healthcare professionals
-            ['vaccinate', '2021-01-01', 250, 22, 29],
-            ['vaccinate', '2021-01-01', 250, 30, 39],
-            ['vaccinate', '2021-01-01', 250, 40, 49],
-            ['vaccinate', '2021-01-01', 250, 50, 59],
-            ['vaccinate', '2021-01-01', 250, 60, 64],
-
-            ['vaccinate', '2021-01-31', 0, 22, 29],
-            ['vaccinate', '2021-01-31', 0, 30, 39],
-            ['vaccinate', '2021-01-31', 0, 40, 49],
-            ['vaccinate', '2021-01-31', 0, 50, 59],
-            ['vaccinate', '2021-01-31', 0, 60, 64],
-
-            # Elderly
-            ['vaccinate', '2021-01-01', 1250, 80, None],
-            ['vaccinate', '2021-02-01', 2500, 80, None],
-            ['vaccinate', '2021-03-01', 0, 80, None],
-            ['vaccinate', '2021-03-01', 5000, 70, None],
-
             ['import-infections', '2020-03-01', 10],
             ['import-infections-weekly', '2020-03-01', 10],
             ['import-infections-weekly', '2020-03-15', 10],

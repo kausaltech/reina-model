@@ -35,9 +35,9 @@ class SimulationProcess(multiprocessing.Process):
         self.last_results = None
         logger.info('%s: run process (cache key %s)' % (self.uuid, self.cache_key))
 
-        def step_callback(total, age_groups=None, force=False):
+        def step_callback(total, age_groups=None, by_variant=None, force=False):
             now = time.time()
-            res = dict(total=total, age_groups=age_groups)
+            res = dict(total=total, age_groups=age_groups, by_variant=by_variant)
             if force or self.last_results is None or now - self.last_results > 0.5:
                 logger.debug('%s: set results to %s' % (self.uuid, self.cache_key))
                 cache.set('%s-results' % self.cache_key, res, timeout=self.cache_expiration)

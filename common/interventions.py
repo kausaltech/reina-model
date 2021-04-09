@@ -5,7 +5,7 @@ from enum import Enum
 
 from flask_babel import lazy_gettext as _
 from variables import get_variable
-from calc.datasets import generate_mobility_ivs
+from calc.datasets import generate_mobility_ivs, generate_vaccination_ivs
 
 
 class ContactPlace(Enum):
@@ -357,6 +357,10 @@ def get_active_interventions(variables=None):
 
     mobility_ivs = generate_mobility_ivs(variable_store=variables)
     for iv in mobility_ivs:
+        out.append(iv_tuple_to_obj(iv))
+
+    vaccinate_ivs = generate_vaccination_ivs(variable_store=variables)
+    for iv in vaccinate_ivs:
         out.append(iv_tuple_to_obj(iv))
 
     if active_scenario:

@@ -28,3 +28,4 @@ graphene==3.0b6
 gql==3.0.0a5
 flask-cors
 requests
+pyjstat
