@@ -167,7 +167,7 @@ thrift==0.13.0
     # via fastparquet
 typing-extensions==3.7.4.3
     # via graphql-server
-urllib3==1.26.4
+urllib3==1.26.5
     # via requests
 werkzeug==1.0.1
     # via
