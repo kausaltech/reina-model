@@ -6,11 +6,15 @@ from data_import.hs import get_deaths, get_hospitalisations
 MUNI_NAME = 'Turku'
 HOSPITALIZATION_MULTIPLIER = 0.5
 
+
 def update_case_data():
+    hdf = get_hospitalisations()
+
     df = get_healthcare_districts()
     muni = df[df.kunta == MUNI_NAME].iloc[0]
 
     catchment_area = muni['erva-alue']
+
     hcd = muni['sairaanhoitopiiri']
     other_hcds = df[df['erva-alue'] == catchment_area]['sairaanhoitopiiri'].unique()
 
@@ -34,8 +38,8 @@ def update_case_data():
 
     df['ca_deaths'] = get_deaths()[catchment_area]
     df['ca_deaths'] = df['ca_deaths'].fillna(method='ffill').fillna(0).astype(int)
-    hdf = get_hospitalisations()
     hdf = hdf[hdf.area == catchment_area][['in_icu', 'in_ward']]
+    hdf = hdf[~hdf.index.duplicated()]
     df['ca_in_icu'] = hdf['in_icu']
     df['ca_in_ward'] = hdf['in_ward']
 
