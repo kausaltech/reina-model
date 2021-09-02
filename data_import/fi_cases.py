@@ -37,6 +37,7 @@ def update_case_data(muni_name, hosp_multiplier):
     df['ca_deaths'] = df['ca_deaths'].fillna(method='ffill').fillna(0).astype(int)
     hdf = get_hospitalisations()
     hdf = hdf[hdf.area == catchment_area][['in_icu', 'in_ward']]
+    hdf = hdf[~hdf.index.duplicated()]
     df['ca_in_icu'] = hdf['in_icu']
     df['ca_in_ward'] = hdf['in_ward']
 
