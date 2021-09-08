@@ -24,6 +24,11 @@ cycler==0.10.0
     # via matplotlib
 cython==3.0a6
     # via -r requirements.in
+dash==1.19.0
+    # via
+    #   -r requirements.in
+    #   dash-bootstrap-components
+    #   dash-daq
 dash-bootstrap-components==0.12.0
     # via -r requirements.in
 dash-core-components==1.15.0
@@ -36,30 +41,15 @@ dash-html-components==1.1.2
     # via
     #   -r requirements.in
     #   dash
+dash_renderer==1.9.0
+    # via dash
 dash-table==4.11.2
     # via
     #   -r requirements.in
     #   dash
-dash==1.19.0
-    # via
-    #   -r requirements.in
-    #   dash-bootstrap-components
-    #   dash-daq
-dash_renderer==1.9.0
-    # via dash
 faker==6.6.2
     # via -r requirements.in
 fastparquet==0.5.0
-    # via -r requirements.in
-flask-babel==2.0.0
-    # via -r requirements.in
-flask-caching==1.10.1
-    # via -r requirements.in
-flask-compress==1.9.0
-    # via dash
-flask-cors==3.0.10
-    # via -r requirements.in
-flask-session==0.3.2
     # via -r requirements.in
 flask==1.1.2
     # via
@@ -70,6 +60,16 @@ flask==1.1.2
     #   flask-cors
     #   flask-session
     #   graphql-server
+flask-babel==2.0.0
+    # via -r requirements.in
+flask-caching==1.10.1
+    # via -r requirements.in
+flask-compress==1.9.0
+    # via dash
+flask-cors==3.0.10
+    # via -r requirements.in
+flask-session==0.3.2
+    # via -r requirements.in
 future==0.18.2
     # via dash
 futures==3.1.1
@@ -123,7 +123,7 @@ pandas==1.2.3
     #   -r requirements.in
     #   fastparquet
     #   pyjstat
-pillow==8.1.2
+pillow==8.3.2
     # via matplotlib
 plotly==4.14.3
     # via dash
