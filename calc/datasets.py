@@ -214,8 +214,10 @@ def get_mobility_data(variables):
     df1 = read_mobility_file(csv_fn, variables['area_name'])
     csv_fn = '2021_%s_Region_Mobility_Report.csv' % variables['country']
     df2 = read_mobility_file(csv_fn, variables['area_name'])
+    csv_fn = '2022_%s_Region_Mobility_Report.csv' % variables['country']
+    df3 = read_mobility_file(csv_fn, variables['area_name'])
 
-    return df1.append(df2)
+    return df1.append(df2).append(df3)
 
 
 @calcfunc(
@@ -273,8 +275,8 @@ def generate_vaccination_ivs(variables):
     return ivs
 
 if __name__ == '__main__':
-    df = generate_vaccination_ivs()
-    exit()
+    #df = generate_vaccination_ivs()
+    #exit()
     #df = get_detected_cases()
     #print(df)
     #exit()
